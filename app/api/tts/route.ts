@@ -6,9 +6,52 @@ import path from "node:path";
 
 const execFileAsync = promisify(execFile);
 
+// GET /api/tts — Check KittenTTS installation and model status
+export async function GET() {
+  try {
+    const setupScript = path.join(process.cwd(), "server", "setup_kittentts.py");
+    const { stdout } = await execFileAsync("python", [setupScript, "--check"], { timeout: 6000 });
+    const parsed = JSON.parse(stdout.trim());
+    return NextResponse.json(parsed);
+  } catch (err) {
+    // If Python is missing or script errors, report fallback status
+    return NextResponse.json({
+      installed: false,
+      has_library: false,
+      has_local_model: false,
+      lib_version: null,
+      model_dir: null,
+      engine: "Browser-WebSpeechFallback",
+      notice: err instanceof Error ? err.message : "Python unavailable",
+    });
+  }
+}
+
+// POST /api/tts — Synthesize audio or trigger 1-click model download
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+
+    // 1. Download action handler
+    if (body.action === "download") {
+      try {
+        const setupScript = path.join(process.cwd(), "server", "setup_kittentts.py");
+        const { stdout } = await execFileAsync("python", [setupScript, "--download"], { timeout: 45000 });
+        const parsed = JSON.parse(stdout.trim());
+        return NextResponse.json(parsed);
+      } catch (downloadErr) {
+        return NextResponse.json(
+          {
+            installed: false,
+            download_status: "error",
+            error: downloadErr instanceof Error ? downloadErr.message : "Failed to download model",
+          },
+          { status: 500 }
+        );
+      }
+    }
+
+    // 2. TTS Speech Synthesis
     const { text, voice = "pastor_warm", speed = 0.9 } = body;
 
     if (!text || typeof text !== "string" || !text.trim()) {
@@ -35,7 +78,7 @@ export async function POST(req: NextRequest) {
         String(speed),
         "--output",
         tempAudioFile,
-      ], { timeout: 4000 });
+      ], { timeout: 6000 });
 
       if (fs.existsSync(tempAudioFile)) {
         const audioBuffer = fs.readFileSync(tempAudioFile);

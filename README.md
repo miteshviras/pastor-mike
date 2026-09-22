@@ -169,14 +169,31 @@ The app operates with zero cloud API keys:
 
 ---
 
-## Voice Pipeline (KittenTTS)
+## First-Time User Setup Flow
 
+When opening the app for the first time, an interactive 3-step setup guide launches automatically:
+1. **Step 1: Onboarding**: Meet Pastor Mike, review the non-ordained AI disclosure, set your preferred name, and select spiritual focus areas.
+2. **Step 2: Connect to MCP**: Verify local tool execution against `/api/mcp` and inspect Claude Desktop / Cursor stdio configuration.
+3. **Step 3: Test Audio (STT & TTS)**:
+   - Check KittenTTS status.
+   - 1-Click **"Start Download TTS"** button to automatically download KittenTTS weights.
+   - Listen to a test pastoral blessing (TTS) and test microphone recognition (STT).
+   - Click **"Setup Guide"** in the top navigation anytime to re-open this flow.
+
+---
+
+## Voice Pipeline (KittenTTS & Speech Check)
+
+- **1-Click Downloader**: Click **"Setup Guide"** in the UI to check status and download KittenTTS neural weights automatically, or trigger directly via:
+  ```bash
+  python server/setup_kittentts.py --download
+  ```
 - **Adapter Script**: Located in [`server/kittentts_adapter.py`](server/kittentts_adapter.py).
 - **Test CLI Synthesis**:
   ```bash
   python server/kittentts_adapter.py --text "Peace be with you." --voice pastor_warm --speed 0.9 --output output.wav
   ```
-- **Browser Playback**: In the UI, click **Voice Mode** to enable hands-free voice conversations with turn-taking awareness and speed controls (0.8x to 1.1x).
+- **Browser Playback & Microphone STT**: In the UI, click **Voice Mode** or the microphone icon to talk hands-free with turn-taking awareness and speed controls (0.8x to 1.1x).
 
 ---
 

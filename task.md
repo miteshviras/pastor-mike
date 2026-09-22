@@ -84,3 +84,15 @@ Each task is committed and pushed upon completion.
   - Improve prayer card "Save to Journal" button styling and contrast in `components/ChatMessage.tsx`.
   - *Commit: `fix: resolve message metadata persistence and dark mode card contrast`*
 
+- [x] **Task 12: First-Time User Onboarding Flow & KittenTTS Auto-Downloader**
+  - Implement 3-step interactive onboarding modal (`components/OnboardingModal.tsx`):
+    - **Step 1: Onboarding**: Meet Pastor Mike, AI companion disclosure, user preferred name, and spiritual care focus tags.
+    - **Step 2: Connect to MCP**: 7 local MCP tools overview, live interactive tool test against `/api/mcp`, and copyable Claude Desktop/Cursor config.
+    - **Step 3: Test STT & TTS**: KittenTTS status checker, 1-click **"Start Download TTS"** button, interactive TTS audio playback test with speed controls, and microphone STT input verification.
+  - Add KittenTTS setup utility script (`server/setup_kittentts.py`) and API handlers (`GET/POST /api/tts`).
+  - Add **"Setup Guide"** launcher button to navigation header (`components/Header.tsx`).
+  - Add automatic first-time detection and preference persistence via `localStorage` and SQLite memory in `app/page.tsx`.
+  - Add automated test verification (`scripts/test-onboarding.ts`).
+  - *Commit: `feat: implement first-time onboarding flow, MCP connection, and KittenTTS auto-downloader`*
+
+

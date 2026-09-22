@@ -14,6 +14,7 @@
     "test:ai": "tsx scripts/test-ai.ts",
     "test:api": "tsx scripts/test-api.ts",
     "test:tts": "tsx scripts/test-tts.ts",
+    "test:onboarding": "tsx scripts/test-onboarding.ts",
     "test:e2e": "tsx scripts/test-e2e-demo.ts",
     "test": "tsx scripts/test-e2e-demo.ts",
     "mcp:server": "tsx server/mcp_server.ts"

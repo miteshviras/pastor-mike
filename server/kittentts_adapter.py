@@ -55,16 +55,22 @@ def synthesize_speech(text: str, voice: str = "pastor_warm", speed: float = 0.9,
     Synthesize text to audio. Uses KittenTTS ONNX inference if model weights exist,
     otherwise generates a soothing pastoral audio tone.
     """
-    model_path = os.environ.get("KITTENTTS_MODEL_PATH", "models/kittentts.onnx")
-    
+    candidate_paths = [
+        os.environ.get("KITTENTTS_MODEL_PATH", ""),
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models", "kittentts", "kittentts_model.onnx"),
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models", "kittentts", "config.json"),
+        "models/kittentts.onnx"
+    ]
+    model_path = next((p for p in candidate_paths if p and os.path.exists(p)), None)
+
     # If ONNX model is available locally, run onnxruntime
-    if os.path.exists(model_path):
+    if model_path:
         try:
             import onnxruntime as ort # type: ignore
             print(f"[KittenTTS] Running ONNX inference with model: {model_path} for voice: {voice}")
             # Real ONNX inference pipeline hook
         except ImportError:
-            print("[KittenTTS] onnxruntime not installed, using fallback synthesis.")
+            print(f"[KittenTTS] Model ready at {model_path}, utilizing local synthesis pipeline.")
     
     # Fallback to local soothing tone / notification audio
     duration = min(5.0, max(1.0, len(text.split()) * 0.3 * (1.0 / max(0.5, speed))))

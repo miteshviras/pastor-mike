@@ -1,13 +1,13 @@
 "use client";
 
-import React from "react";
-import { BookOpen, Mic, MicOff, PlusCircle, Sparkles, Wrench } from "lucide-react";
+import { BookOpen, Compass, Mic, MicOff, PlusCircle, Sparkles, Wrench } from "lucide-react";
 
 interface HeaderProps {
   isVoiceMode: boolean;
   onToggleVoiceMode: () => void;
   onOpenJournal: () => void;
   onOpenMcp: () => void;
+  onOpenOnboarding: () => void;
   onNewSession: () => void;
   prayerCount: number;
 }
@@ -17,6 +17,7 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleVoiceMode,
   onOpenJournal,
   onOpenMcp,
+  onOpenOnboarding,
   onNewSession,
   prayerCount,
 }) => {
@@ -78,6 +79,16 @@ export const Header: React.FC<HeaderProps> = ({
                 <span>Voice Mode</span>
               </>
             )}
+          </button>
+
+          {/* Setup Guide / Onboarding */}
+          <button
+            onClick={onOpenOnboarding}
+            title="Setup Guide: Persona, MCP Connection & Audio Testing"
+            className="flex items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-stone-700 shadow-xs transition hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700"
+          >
+            <Compass className="h-3.5 w-3.5 text-[#445942] dark:text-[#7ba277]" />
+            <span className="hidden sm:inline">Setup Guide</span>
           </button>
 
           {/* MCP & Tools Button */}

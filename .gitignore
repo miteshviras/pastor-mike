@@ -46,3 +46,9 @@ data/
 *.db-journal
 *.db-wal
 
+# models & audio
+models/
+*.onnx
+*.wav
+
+

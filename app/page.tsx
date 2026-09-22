@@ -6,6 +6,7 @@ import { ChatMessage, ChatMessageProps } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
 import { PrayerJournalModal } from "@/components/PrayerJournalModal";
 import { McpModal } from "@/components/McpModal";
+import { OnboardingModal } from "@/components/OnboardingModal";
 import { VoiceBar } from "@/components/VoiceBar";
 import { CrisisBanner } from "@/components/CrisisBanner";
 import { PastoralSpeechClient } from "@/lib/voice/speech-client";
@@ -24,6 +25,7 @@ export default function Home() {
   const [prayers, setPrayers] = useState<PrayerRequest[]>([]);
   const [isJournalOpen, setIsJournalOpen] = useState(false);
   const [isMcpOpen, setIsMcpOpen] = useState(false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [latestSafety, setLatestSafety] = useState<SafetyCheckResult | null>(null);
 
   const speechClientRef = useRef<PastoralSpeechClient | null>(null);
@@ -137,6 +139,12 @@ export default function Home() {
           if (typeof window !== "undefined") {
             localStorage.setItem("pastor_mike_session_id", createData.session.id);
           }
+        }
+
+        // 5. Check if first-time onboarding should be displayed
+        const hasOnboarded = typeof window !== "undefined" ? localStorage.getItem("pastor_mike_onboarded") === "true" : true;
+        if (!hasOnboarded) {
+          setIsOnboardingOpen(true);
         }
       } catch (err) {
         console.error("Initialization error:", err);
@@ -313,6 +321,29 @@ export default function Home() {
     }
   };
 
+  const handleCompleteOnboarding = (prefs: { name: string; topics: string[]; enableVoice: boolean }) => {
+    if (prefs.enableVoice) {
+      setIsVoiceMode(true);
+    }
+
+    if (messages.length === 0) {
+      const topicText = prefs.topics.length > 0 ? `regarding ${prefs.topics.join(" and ")}` : "in your heart";
+      const greeting = `Peace and grace to you, ${prefs.name || "Beloved Friend"}. I am Pastor Mike. I am glad you have joined me in this quiet space today. I am holding what is ${topicText} with gentle care. How can I walk alongside you right now?`;
+
+      const welcomeMsg: ChatMessageProps = {
+        id: "ast_welcome_" + Date.now(),
+        role: "assistant",
+        content: greeting,
+        createdAt: new Date().toISOString(),
+      };
+      setMessages([welcomeMsg]);
+
+      if (prefs.enableVoice && speechClientRef.current) {
+        speechClientRef.current.speakText(greeting);
+      }
+    }
+  };
+
   return (
     <div className="flex min-h-screen flex-col bg-[#faf8f5] text-stone-900 selection:bg-[#445942]/20 selection:text-stone-900 dark:bg-[#141312] dark:text-stone-100">
       {/* Top Header */}
@@ -321,6 +352,7 @@ export default function Home() {
         onToggleVoiceMode={() => setIsVoiceMode(!isVoiceMode)}
         onOpenJournal={() => setIsJournalOpen(true)}
         onOpenMcp={() => setIsMcpOpen(true)}
+        onOpenOnboarding={() => setIsOnboardingOpen(true)}
         onNewSession={handleNewSession}
         prayerCount={prayers.filter((p) => p.status === "active").length}
       />
@@ -410,6 +442,14 @@ export default function Home() {
       <McpModal
         isOpen={isMcpOpen}
         onClose={() => setIsMcpOpen(false)}
+      />
+
+      {/* First-Time User Onboarding & Voice Check Modal */}
+      <OnboardingModal
+        isOpen={isOnboardingOpen}
+        onClose={() => setIsOnboardingOpen(false)}
+        onComplete={handleCompleteOnboarding}
+        sessionId={sessionId}
       />
     </div>
   );
