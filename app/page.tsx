@@ -6,7 +6,6 @@ import { ChatMessage, ChatMessageProps } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
 import { PrayerJournalModal } from "@/components/PrayerJournalModal";
 import { VisitHistorySidebar } from "@/components/VisitHistorySidebar";
-import { SettingsModal } from "@/components/SettingsModal";
 import { OnboardingModal } from "@/components/OnboardingModal";
 import { VoiceBar } from "@/components/VoiceBar";
 import { CrisisBanner } from "@/components/CrisisBanner";
@@ -50,8 +49,9 @@ export default function Home() {
   const [prayerScope, setPrayerScope] = useState<"session" | "all">("session");
   const [isJournalOpen, setIsJournalOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const [guideModalTab, setGuideModalTab] = useState<
+    "guide" | "settings" | null
+  >(null);
   const [latestSafety, setLatestSafety] = useState<SafetyCheckResult | null>(
     null,
   );
@@ -267,7 +267,7 @@ export default function Home() {
             ? localStorage.getItem("pastor_mike_onboarded") === "true"
             : true;
         if (!hasOnboarded) {
-          setIsOnboardingOpen(true);
+          setGuideModalTab("guide");
         }
       } catch (err) {
         console.error("Initialization error:", err);
@@ -551,8 +551,8 @@ export default function Home() {
         onToggleVoiceMode={() => setIsVoiceMode(!isVoiceMode)}
         onOpenJournal={() => setIsJournalOpen(true)}
         onOpenHistory={() => setIsHistoryOpen(true)}
-        onOpenSettings={() => setIsSettingsOpen(true)}
-        onOpenOnboarding={() => setIsOnboardingOpen(true)}
+        onOpenSettings={() => setGuideModalTab("settings")}
+        onOpenOnboarding={() => setGuideModalTab("guide")}
         onNewSession={handleNewSession}
         prayerCount={prayers.filter((p) => p.status === "active").length}
         providerLabel={providerLabel}
@@ -604,7 +604,7 @@ export default function Home() {
             )}
 
             {/* Conversation Transcript */}
-            <div className="flex-1 space-y-2">
+            <div className={messages.length > 0 ? "flex-1 space-y-2" : "space-y-2"}>
               {messages.map((msg) => (
                 <ChatMessage
                   key={msg.id}
@@ -629,30 +629,30 @@ export default function Home() {
             </div>
           </main>
 
-          {/* Floating Voice Status Bar */}
-          <VoiceBar
-            isVoiceMode={isVoiceMode}
-            isListening={isListening}
-            isSpeaking={isSpeaking}
-            speed={speechSpeed}
-            onSpeedChange={setSpeechSpeed}
-            voice={voicePreset}
-            onVoiceChange={setVoicePreset}
-            onClose={() => setIsVoiceMode(false)}
-          />
+          {/* Voice Status Bar + Composer, pinned together at the bottom */}
+          <div className="sticky bottom-0 z-20">
+            <VoiceBar
+              isVoiceMode={isVoiceMode}
+              isListening={isListening}
+              isSpeaking={isSpeaking}
+              speed={speechSpeed}
+              onSpeedChange={setSpeechSpeed}
+              voice={voicePreset}
+              onVoiceChange={setVoicePreset}
+              onClose={() => setIsVoiceMode(false)}
+            />
 
-          {/* Bottom Composer Input */}
-          <ChatInput
-            onSendMessage={handleSendMessage}
-            isLoading={isLoading}
-            isListening={isListening}
-            onToggleListening={handleToggleListening}
-            isSpeaking={isSpeaking}
-            showStarterPills={messages.length === 0}
-            micError={micError}
-          />
+            <ChatInput
+              onSendMessage={handleSendMessage}
+              isLoading={isLoading}
+              isListening={isListening}
+              onToggleListening={handleToggleListening}
+              isSpeaking={isSpeaking}
+              showStarterPills={messages.length === 0}
+              micError={micError}
+            />
+          </div>
         </div>
-
       </div>
 
       {/* Prayer Journal Modal */}
@@ -672,10 +672,14 @@ export default function Home() {
         }}
       />
 
-      {/* AI Provider Settings Modal */}
-      <SettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
+      {/* Setup Guide & AI Settings Modal (tabbed) */}
+      <OnboardingModal
+        key={guideModalTab ?? "closed"}
+        isOpen={guideModalTab !== null}
+        initialTab={guideModalTab ?? "guide"}
+        onClose={() => setGuideModalTab(null)}
+        onComplete={handleCompleteOnboarding}
+        sessionId={sessionId}
         onProviderChange={(provider) => {
           const labels: Record<string, string> = {
             gemini: "Gemini",
@@ -684,14 +688,6 @@ export default function Home() {
           };
           setProviderLabel(labels[provider] || provider);
         }}
-      />
-
-      {/* First-Time User Onboarding & Voice Check Modal */}
-      <OnboardingModal
-        isOpen={isOnboardingOpen}
-        onClose={() => setIsOnboardingOpen(false)}
-        onComplete={handleCompleteOnboarding}
-        sessionId={sessionId}
       />
     </div>
   );

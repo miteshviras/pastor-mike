@@ -8,7 +8,6 @@ import {
   Mic,
   MicOff,
   PlusCircle,
-  Sparkles,
   Menu,
   X,
   Settings,
@@ -57,7 +56,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 px-3 py-2.5 sm:px-4 sm:py-3 backdrop-blur-md shadow-nav">
-      <div className="mx-auto flex max-w-4xl items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2">
         {/* Left: Persona Identity */}
         <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
           <div className="relative flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full bg-[#5266eb] text-white">
@@ -66,60 +65,14 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <h1 className="text-sm sm:text-base font-semibold tracking-tight text-[#ededf3] truncate">
-                Pastor Mike
-              </h1>
-
-              {/* Subtitle / badge: Hidden until there's room, to prevent overflow with the action bar */}
-              <span className="hidden md:inline-flex items-center gap-1 rounded-full border border-[#9cb4e8]/25 bg-[#9cb4e8]/10 px-2 py-0.5 text-[10px] font-medium text-[#c3c3cc]">
-                <Sparkles className="h-2.5 w-2.5 text-[#9cb4e8]" />
-                AI Companion
-              </span>
-
-              {providerLabel && (
-                <button
-                  type="button"
-                  onClick={onOpenSettings}
-                  title="Active AI provider — click to change in Settings"
-                  className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[#9cb4e8]/30 bg-[#9cb4e8]/10 px-2 py-0.5 text-[10px] font-medium text-[#9cb4e8] transition hover:bg-[#9cb4e8]/15 cursor-pointer touch-manipulation active:scale-95"
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  <span>{providerLabel}</span>
-                </button>
-              )}
-            </div>
-
-            <p className="hidden md:block text-xs text-[#c3c3cc] truncate">
-              Calm, scripture-aware spiritual care
-            </p>
+            <h1 className="text-sm sm:text-base font-semibold tracking-tight text-[#ededf3] truncate">
+              Pastor Mike
+            </h1>
           </div>
         </div>
 
         {/* Right: Actions Bar */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {/* New Session (Desktop only) */}
-          <button
-            type="button"
-            onClick={onNewSession}
-            title="Start a new conversation"
-            className="hidden md:flex items-center gap-1.5 rounded-full border border-transparent px-3 py-1.5 text-xs font-medium text-[#ededf3] transition hover:bg-card/10 cursor-pointer touch-manipulation active:scale-95"
-          >
-            <PlusCircle className="h-3.5 w-3.5 text-[#9cb4e8]" />
-            <span>New Visit</span>
-          </button>
-
-          {/* Visit History */}
-          <button
-            type="button"
-            onClick={onOpenHistory}
-            title="View past visits and switch between conversations"
-            className="flex items-center justify-center gap-1.5 rounded-full border border-transparent p-2 min-h-[38px] min-w-[38px] sm:min-h-0 sm:min-w-0 sm:px-3 sm:py-1.5 text-xs font-medium text-[#ededf3] transition hover:bg-card/10 cursor-pointer touch-manipulation active:scale-95"
-          >
-            <History className="h-4 w-4 sm:h-3.5 sm:w-3.5 text-[#9cb4e8]" />
-            <span className="hidden md:inline">Visit History</span>
-          </button>
-
           {/* Voice Mode Toggle */}
           <button
             type="button"
@@ -220,6 +173,19 @@ export const Header: React.FC<HeaderProps> = ({
                   >
                     <PlusCircle className="h-4 w-4 text-[#5266eb]" />
                     <span>New Visit</span>
+                  </button>
+
+                  {/* Visit History */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      onOpenHistory();
+                    }}
+                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-xs font-medium text-card-foreground transition hover:bg-accent rounded-lg cursor-pointer touch-manipulation active:scale-95"
+                  >
+                    <History className="h-4 w-4 text-[#5266eb]" />
+                    <span>Visit History</span>
                   </button>
 
                   {/* Settings */}
