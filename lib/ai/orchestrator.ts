@@ -1,8 +1,7 @@
 import { evaluateSafety, SafetyCheckResult } from "./safety";
 import { OFFLINE_TOPIC_TEMPLATES } from "./pastoral-prompt";
-import { executeMcpTool } from "../mcp/tools";
-import { ScriptureVerse } from "../scripture/bible-data";
-import { saveMessage, getOrCreateDefaultUser, getActiveMcpClient, getProviderSettings } from "../db";
+import { searchScripture, ScriptureVerse } from "../scripture/bible-data";
+import { saveMessage, getOrCreateDefaultUser, getProviderSettings, getRecentContext, savePrayerRequest } from "../db";
 import { generateDynamicPastoralResponse } from "./dynamic-pastoral-engine";
 
 export interface PastoralResponse {
@@ -15,12 +14,6 @@ export interface PastoralResponse {
   safety: SafetyCheckResult;
   savedPrayerId?: string;
   usedModel: "gemini" | "ollama" | "local-offline-engine";
-  mcp?: {
-    isConnected: boolean;
-    clientName: string;
-    transport: string;
-    toolsCalled: string[];
-  };
 }
 
 // Helper to query Google Gemini API if API key is provided
@@ -152,17 +145,8 @@ export async function processPastoralTurn(
     };
   }
 
-  // Tools tracking for MCP status and execution logs
-  const toolsExecuted: string[] = [];
-
-  // 3. Pull what we already know about this believer via MCP (memories, active prayers, past summaries)
-  toolsExecuted.push("get_recent_context");
-  const contextResult = await executeMcpTool("get_recent_context", {}, { userId });
-  const recentContext = (contextResult.data as {
-    recentSummaries: string[];
-    activePrayers: string[];
-    memories: Record<string, string>;
-  }) || { recentSummaries: [], activePrayers: [], memories: {} };
+  // 3. Pull what we already know about this believer (memories, active prayers, past summaries)
+  const recentContext = getRecentContext(userId);
   const preferredName = recentContext.memories["preferred_name"];
 
   // 4. Determine Emotional Topic & Intent
@@ -181,39 +165,18 @@ export async function processPastoralTurn(
 
   const template = OFFLINE_TOPIC_TEMPLATES[matchedTopic];
 
-  // 5. Execute MCP Scripture Search — enriched with the believer's own words, not just the topic bucket
-  toolsExecuted.push("search_scripture");
-  const scriptureToolResult = await executeMcpTool("search_scripture", {
-    topic_or_keyword: `${template.scriptureQuery} ${userMessage}`,
-  });
-
-  const scriptures: ScriptureVerse[] = (scriptureToolResult.data as { verses: ScriptureVerse[] })?.verses || [];
+  // 5. Scripture search — enriched with the believer's own words, not just the topic bucket
+  const scriptures: ScriptureVerse[] = searchScripture(`${template.scriptureQuery} ${userMessage}`);
   const primaryVerse = scriptures[0];
 
   // 6. Check if user explicitly asked for prayer or mentioned a prayer request
   let savedPrayerId: string | undefined;
   if (/pray|prayer|interced|please pray|hold in prayer/.test(lowerMsg)) {
-    toolsExecuted.push("save_prayer_request");
-    const prayerRes = await executeMcpTool("save_prayer_request", {
-      text: userMessage,
-      session_id: sessionId,
-    }, { userId, sessionId });
-
-    if (prayerRes.success) {
-      savedPrayerId = (prayerRes.data as { id: string }).id;
-    }
+    const prayer = savePrayerRequest(userId, userMessage, sessionId);
+    savedPrayerId = prayer.id;
   }
 
-  // 7. Check Active MCP Client Connection
-  const mcpStatus = getActiveMcpClient();
-  const mcpInfo = {
-    isConnected: mcpStatus.isConnected,
-    clientName: mcpStatus.clientName,
-    transport: mcpStatus.transport,
-    toolsCalled: toolsExecuted,
-  };
-
-  // 8. Model Selection Hierarchy:
+  // 7. Model Selection Hierarchy:
   // 1st: Google Gemini API (if GEMINI_API_KEY or GOOGLE_API_KEY is configured)
   // 2nd: Local Ollama LLM (if running)
   // 3rd: Robust Dynamic Pastoral Reasoning Engine (local-offline-engine)
@@ -234,7 +197,7 @@ You speak gently, offer empathetic reflection, cite Holy Scripture thoughtfully,
 Always maintain transparent disclosure that you are an AI companion providing spiritual encouragement, not an ordained human minister.
 ${contextLines.join(" ")}`;
 
-  // User-selected backend (Settings tab in MCP & Tools). Defaults to Gemini.
+  // User-selected backend (Settings). Defaults to Gemini.
   const providerSettings = getProviderSettings(userId);
 
   let replyText = "";
@@ -256,7 +219,7 @@ ${contextLines.join(" ")}`;
   }
   // providerSettings.provider === "offline" skips both external calls entirely
 
-  // 9. Robust Dynamic Pastoral Reasoning Engine — always computed for its tailored prayer card;
+  // 8. Robust Dynamic Pastoral Reasoning Engine — always computed for its tailored prayer card;
   // also supplies the reply text itself when no external model was selected/available.
   const dynamicTurn = generateDynamicPastoralResponse(userMessage, scriptures, {
     preferredName,
@@ -269,13 +232,12 @@ ${contextLines.join(" ")}`;
     usedModel = "local-offline-engine";
   }
 
-  // 10. Persist Assistant Response in SQLite with MCP Metadata
+  // 9. Persist Assistant Response in SQLite
   saveMessage(sessionId, "assistant", replyText, {
     scriptures,
     prayer: activePrayer,
     usedModel,
     savedPrayerId,
-    mcp: mcpInfo,
   });
 
   return {
@@ -285,6 +247,5 @@ ${contextLines.join(" ")}`;
     safety,
     savedPrayerId,
     usedModel,
-    mcp: mcpInfo,
   };
 }

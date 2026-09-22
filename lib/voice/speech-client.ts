@@ -63,55 +63,59 @@ export class PastoralSpeechClient {
   }
 
   private initSpeechRecognition() {
-    const windowObj = window as unknown as {
-      SpeechRecognition?: new () => ISpeechRecognition;
-      webkitSpeechRecognition?: new () => ISpeechRecognition;
-    };
-
-    const SpeechRecClass = windowObj.SpeechRecognition || windowObj.webkitSpeechRecognition;
-
-    if (SpeechRecClass) {
-      const rec = new SpeechRecClass();
-      rec.continuous = false;
-      rec.interimResults = true;
-      rec.lang = "en-US";
-
-      rec.onstart = () => {
-        this.isListening = true;
-        this.options.onListeningStateChange?.(true);
+    try {
+      const windowObj = window as unknown as {
+        SpeechRecognition?: new () => ISpeechRecognition;
+        webkitSpeechRecognition?: new () => ISpeechRecognition;
       };
 
-      rec.onend = () => {
-        this.isListening = false;
-        this.options.onListeningStateChange?.(false);
-      };
+      const SpeechRecClass = windowObj.SpeechRecognition || windowObj.webkitSpeechRecognition;
 
-      rec.onerror = (e) => {
-        this.isListening = false;
-        this.options.onListeningStateChange?.(false);
-        if (e.error === "no-speech") return;
-        const messages: Record<string, string> = {
-          "not-allowed": "Microphone access was blocked. Allow it in your browser's site settings and try again.",
-          "audio-capture": "No microphone was found. Check that one is connected and try again.",
-          network: "Speech recognition needs an internet connection (Chrome routes it through Google's servers) — it isn't available offline.",
-          "service-not-allowed": "The browser blocked speech recognition on this page.",
+      if (SpeechRecClass) {
+        const rec = new SpeechRecClass();
+        rec.continuous = false;
+        rec.interimResults = true;
+        rec.lang = "en-US";
+
+        rec.onstart = () => {
+          this.isListening = true;
+          this.options.onListeningStateChange?.(true);
         };
-        this.options.onError?.(messages[e.error] || `Speech recognition error: ${e.error}`);
-      };
 
-      rec.onresult = (e: SpeechRecognitionEvent) => {
-        let transcript = "";
-        let isFinal = false;
+        rec.onend = () => {
+          this.isListening = false;
+          this.options.onListeningStateChange?.(false);
+        };
 
-        for (let i = 0; i < e.results.length; i++) {
-          transcript += e.results[i][0].transcript;
-          if (e.results[i].isFinal) isFinal = true;
-        }
+        rec.onerror = (e) => {
+          this.isListening = false;
+          this.options.onListeningStateChange?.(false);
+          if (e.error === "no-speech") return;
+          const messages: Record<string, string> = {
+            "not-allowed": "Microphone access was blocked. Allow it in your browser's site settings and try again.",
+            "audio-capture": "No microphone was found. Check that one is connected and try again.",
+            network: "Speech recognition needs an internet connection (Chrome routes it through Google's servers) — it isn't available offline.",
+            "service-not-allowed": "The browser blocked speech recognition on this page.",
+          };
+          this.options.onError?.(messages[e.error] || `Speech recognition error: ${e.error}`);
+        };
 
-        this.options.onTranscriptionResult?.(transcript, isFinal);
-      };
+        rec.onresult = (e: SpeechRecognitionEvent) => {
+          let transcript = "";
+          let isFinal = false;
 
-      this.recognition = rec;
+          for (let i = 0; i < e.results.length; i++) {
+            transcript += e.results[i][0].transcript;
+            if (e.results[i].isFinal) isFinal = true;
+          }
+
+          this.options.onTranscriptionResult?.(transcript, isFinal);
+        };
+
+        this.recognition = rec;
+      }
+    } catch (err) {
+      console.warn("Speech recognition initialization unavailable (e.g. mobile HTTP origin):", err);
     }
   }
 
@@ -121,14 +125,15 @@ export class PastoralSpeechClient {
       return; // Do not listen over assistant speech
     }
     if (!this.recognition) {
-      this.options.onError?.("Speech recognition isn't supported in this browser. Try Chrome or Edge.");
+      this.options.onError?.("Speech recognition is not available over plain HTTP on mobile. Chrome requires HTTPS or localhost for microphone access.");
       return;
     }
     if (!this.isListening) {
       try {
         this.recognition.start();
-      } catch {
-        // Recognition already started
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        this.options.onError?.(`Microphone error: ${msg}`);
       }
     }
   }

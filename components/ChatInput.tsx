@@ -76,9 +76,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               {STARTER_PROMPTS.map((prompt) => (
                 <button
                   key={prompt}
+                  type="button"
                   onClick={() => handleSelectPrompt(prompt)}
                   disabled={isLoading}
-                  className="whitespace-nowrap shrink-0 rounded-full border border-[#9cb4e8]/25 bg-[#9cb4e8]/10 px-3 py-1.5 text-xs text-[#ededf3] transition hover:bg-[#9cb4e8]/20 disabled:opacity-50"
+                  className="whitespace-nowrap shrink-0 rounded-full border border-[#9cb4e8]/25 bg-[#9cb4e8]/10 px-3.5 py-2 text-xs text-[#ededf3] transition hover:bg-[#9cb4e8]/20 disabled:opacity-50 cursor-pointer touch-manipulation active:scale-[0.98]"
                 >
                   {prompt}
                 </button>
@@ -101,7 +102,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   ? "Listening... Click to stop"
                   : "Speak your message"
             }
-            className={`flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full transition ${
+            className={`flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full transition cursor-pointer touch-manipulation active:scale-95 ${
               isListening
                 ? "bg-rose-500 text-white animate-pulse"
                 : isSpeaking
@@ -140,7 +141,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             onClick={handleSend}
             disabled={!input.trim() || isLoading}
             title="Send message"
-            className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full bg-[#5266eb] text-white transition hover:bg-[#3f52c9] disabled:opacity-30 disabled:hover:bg-[#5266eb]"
+            className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full bg-[#5266eb] text-white transition hover:bg-[#3f52c9] disabled:opacity-30 disabled:hover:bg-[#5266eb] cursor-pointer touch-manipulation active:scale-95"
           >
             <Send className="h-4 w-4" />
           </button>

@@ -46,7 +46,7 @@ export default function RootLayout({
           href="https://api.fontshare.com/v2/css?f[]=general-sans@400,420,480,500,600,700&display=swap"
         />
       </head>
-      <body className="min-h-[100dvh] flex flex-col">{children}</body>
+      <body className="h-[100dvh] overflow-hidden flex flex-col">{children}</body>
     </html>
   );
 }

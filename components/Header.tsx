@@ -11,9 +11,7 @@ import {
   Sparkles,
   Menu,
   X,
-  Cpu,
-  Layers,
-  CheckCircle2,
+  Settings,
 } from "lucide-react";
 
 interface HeaderProps {
@@ -21,12 +19,10 @@ interface HeaderProps {
   onToggleVoiceMode: () => void;
   onOpenJournal: () => void;
   onOpenHistory: () => void;
-  onOpenMcp: () => void;
+  onOpenSettings: () => void;
   onOpenOnboarding: () => void;
   onNewSession: () => void;
   prayerCount: number;
-  isMcpConnected?: boolean;
-  mcpClientName?: string;
   providerLabel?: string;
 }
 
@@ -35,12 +31,10 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleVoiceMode,
   onOpenJournal,
   onOpenHistory,
-  onOpenMcp,
+  onOpenSettings,
   onOpenOnboarding,
   onNewSession,
   prayerCount,
-  isMcpConnected = true,
-  mcpClientName = "Antigravity 2.0",
   providerLabel = "Gemini",
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -77,8 +71,8 @@ export const Header: React.FC<HeaderProps> = ({
                 Pastor Mike
               </h1>
 
-              {/* Subtitle / badge: Hidden on very small screens to prevent overflow */}
-              <span className="hidden sm:inline-flex items-center gap-1 rounded-full border border-[#9cb4e8]/25 bg-[#9cb4e8]/10 px-2 py-0.5 text-[10px] font-medium text-[#c3c3cc]">
+              {/* Subtitle / badge: Hidden until there's room, to prevent overflow with the action bar */}
+              <span className="hidden md:inline-flex items-center gap-1 rounded-full border border-[#9cb4e8]/25 bg-[#9cb4e8]/10 px-2 py-0.5 text-[10px] font-medium text-[#c3c3cc]">
                 <Sparkles className="h-2.5 w-2.5 text-[#9cb4e8]" />
                 AI Companion
               </span>
@@ -86,9 +80,9 @@ export const Header: React.FC<HeaderProps> = ({
               {providerLabel && (
                 <button
                   type="button"
-                  onClick={onOpenMcp}
+                  onClick={onOpenSettings}
                   title="Active AI provider — click to change in Settings"
-                  className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[#9cb4e8]/30 bg-[#9cb4e8]/10 px-2 py-0.5 text-[10px] font-medium text-[#9cb4e8] transition hover:bg-[#9cb4e8]/15"
+                  className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[#9cb4e8]/30 bg-[#9cb4e8]/10 px-2 py-0.5 text-[10px] font-medium text-[#9cb4e8] transition hover:bg-[#9cb4e8]/15 cursor-pointer touch-manipulation active:scale-95"
                 >
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                   <span>{providerLabel}</span>
@@ -106,9 +100,10 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {/* New Session (Desktop only) */}
           <button
+            type="button"
             onClick={onNewSession}
             title="Start a new conversation"
-            className="hidden sm:flex items-center gap-1.5 rounded-full border border-transparent px-3 py-1.5 text-xs font-medium text-[#ededf3] transition hover:bg-card/10"
+            className="hidden md:flex items-center gap-1.5 rounded-full border border-transparent px-3 py-1.5 text-xs font-medium text-[#ededf3] transition hover:bg-card/10 cursor-pointer touch-manipulation active:scale-95"
           >
             <PlusCircle className="h-3.5 w-3.5 text-[#9cb4e8]" />
             <span>New Visit</span>
@@ -116,19 +111,21 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Visit History */}
           <button
+            type="button"
             onClick={onOpenHistory}
             title="View past visits and switch between conversations"
-            className="flex items-center gap-1.5 rounded-full border border-transparent p-2 sm:px-3 sm:py-1.5 text-xs font-medium text-[#ededf3] transition hover:bg-card/10"
+            className="flex items-center justify-center gap-1.5 rounded-full border border-transparent p-2 min-h-[38px] min-w-[38px] sm:min-h-0 sm:min-w-0 sm:px-3 sm:py-1.5 text-xs font-medium text-[#ededf3] transition hover:bg-card/10 cursor-pointer touch-manipulation active:scale-95"
           >
             <History className="h-4 w-4 sm:h-3.5 sm:w-3.5 text-[#9cb4e8]" />
-            <span className="hidden sm:inline">Visit History</span>
+            <span className="hidden md:inline">Visit History</span>
           </button>
 
           {/* Voice Mode Toggle */}
           <button
+            type="button"
             onClick={onToggleVoiceMode}
             title={isVoiceMode ? "Disable Voice Mode" : "Enable Voice Mode"}
-            className={`flex items-center gap-1.5 rounded-full border p-2 sm:px-3 sm:py-1.5 text-xs font-medium transition ${
+            className={`flex items-center justify-center gap-1.5 rounded-full border p-2 min-h-[38px] min-w-[38px] sm:min-h-0 sm:min-w-0 sm:px-3 sm:py-1.5 text-xs font-medium transition cursor-pointer touch-manipulation active:scale-95 ${
               isVoiceMode
                 ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300"
                 : "border-transparent text-[#ededf3] hover:bg-card/10"
@@ -137,59 +134,47 @@ export const Header: React.FC<HeaderProps> = ({
             {isVoiceMode ? (
               <>
                 <Mic className="h-4 w-4 sm:h-3.5 sm:w-3.5 text-emerald-400 animate-pulse" />
-                <span className="hidden sm:inline">Voice Active</span>
+                <span className="hidden md:inline">Voice Active</span>
               </>
             ) : (
               <>
                 <MicOff className="h-4 w-4 sm:h-3.5 sm:w-3.5 text-[#c3c3cc]" />
-                <span className="hidden sm:inline">Voice Mode</span>
+                <span className="hidden md:inline">Voice Mode</span>
               </>
             )}
           </button>
 
           {/* Setup Guide (Desktop) */}
           <button
+            type="button"
             onClick={onOpenOnboarding}
-            title="Setup Guide: Persona, MCP Connection & Audio Testing"
-            className="hidden sm:flex items-center gap-1.5 rounded-full border border-transparent px-3 py-1.5 text-xs font-medium text-[#ededf3] transition hover:bg-card/10"
+            title="Setup Guide: Persona & Audio Testing"
+            className="hidden md:flex items-center gap-1.5 rounded-full border border-transparent px-3 py-1.5 text-xs font-medium text-[#ededf3] transition hover:bg-card/10 cursor-pointer touch-manipulation active:scale-95"
           >
             <Compass className="h-3.5 w-3.5 text-[#9cb4e8]" />
             <span>Setup Guide</span>
           </button>
 
-          {/* MCP & Tools Button (Desktop) */}
+          {/* Settings Button (Desktop) */}
           <button
-            onClick={onOpenMcp}
-            title={
-              isMcpConnected
-                ? `Connected MCP: ${mcpClientName}`
-                : "Inspect Model Context Protocol (MCP) Tools & Runtime"
-            }
-            className={`hidden sm:flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
-              isMcpConnected
-                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/15"
-                : "border-transparent text-[#ededf3] hover:bg-card/10"
-            }`}
+            type="button"
+            onClick={onOpenSettings}
+            title="AI Reasoning Engine Settings"
+            className="hidden md:flex items-center gap-1.5 rounded-full border border-transparent px-3 py-1.5 text-xs font-medium text-[#ededf3] transition hover:bg-card/10 cursor-pointer touch-manipulation active:scale-95"
           >
-            <span className="relative flex h-2 w-2">
-              {isMcpConnected && (
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              )}
-              <span
-                className={`relative inline-flex rounded-full h-2 w-2 ${isMcpConnected ? "bg-emerald-500" : "bg-[#c3c3cc]"}`}
-              ></span>
-            </span>
-            <span>MCP & Tools</span>
+            <Settings className="h-3.5 w-3.5 text-[#9cb4e8]" />
+            <span>Settings</span>
           </button>
 
           {/* Prayer Journal Button */}
           <button
+            type="button"
             onClick={onOpenJournal}
             title="View Prayer Journal"
-            className="relative flex items-center gap-1.5 rounded-full border border-transparent p-2 sm:px-3 sm:py-1.5 text-xs font-medium text-[#ededf3] transition hover:bg-card/10"
+            className="relative flex items-center justify-center gap-1.5 rounded-full border border-transparent p-2 min-h-[38px] min-w-[38px] sm:min-h-0 sm:min-w-0 sm:px-3 sm:py-1.5 text-xs font-medium text-[#ededf3] transition hover:bg-card/10 cursor-pointer touch-manipulation active:scale-95"
           >
             <BookOpen className="h-4 w-4 sm:h-3.5 sm:w-3.5 text-[#9cb4e8]" />
-            <span className="hidden sm:inline">Prayer Journal</span>
+            <span className="hidden md:inline">Prayer Journal</span>
             {prayerCount > 0 && (
               <span className="flex h-4 min-w-4 sm:h-auto sm:min-w-0 sm:px-1.5 sm:py-0.2 items-center justify-center rounded-full bg-[#5266eb] text-[10px] font-semibold text-white">
                 {prayerCount}
@@ -197,63 +182,69 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </button>
 
-          {/* Mobile Overflow Menu Button (Mobile only) */}
-          <div className="relative sm:hidden" ref={menuRef}>
+          {/* Mobile Overflow Menu Button (shown until there's room for the full desktop bar) */}
+          <div className="relative md:hidden" ref={menuRef}>
             <button
+              type="button"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               title="More options & settings"
-              className="relative flex h-8 w-8 items-center justify-center rounded-full border border-transparent text-[#ededf3] transition hover:bg-card/10"
+              className="relative flex h-9 w-9 items-center justify-center rounded-full border border-transparent text-[#ededf3] transition hover:bg-card/10 cursor-pointer touch-manipulation active:scale-95"
             >
               {isMobileMenuOpen ? (
                 <X className="h-4 w-4 text-[#ededf3]" />
               ) : (
                 <Menu className="h-4 w-4 text-[#ededf3]" />
               )}
-              {isMcpConnected && (
-                <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500" />
-              )}
             </button>
+
+            {/* Backdrop for mobile menu so tapping outside closes it reliably on touch screens */}
+            {isMobileMenuOpen && (
+              <div
+                className="fixed inset-0 z-40 bg-black/20 md:hidden"
+                onClick={() => setIsMobileMenuOpen(false)}
+              />
+            )}
 
             {/* Mobile Dropdown Card */}
             {isMobileMenuOpen && (
-              <div className="absolute right-0 top-10 z-50 w-56 border border-border-subtle bg-card p-2 shadow-elevated">
+              <div className="absolute right-0 top-11 z-50 w-56 border border-border-subtle bg-card p-2 shadow-elevated rounded-xl">
                 <div className="space-y-1">
                   {/* New Visit */}
                   <button
+                    type="button"
                     onClick={() => {
                       setIsMobileMenuOpen(false);
                       onNewSession();
                     }}
-                    className="flex w-full items-center gap-2.5 px-3 py-2 text-xs font-medium text-card-foreground transition hover:bg-accent"
+                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-xs font-medium text-card-foreground transition hover:bg-accent rounded-lg cursor-pointer touch-manipulation active:scale-95"
                   >
                     <PlusCircle className="h-4 w-4 text-[#5266eb]" />
                     <span>New Visit</span>
                   </button>
 
-                  {/* MCP & Tools Settings */}
+                  {/* Settings */}
                   <button
+                    type="button"
                     onClick={() => {
                       setIsMobileMenuOpen(false);
-                      onOpenMcp();
+                      onOpenSettings();
                     }}
-                    className="flex w-full items-center justify-between px-3 py-2 text-xs font-medium text-card-foreground transition hover:bg-accent"
+                    className="flex w-full items-center justify-between px-3 py-2.5 text-xs font-medium text-card-foreground transition hover:bg-accent rounded-lg cursor-pointer touch-manipulation active:scale-95"
                   >
                     <div className="flex items-center gap-2.5">
-                      <Cpu className="h-4 w-4 text-emerald-600" />
-                      <span>MCP & AI Settings</span>
+                      <Settings className="h-4 w-4 text-[#5266eb]" />
+                      <span>AI Settings</span>
                     </div>
-                    {isMcpConnected && (
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    )}
                   </button>
 
                   {/* Setup Guide */}
                   <button
+                    type="button"
                     onClick={() => {
                       setIsMobileMenuOpen(false);
                       onOpenOnboarding();
                     }}
-                    className="flex w-full items-center gap-2.5 px-3 py-2 text-xs font-medium text-card-foreground transition hover:bg-accent"
+                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-xs font-medium text-card-foreground transition hover:bg-accent rounded-lg cursor-pointer touch-manipulation active:scale-95"
                   >
                     <Compass className="h-4 w-4 text-muted-foreground" />
                     <span>Setup Guide</span>
@@ -261,13 +252,7 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
 
                 <div className="mt-2 border-t border-border-subtle pt-2 px-2 text-[10px] text-muted-foreground">
-                  <div className="flex items-center justify-between">
-                    <span>Engine: {providerLabel}</span>
-                    <span className="flex items-center gap-1 text-emerald-600">
-                      <span className="h-1 w-1 rounded-full bg-emerald-500" />
-                      {mcpClientName.split("")[0]}
-                    </span>
-                  </div>
+                  <span>Engine: {providerLabel}</span>
                 </div>
               </div>
             )}

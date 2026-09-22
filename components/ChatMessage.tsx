@@ -9,7 +9,6 @@ import {
   Heart,
   Copy,
   Check,
-  Zap,
 } from "lucide-react";
 import {
   getVerseByReference,
@@ -27,12 +26,6 @@ export interface MessageMetadata {
   isProphecyRefusal?: boolean;
   savedPrayerId?: string;
   usedModel?: string;
-  mcp?: {
-    isConnected: boolean;
-    clientName: string;
-    transport?: string;
-    toolsCalled?: string[];
-  };
 }
 
 export interface ChatMessageProps {
@@ -147,29 +140,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             </button>
           )}
         </div>
-
-        {/* Connected MCP Indicator Badge */}
-        {metadata?.mcp && metadata.mcp.isConnected && (
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border border-emerald-500/25 bg-emerald-500/10 px-3 py-1.5 text-xs">
-            <div className="flex items-center gap-1.5 font-medium text-emerald-700">
-              <Zap className="h-3.5 w-3.5 text-emerald-600 fill-emerald-500/20" />
-              <span>Connected MCP:</span>
-              <span className="font-semibold text-emerald-800">
-                {metadata.mcp.clientName}
-              </span>
-            </div>
-
-            {metadata.mcp.toolsCalled &&
-              metadata.mcp.toolsCalled.length > 0 && (
-                <div className="flex flex-wrap items-center gap-1 text-[11px] text-emerald-700/80">
-                  <span className="hidden sm:inline">•</span>
-                  <span className="font-mono text-[10px] bg-emerald-500/15 px-1.5 py-0.5 text-emerald-800">
-                    {metadata.mcp.toolsCalled.join("•")}
-                  </span>
-                </div>
-              )}
-          </div>
-        )}
 
         {/* Message Content */}
         <div className="text-sm leading-relaxed text-card-foreground whitespace-pre-wrap">

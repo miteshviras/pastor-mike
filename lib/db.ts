@@ -57,16 +57,6 @@ export interface ConversationSummary {
   created_at: string;
 }
 
-export interface McpConnection {
-  id: string;
-  client_name: string;
-  client_version: string | null;
-  transport: string;
-  first_seen_at: string;
-  last_seen_at: string;
-  request_count: number;
-}
-
 let dbInstance: DatabaseSync | null = null;
 
 export function getDb(): DatabaseSync {
@@ -141,17 +131,6 @@ export function getDb(): DatabaseSync {
         summary TEXT NOT NULL,
         created_at TEXT NOT NULL,
         FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE IF NOT EXISTS mcp_connections (
-        id TEXT PRIMARY KEY,
-        client_name TEXT NOT NULL,
-        client_version TEXT,
-        transport TEXT NOT NULL,
-        first_seen_at TEXT NOT NULL,
-        last_seen_at TEXT NOT NULL,
-        request_count INTEGER NOT NULL DEFAULT 0,
-        UNIQUE(client_name, transport)
       );
 
       CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id, created_at);
@@ -417,33 +396,6 @@ export function getRecentContext(userId: string, limit = 5): {
   };
 }
 
-// MCP Connection Tracking (which external MCP clients have called this server, and when)
-export function recordMcpConnection(clientName: string, clientVersion: string | null, transport: "stdio" | "http"): void {
-  const db = getDb();
-  const now = new Date().toISOString();
-  const existing = db.prepare(
-    "SELECT id FROM mcp_connections WHERE client_name = ? AND transport = ?"
-  ).get(clientName, transport) as { id: string } | undefined;
-
-  if (existing) {
-    db.prepare(
-      "UPDATE mcp_connections SET client_version = ?, last_seen_at = ?, request_count = request_count + 1 WHERE id = ?"
-    ).run(clientVersion, now, existing.id);
-  } else {
-    const id = "mcpconn_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7);
-    db.prepare(
-      "INSERT INTO mcp_connections (id, client_name, client_version, transport, first_seen_at, last_seen_at, request_count) VALUES (?, ?, ?, ?, ?, ?, 1)"
-    ).run(id, clientName, clientVersion, transport, now, now);
-  }
-}
-
-export function listMcpConnections(): McpConnection[] {
-  const db = getDb();
-  return db.prepare(
-    "SELECT * FROM mcp_connections ORDER BY last_seen_at DESC LIMIT 20"
-  ).all() as unknown as McpConnection[];
-}
-
 // AI Provider Settings (which model backend to use, and which model) — stored as a
 // reserved key in the preferences table so no schema change is needed.
 export interface AiProviderSettings {
@@ -475,51 +427,3 @@ export function saveProviderSettings(userId: string, settings: Partial<AiProvide
   return merged;
 }
 
-export function getActiveMcpClient(): {
-  isConnected: boolean;
-  clientName: string;
-  transport: string;
-  toolsCount: number;
-  lastSeen?: string;
-} {
-  try {
-    const fs = require("node:fs");
-    const path = require("node:path");
-    const statusFile = path.join(process.cwd(), "data", "mcp_status.json");
-
-    if (fs.existsSync(statusFile)) {
-      const data = JSON.parse(fs.readFileSync(statusFile, "utf-8"));
-      if (data && data.connected) {
-        return {
-          isConnected: true,
-          clientName: data.client || "Antigravity 2.0 (Google Antigravity)",
-          transport: data.transport || "stdio",
-          toolsCount: data.tools || 7,
-          lastSeen: data.lastSeen,
-        };
-      }
-    }
-  } catch {}
-
-  const connections = listMcpConnections();
-  if (connections.length > 0) {
-    const latest = connections[0];
-    return {
-      isConnected: true,
-      clientName: latest.client_name.includes("Antigravity")
-        ? latest.client_name
-        : "Antigravity 2.0 (Google Antigravity)",
-      transport: latest.transport,
-      toolsCount: 7,
-      lastSeen: latest.last_seen_at,
-    };
-  }
-
-  // Fallback active status when running within Antigravity workspace
-  return {
-    isConnected: true,
-    clientName: "Antigravity 2.0 (Google Antigravity)",
-    transport: "stdio",
-    toolsCount: 7,
-  };
-}

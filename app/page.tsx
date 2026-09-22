@@ -6,7 +6,7 @@ import { ChatMessage, ChatMessageProps } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
 import { PrayerJournalModal } from "@/components/PrayerJournalModal";
 import { VisitHistoryModal } from "@/components/VisitHistoryModal";
-import { McpModal } from "@/components/McpModal";
+import { SettingsModal } from "@/components/SettingsModal";
 import { OnboardingModal } from "@/components/OnboardingModal";
 import { VoiceBar } from "@/components/VoiceBar";
 import { CrisisBanner } from "@/components/CrisisBanner";
@@ -14,6 +14,23 @@ import { PastoralSpeechClient, KITTEN_VOICES } from "@/lib/voice/speech-client";
 import type { PrayerRequest } from "@/lib/db";
 import { SafetyCheckResult } from "@/lib/ai/safety";
 import { Sparkles, HeartHandshake } from "lucide-react";
+
+function safeGetStorage(key: string): string | null {
+  try {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeSetStorage(key: string, value: string): void {
+  try {
+    if (typeof window !== "undefined") {
+      localStorage.setItem(key, value);
+    }
+  } catch {}
+}
 
 export default function Home() {
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -24,8 +41,7 @@ export default function Home() {
   const [isListening, setIsListening] = useState(false);
   const [speechSpeed, setSpeechSpeed] = useState(0.88);
   const [voicePreset, setVoicePreset] = useState<string>(() => {
-    if (typeof window === "undefined") return "Jasper";
-    const saved = localStorage.getItem("pastor_mike_voice");
+    const saved = safeGetStorage("pastor_mike_voice");
     return saved && (KITTEN_VOICES as readonly string[]).includes(saved)
       ? saved
       : "Jasper";
@@ -34,23 +50,12 @@ export default function Home() {
   const [prayerScope, setPrayerScope] = useState<"session" | "all">("session");
   const [isJournalOpen, setIsJournalOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [isMcpOpen, setIsMcpOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [latestSafety, setLatestSafety] = useState<SafetyCheckResult | null>(
     null,
   );
   const [micError, setMicError] = useState<string | null>(null);
-  const [mcpInfo, setMcpInfo] = useState<{
-    isConnected: boolean;
-    clientName: string;
-    transport?: string;
-    toolsCount?: number;
-  }>({
-    isConnected: true,
-    clientName: "Antigravity 2.0 (Google Antigravity)",
-    transport: "stdio",
-    toolsCount: 7,
-  });
   const [providerLabel, setProviderLabel] = useState<string>("Gemini");
 
   const speechClientRef = useRef<PastoralSpeechClient | null>(null);
@@ -58,27 +63,31 @@ export default function Home() {
 
   // Initialize Speech Client
   useEffect(() => {
-    const client = new PastoralSpeechClient({
-      speed: speechSpeed,
-      voicePreset,
-      onListeningStateChange: (listening) => {
-        setIsListening(listening);
-        if (listening) setMicError(null);
-      },
-      onSpeakingStateChange: (speaking) => setIsSpeaking(speaking),
-      onTranscriptionResult: (transcript, isFinal) => {
-        if (isFinal && transcript.trim()) {
-          handleSendMessage(transcript.trim());
-        }
-      },
-      onError: (err) => setMicError(err),
-    });
-    speechClientRef.current = client;
+    try {
+      const client = new PastoralSpeechClient({
+        speed: speechSpeed,
+        voicePreset,
+        onListeningStateChange: (listening) => {
+          setIsListening(listening);
+          if (listening) setMicError(null);
+        },
+        onSpeakingStateChange: (speaking) => setIsSpeaking(speaking),
+        onTranscriptionResult: (transcript, isFinal) => {
+          if (isFinal && transcript.trim()) {
+            handleSendMessage(transcript.trim());
+          }
+        },
+        onError: (err) => setMicError(err),
+      });
+      speechClientRef.current = client;
 
-    return () => {
-      client.stopSpeaking();
-      client.stopListening();
-    };
+      return () => {
+        client.stopSpeaking();
+        client.stopListening();
+      };
+    } catch (err) {
+      console.warn("Speech client initialization skipped:", err);
+    }
   }, []);
 
   // Update speed in speech client
@@ -119,18 +128,7 @@ export default function Home() {
   useEffect(() => {
     async function init() {
       try {
-        // 1. Fetch active MCP client status
-        try {
-          const mcpRes = await fetch("/api/mcp");
-          if (mcpRes.ok) {
-            const mcpData = await mcpRes.json();
-            if (mcpData.activeClient) {
-              setMcpInfo(mcpData.activeClient);
-            }
-          }
-        } catch {}
-
-        // 1b. Fetch the active AI provider (shown as a header badge)
+        // 1. Fetch the active AI provider (shown as a header badge)
         try {
           const settingsRes = await fetch("/api/settings");
           if (settingsRes.ok) {
@@ -322,10 +320,6 @@ export default function Home() {
         setLatestSafety(data.safety);
       }
 
-      if (data.mcp) {
-        setMcpInfo(data.mcp);
-      }
-
       const assistantMsg: ChatMessageProps = {
         id: "ast_" + Date.now(),
         role: "assistant",
@@ -337,7 +331,6 @@ export default function Home() {
           isProphecyRefusal: data.safety?.isProphecyRefusal,
           savedPrayerId: data.savedPrayerId,
           usedModel: data.usedModel,
-          mcp: data.mcp,
         },
         createdAt: new Date().toISOString(),
       };
@@ -551,24 +544,22 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-background text-foreground selection:bg-[#5266eb]/30 selection:text-white">
+    <div className="flex h-full flex-col overflow-hidden bg-background text-foreground selection:bg-[#5266eb]/30 selection:text-white">
       {/* Top Header */}
       <Header
         isVoiceMode={isVoiceMode}
         onToggleVoiceMode={() => setIsVoiceMode(!isVoiceMode)}
         onOpenJournal={() => setIsJournalOpen(true)}
         onOpenHistory={() => setIsHistoryOpen(true)}
-        onOpenMcp={() => setIsMcpOpen(true)}
+        onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenOnboarding={() => setIsOnboardingOpen(true)}
         onNewSession={handleNewSession}
         prayerCount={prayers.filter((p) => p.status === "active").length}
-        isMcpConnected={mcpInfo.isConnected}
-        mcpClientName={mcpInfo.clientName}
         providerLabel={providerLabel}
       />
 
-      {/* Main Conversation Canvas */}
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-3 py-3 sm:px-4 sm:py-6">
+      {/* Main Conversation Canvas — only this scrolls */}
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-y-auto overscroll-contain px-3 py-3 sm:px-4 sm:py-6">
         {/* Safety Crisis Alert if triggered */}
         {latestSafety && latestSafety.isCrisis && (
           <CrisisBanner safety={latestSafety} />
@@ -606,39 +597,13 @@ export default function Home() {
             />
           ))}
 
-          {/* Typing/Thinking State with Live MCP Connection Check */}
+          {/* Typing/Thinking State */}
           {isLoading && (
-            <div className="flex flex-col gap-2 my-4 rounded-2xl rounded-tl-xs border border-slate-200/80 bg-card/90 p-4 text-xs dark:border-slate-800 dark:bg-slate-900/90">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                  <Sparkles className="h-4 w-4 animate-spin text-amber-600" />
-                  <span className="font-medium">
-                    Pastor Mike is reflecting on your words...
-                  </span>
-                </div>
-                {mcpInfo.isConnected && (
-                  <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/70 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50 text-[11px] font-medium">
-                    <span className="relative flex h-1.5 w-1.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
-                    </span>
-                    <span>
-                      MCP Active: <strong>{mcpInfo.clientName}</strong>
-                    </span>
-                  </div>
-                )}
-              </div>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500 pl-6">
-                Checking MCP tools &bull; Executing{" "}
-                <code className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">
-                  get_recent_context
-                </code>{" "}
-                &bull; Querying{" "}
-                <code className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">
-                  search_scripture
-                </code>
-                ...
-              </p>
+            <div className="flex items-center gap-2 my-4 rounded-2xl rounded-tl-xs border border-slate-200/80 bg-card/90 p-4 text-xs dark:border-slate-800 dark:bg-slate-900/90">
+              <Sparkles className="h-4 w-4 animate-spin text-amber-600" />
+              <span className="font-medium text-slate-700 dark:text-slate-300">
+                Pastor Mike is reflecting on your words...
+              </span>
             </div>
           )}
 
@@ -698,10 +663,10 @@ export default function Home() {
         }}
       />
 
-      {/* MCP & Tools Settings Modal */}
-      <McpModal
-        isOpen={isMcpOpen}
-        onClose={() => setIsMcpOpen(false)}
+      {/* AI Provider Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
         onProviderChange={(provider) => {
           const labels: Record<string, string> = {
             gemini: "Gemini",

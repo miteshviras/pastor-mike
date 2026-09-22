@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   HeartHandshake,
-  Wrench,
   Volume2,
   Mic,
   MicOff,
@@ -16,8 +15,6 @@ import {
   Sparkles,
   Download,
   Loader2,
-  Terminal,
-  Copy,
   Check,
   ShieldCheck,
 } from "lucide-react";
@@ -51,7 +48,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   onComplete,
   sessionId,
 }) => {
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2>(1);
 
   // Step 1: Persona & Profile
   const [userName, setUserName] = useState<string>("");
@@ -60,13 +57,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
     "hope",
   ]);
 
-  // Step 2: MCP Connection
-  const [isMcpTesting, setIsMcpTesting] = useState<boolean>(false);
-  const [mcpVerified, setMcpVerified] = useState<boolean>(false);
-  const [mcpToolCount, setMcpToolCount] = useState<number>(7);
-  const [copiedConfig, setCopiedConfig] = useState<boolean>(false);
-
-  // Step 3: Audio (STT & TTS + KittenTTS Downloader)
+  // Step 2: Audio (STT & TTS + KittenTTS Downloader)
   const [ttsStatus, setTtsStatus] = useState<{
     installed: boolean;
     engine?: string;
@@ -128,31 +119,6 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
     setSelectedTopics((prev) =>
       prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id],
     );
-  };
-
-  // Test MCP Connection
-  const handleTestMcp = async () => {
-    setIsMcpTesting(true);
-    try {
-      const res = await fetch("/api/mcp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tool: "search_scripture",
-          arguments: { topic_or_keyword: "peace and calm" },
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.results || data.success) {
-          setMcpVerified(true);
-        }
-      }
-    } catch (err) {
-      console.error("MCP test error:", err);
-    } finally {
-      setIsMcpTesting(false);
-    }
   };
 
   // 1-Click Download KittenTTS
@@ -261,37 +227,6 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
     testSpeechClientRef.current?.stopSpeaking();
     testSpeechClientRef.current?.stopListening();
 
-    // Persist preferences in SQLite memory via MCP
-    try {
-      await fetch("/api/mcp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tool: "save_memory",
-          arguments: {
-            key: "user_name",
-            value: userName.trim() || "Friend",
-          },
-        }),
-      });
-
-      if (selectedTopics.length > 0) {
-        await fetch("/api/mcp", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            tool: "save_memory",
-            arguments: {
-              key: "preferred_topics",
-              value: selectedTopics.join(","),
-            },
-          }),
-        });
-      }
-    } catch {
-      // Non-critical persistence fallback
-    }
-
     if (typeof window !== "undefined") {
       localStorage.setItem("pastor_mike_onboarded", "true");
     }
@@ -318,8 +253,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 Welcome to Pastor Mike
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                First-time setup: Onboarding &rarr; Connect MCP &rarr; Test
-                Voice
+                First-time setup: Onboarding &rarr; Test Voice
               </p>
             </div>
           </div>
@@ -334,7 +268,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
         </div>
 
         {/* Step Indicator Tabs */}
-        <div className="grid grid-cols-3 border-b border-slate-200/80 bg-slate-100/50 text-xs font-medium dark:border-slate-800 dark:bg-slate-950/40">
+        <div className="grid grid-cols-2 border-b border-slate-200/80 bg-slate-100/50 text-xs font-medium dark:border-slate-800 dark:bg-slate-950/40">
           <button
             onClick={() => setStep(1)}
             className={`flex items-center justify-center gap-1.5 py-3 border-b-2 transition ${
@@ -359,23 +293,6 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
           >
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-[11px] dark:bg-slate-800">
               2
-            </span>
-            <span>Connect to MCP</span>
-            {mcpVerified && (
-              <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-            )}
-          </button>
-
-          <button
-            onClick={() => setStep(3)}
-            className={`flex items-center justify-center gap-1.5 py-3 border-b-2 transition ${
-              step === 3
-                ? "border-[#5266eb] text-[#5266eb] font-semibold dark:border-[#9cb4e8] dark:text-[#9cb4e8]"
-                : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400"
-            }`}
-          >
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-[11px] dark:bg-slate-800">
-              3
             </span>
             <span>Test STT & TTS</span>
             {micVerified && (
@@ -460,154 +377,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
             </div>
           )}
 
-          {/* STEP 2: CONNECT TO MCP */}
+          {/* STEP 2: TEST STT & TTS + KITTENTTS AUTO-DOWNLOAD */}
           {step === 2 && (
-            <div className="space-y-5">
-              <div className="rounded-xl border border-slate-200 bg-card/70 p-4 dark:border-slate-800 dark:bg-slate-800/50">
-                <div className="flex items-start gap-3">
-                  <Wrench className="mt-0.5 h-5 w-5 text-[#5266eb] dark:text-[#9cb4e8]" />
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                      Model Context Protocol (MCP) Integration
-                    </h3>
-                    <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
-                      Pastor Mike is equipped with{" "}
-                      <strong>7 standardized MCP tools</strong> that ground
-                      every conversation turn in offline scripture knowledge and
-                      persistent local SQLite memory.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-slate-600 dark:text-slate-400">
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                    <span>search_scripture</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                    <span>get_verse</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                    <span>save_prayer_request</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                    <span>save_memory / load_memory</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* MCP Live Verification Button */}
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-800/40">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-                      Verify MCP Tool Connectivity
-                    </h4>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                      Test real-time dispatching to the local MCP gateway
-                      (/api/mcp)
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={handleTestMcp}
-                    disabled={isMcpTesting}
-                    className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-medium transition ${
-                      mcpVerified
-                        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                        : "bg-[#5266eb] text-white hover:bg-[#3f52c9] dark:bg-[#5266eb] dark:hover:bg-[#4d664a]"
-                    }`}
-                  >
-                    {isMcpTesting ? (
-                      <>
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        <span>Verifying...</span>
-                      </>
-                    ) : mcpVerified ? (
-                      <>
-                        <Check className="h-3.5 w-3.5" />
-                        <span>Connected & Verified</span>
-                      </>
-                    ) : (
-                      <>
-                        <Wrench className="h-3.5 w-3.5" />
-                        <span>Test MCP Connection</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                {mcpVerified && (
-                  <div className="mt-3 rounded-lg bg-emerald-50 p-2.5 text-[11px] text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
-                    &check; All {mcpToolCount} tools responded successfully.
-                    Pastor Mike is ready to read scripture and persist prayer
-                    requests.
-                  </div>
-                )}
-              </div>
-
-              {/* External Client Configuration (Claude Desktop / Cursor) */}
-              <div>
-                <div className="flex items-center justify-between">
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    Connect External Agents (Claude Desktop / Cursor)
-                  </label>
-                  <button
-                    onClick={() => {
-                      const cfg = JSON.stringify(
-                        {
-                          mcpServers: {
-                            "pastor-mike": {
-                              command: "cmd.exe",
-                              args: [
-                                "/c",
-                                "npx",
-                                "-y",
-                                "tsx",
-                                "server/mcp_server.ts",
-                              ],
-                              cwd: "c:\\Users\\mitesh\\PersonalProjects\\pastor-mike",
-                            },
-                          },
-                        },
-                        null,
-                        2,
-                      );
-                      navigator.clipboard.writeText(cfg);
-                      setCopiedConfig(true);
-                      setTimeout(() => setCopiedConfig(false), 2000);
-                    }}
-                    className="flex items-center gap-1 text-[11px] text-[#5266eb] hover:underline dark:text-[#9cb4e8]"
-                  >
-                    {copiedConfig ? (
-                      <>
-                        <Check className="h-3 w-3" />
-                        <span>Copied JSON</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-3 w-3" />
-                        <span>Copy Stdio Config</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-                <pre className="mt-1.5 overflow-x-auto rounded-lg bg-slate-900 p-2.5 font-mono text-[10px] text-slate-200 dark:bg-slate-950">
-                  {`"pastor-mike": {
-"command":"cmd.exe",
-"args": ["/c","npx","-y","tsx","server/mcp_server.ts"],
-"cwd":"c:\\\\Users\\\\mitesh\\\\PersonalProjects\\\\pastor-mike"
-}`}
-                </pre>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 3: TEST STT & TTS + KITTENTTS AUTO-DOWNLOAD */}
-          {step === 3 && (
             <div className="space-y-5">
               {/* KittenTTS Engine Status Card & 1-Click Downloader */}
               <div className="rounded-xl border border-slate-200 bg-card/70 p-4 dark:border-slate-800 dark:bg-slate-800/50">
@@ -795,7 +566,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
         <div className="flex items-center justify-between border-t border-slate-200/80 bg-[#f7f4ed] px-6 py-4 dark:border-slate-800 dark:bg-[#181716]">
           {step > 1 ? (
             <button
-              onClick={() => setStep((prev) => (prev - 1) as 1 | 2)}
+              onClick={() => setStep(1)}
               className="flex items-center gap-1 rounded-lg border border-slate-200 bg-card px-3.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
@@ -810,9 +581,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
             </button>
           )}
 
-          {step < 3 ? (
+          {step < 2 ? (
             <button
-              onClick={() => setStep((prev) => (prev + 1) as 2 | 3)}
+              onClick={() => setStep(2)}
               className="flex items-center gap-1.5 rounded-lg bg-[#5266eb] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#3f52c9] dark:bg-[#5266eb] dark:hover:bg-[#4d664a]"
             >
               <span>Continue</span>

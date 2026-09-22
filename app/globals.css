@@ -80,7 +80,8 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
   font-weight: 420;
-  min-height: 100vh;
+  height: 100%;
+  overflow: hidden;
 }
 
 /* Custom scrollbars for a clean, peaceful aesthetic */
@@ -106,4 +107,11 @@ body {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Instant tap responsiveness on mobile — eliminates 300ms touch delay */
+button,
+[role="button"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
