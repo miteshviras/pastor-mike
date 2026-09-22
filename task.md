@@ -124,6 +124,15 @@ Each task is committed and pushed upon completion.
   - Update `README.md` Quickstart Guide with environment configuration step (`cp .env.example .env.local`).
   - *Commit: `chore: add .env.example template and environment variable support`*
 
+- [x] **Task 17: Google Gemini API Integration & Google API Key Support**
+  - Install `@google/genai` modern SDK and implement `tryGeminiChat` in `lib/ai/orchestrator.ts`.
+  - Support `GEMINI_API_KEY`, `GOOGLE_API_KEY`, and `GOOGLE_GENAI_API_KEY` with seamless fallback hierarchy: **Google Gemini -> Local Ollama -> Offline Dynamic Engine**.
+  - Document Google API Key in `.env.example` with link to get free keys at Google AI Studio.
+  - Display active model pill (`Google Gemini` / `Local Ollama` / `Offline Engine`) in `components/ChatMessage.tsx`.
+  - Update `README.md` Quickstart Guide explaining Gemini cloud vs Ollama local vs offline choices.
+  - *Commit: `feat: add Google Gemini API support and Google API key configuration`*
+
+
 
 
 

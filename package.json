@@ -20,6 +20,7 @@
     "mcp:server": "tsx server/mcp_server.ts"
   },
   "dependencies": {
+    "@google/genai": "^2.24.0",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "clsx": "^2.1.1",
     "lucide-react": "^1.47.0",

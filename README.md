@@ -59,11 +59,20 @@ npm install
 
 ### 2. Configure Environment (Optional)
 
-Pastor Mike is 100% local-first and requires **zero external cloud API keys**.
-To customize your local port, database location, or optional Ollama settings, create a local environment file from the template:
+Pastor Mike supports a flexible 3-tier model hierarchy:
+1. **Google Gemini API** (`GEMINI_API_KEY` or `GOOGLE_API_KEY`): Recommended for highest-quality pastoral reflections, prayers, and scripture grounding via Google's Gemini models.
+2. **Local Ollama** (`OLLAMA_BASE_URL`): For private local open-source LLMs (`llama3.2`, `mistral`, `qwen2.5`).
+3. **Built-in Offline Engine**: Zero external dependencies, runs 100% locally with **zero API keys required**.
+
+To configure your environment, copy `.env.example`:
 
 ```bash
 cp .env.example .env.local
+```
+
+If using Google Gemini, obtain a free key at [Google AI Studio](https://aistudio.google.com/app/apikey) and set:
+```env
+GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
 ### 3. Run the Test Suite

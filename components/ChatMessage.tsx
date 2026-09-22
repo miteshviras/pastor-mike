@@ -92,6 +92,15 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             <span className="font-serif text-sm font-semibold text-stone-800 dark:text-stone-200">
               Pastor Mike
             </span>
+            {metadata?.usedModel && (
+              <span className="rounded-full bg-stone-100 dark:bg-stone-800 px-2 py-0.5 text-[10px] font-medium text-stone-600 dark:text-stone-400 border border-stone-200/60 dark:border-stone-700/60">
+                {metadata.usedModel === "gemini"
+                  ? "Google Gemini"
+                  : metadata.usedModel === "ollama"
+                  ? "Local Ollama"
+                  : "Offline Engine"}
+              </span>
+            )}
           </div>
 
           {onSpeak && (

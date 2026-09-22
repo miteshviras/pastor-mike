@@ -14,13 +14,45 @@ export interface PastoralResponse {
   };
   safety: SafetyCheckResult;
   savedPrayerId?: string;
-  usedModel: "ollama" | "local-offline-engine";
+  usedModel: "gemini" | "ollama" | "local-offline-engine";
   mcp?: {
     isConnected: boolean;
     clientName: string;
     transport: string;
     toolsCalled: string[];
   };
+}
+
+// Helper to query Google Gemini API if API key is provided
+async function tryGeminiChat(
+  prompt: string,
+  systemPrompt: string,
+  model = process.env.GEMINI_MODEL || "gemini-2.5-flash"
+): Promise<string | null> {
+  const apiKey =
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    process.env.GOOGLE_GENAI_API_KEY;
+
+  if (!apiKey) return null;
+
+  try {
+    const { GoogleGenAI } = await import("@google/genai");
+    const ai = new GoogleGenAI({ apiKey });
+    const response = await ai.models.generateContent({
+      model,
+      contents: prompt,
+      config: {
+        systemInstruction: systemPrompt,
+        temperature: 0.7,
+      },
+    });
+
+    return response.text || null;
+  } catch (err) {
+    console.warn("Gemini API call failed, falling back to local engine:", err);
+    return null;
+  }
 }
 
 // Helper to query local Ollama if running
@@ -155,7 +187,10 @@ export async function processPastoralTurn(
     toolsCalled: toolsExecuted,
   };
 
-  // 8. Try Local Ollama LLM first, grounded in what MCP already knows about this believer
+  // 8. Model Selection Hierarchy:
+  // 1st: Google Gemini API (if GEMINI_API_KEY or GOOGLE_API_KEY is configured)
+  // 2nd: Local Ollama LLM (if running)
+  // 3rd: Robust Dynamic Pastoral Reasoning Engine (local-offline-engine)
   const contextLines: string[] = [];
   if (preferredName) contextLines.push(`They prefer to be called ${preferredName}.`);
   if (recentContext.activePrayers.length > 0) {
@@ -164,30 +199,52 @@ export async function processPastoralTurn(
   if (recentContext.recentSummaries.length > 0) {
     contextLines.push(`Summary of your last visit together: ${recentContext.recentSummaries[0]}.`);
   }
-  const ollamaSystemPrompt = contextLines.length > 0
-    ? `You are Pastor Mike. Respond with compassion, quote a scripture, and offer a short prayer. ${contextLines.join(" ")}`
-    : "You are Pastor Mike. Respond with compassion, quote a scripture, and offer a short prayer.";
+  if (primaryVerse) {
+    contextLines.push(`Relevant Scripture anchor from Bible database: ${primaryVerse.reference} ("${primaryVerse.text}").`);
+  }
 
-  const ollamaReply = await tryOllamaChat(userMessage, ollamaSystemPrompt);
+  const pastoralSystemPrompt = `You are Pastor Mike, a warm, compassionate, non-judgmental AI pastoral companion. 
+You speak gently, offer empathetic reflection, cite Holy Scripture thoughtfully, and prepare a sincere, heartfelt prayer.
+Always maintain transparent disclosure that you are an AI companion providing spiritual encouragement, not an ordained human minister.
+${contextLines.join(" ")}`;
 
   let replyText = "";
-  let usedModel: "ollama" | "local-offline-engine" = "local-offline-engine";
+  let usedModel: "gemini" | "ollama" | "local-offline-engine" = "local-offline-engine";
   let activePrayer = template.prayer;
 
-  if (ollamaReply) {
-    replyText = ollamaReply;
-    usedModel = "ollama";
-  } else {
-    // 9. Robust Dynamic Pastoral Reasoning Engine (zero external dependencies)
-    // Generates deeply contextual, non-generic, empathetic responses tailored directly to the user's burden
-    usedModel = "local-offline-engine";
+  const geminiReply = await tryGeminiChat(userMessage, pastoralSystemPrompt);
+  if (geminiReply) {
+    replyText = geminiReply;
+    usedModel = "gemini";
     const dynamicTurn = generateDynamicPastoralResponse(userMessage, scriptures, {
       preferredName,
       activePrayers: recentContext.activePrayers,
       recentSummaries: recentContext.recentSummaries,
     });
-    replyText = dynamicTurn.reply;
     activePrayer = dynamicTurn.prayer;
+  } else {
+    const ollamaReply = await tryOllamaChat(userMessage, pastoralSystemPrompt);
+    if (ollamaReply) {
+      replyText = ollamaReply;
+      usedModel = "ollama";
+      const dynamicTurn = generateDynamicPastoralResponse(userMessage, scriptures, {
+        preferredName,
+        activePrayers: recentContext.activePrayers,
+        recentSummaries: recentContext.recentSummaries,
+      });
+      activePrayer = dynamicTurn.prayer;
+    } else {
+      // 9. Robust Dynamic Pastoral Reasoning Engine (zero external dependencies)
+      // Generates deeply contextual, non-generic, empathetic responses tailored directly to the user's burden
+      usedModel = "local-offline-engine";
+      const dynamicTurn = generateDynamicPastoralResponse(userMessage, scriptures, {
+        preferredName,
+        activePrayers: recentContext.activePrayers,
+        recentSummaries: recentContext.recentSummaries,
+      });
+      replyText = dynamicTurn.reply;
+      activePrayer = dynamicTurn.prayer;
+    }
   }
 
   // 10. Persist Assistant Response in SQLite with MCP Metadata
