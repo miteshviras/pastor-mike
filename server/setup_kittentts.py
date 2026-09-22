@@ -8,19 +8,18 @@ import os
 import sys
 import json
 import argparse
-import urllib.request
 import subprocess
 
 MODELS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models", "kittentts")
 CONFIG_FILE = os.path.join(MODELS_DIR, "config.json")
-MODEL_FILE = os.path.join(MODELS_DIR, "kittentts_model.onnx")
 
-# Lightweight KittenTTS ONNX model hosted on HuggingFace edge mirrors
-MODEL_URL = "https://huggingface.co/onnx-community/KittenTTS-Mini-v0.8-ONNX/resolve/main/model.onnx"
+KITTEN_MODEL_ID = "KittenML/kitten-tts-mini-0.8"
+DEFAULT_VOICE = "Jasper"
+KITTEN_VOICES = ["Bella", "Jasper", "Luna", "Bruno", "Rosie", "Hugo", "Kiki", "Leo"]
 WHEEL_URL = "https://github.com/KittenML/KittenTTS/releases/download/0.8.1/kittentts-0.8.1-py3-none-any.whl"
 
 def check_status() -> dict:
-    """Checks if KittenTTS library or downloaded ONNX model is available."""
+    """Checks if the KittenTTS library and its model weights are available."""
     has_library = False
     lib_version = None
 
@@ -31,8 +30,8 @@ def check_status() -> dict:
     except ImportError:
         has_library = False
 
-    has_local_model = os.path.exists(MODEL_FILE) or os.path.exists(CONFIG_FILE)
-    is_ready = has_library or has_local_model
+    has_local_model = os.path.exists(CONFIG_FILE)
+    is_ready = has_library
 
     return {
         "installed": is_ready,
@@ -40,60 +39,48 @@ def check_status() -> dict:
         "has_local_model": has_local_model,
         "lib_version": lib_version,
         "model_dir": MODELS_DIR if has_local_model else None,
+        "model_id": KITTEN_MODEL_ID,
+        "default_voice": DEFAULT_VOICE,
         "engine": "KittenTTS-Neural" if is_ready else "Browser-WebSpeechFallback"
     }
 
 def download_model() -> dict:
-    """Downloads KittenTTS ONNX model or installs the package."""
+    """Installs the KittenTTS package and warms its model cache for kitten-tts-mini."""
     os.makedirs(MODELS_DIR, exist_ok=True)
     download_success = False
-    method_used = "direct_onnx"
+    method_used = "pip_wheel"
     error_detail = None
 
-    # Step 1: Try pip install wheel if pip exists
+    # Step 1: pip install the KittenTTS wheel
     try:
         result = subprocess.run(
             [sys.executable, "-m", "pip", "install", WHEEL_URL, "--no-warn-script-location"],
             capture_output=True,
             text=True,
-            timeout=30
+            timeout=60
         )
-        if result.returncode == 0:
-            download_success = True
-            method_used = "pip_wheel"
+        if result.returncode != 0:
+            error_detail = result.stderr[-500:]
     except Exception as e:
         error_detail = str(e)
 
-    # Step 2: If pip didn't install the wheel or was skipped, download the ONNX weights directly
-    if not download_success:
-        try:
-            print("[KittenTTS] Downloading model weights from Hugging Face...", file=sys.stderr)
-            req = urllib.request.Request(
-                MODEL_URL,
-                headers={"User-Agent": "PastorMike-TTS-Downloader/1.0"}
-            )
-            # Stream download with progress tracking
-            with urllib.request.urlopen(req, timeout=30) as response, open(MODEL_FILE, "wb") as out_file:
-                # Read chunks
-                chunk_size = 1024 * 64
-                while True:
-                    chunk = response.read(chunk_size)
-                    if not chunk:
-                        break
-                    out_file.write(chunk)
-            download_success = True
-            method_used = "direct_onnx_download"
-        except Exception as e:
-            error_detail = str(e)
-            # If download fails due to network, create the local configuration placeholder so synthesis knows fallback
-            print(f"[KittenTTS] Note: Network download had notice: {e}", file=sys.stderr)
+    # Step 2: Load the model once so huggingface_hub caches kitten-tts-mini weights locally
+    try:
+        from kittentts import KittenTTS  # type: ignore
+        KittenTTS(KITTEN_MODEL_ID)
+        download_success = True
+    except Exception as e:
+        error_detail = str(e)
+        print(f"[KittenTTS] Note: model warm-up had notice: {e}", file=sys.stderr)
 
     # Save local config marker
     config_data = {
-        "installed": True,
+        "installed": download_success,
         "download_date": "2026-09-22",
         "method": method_used,
-        "voices": ["pastor_warm", "pastor_gentle", "Bella", "Jasper", "Luna", "Bruno"],
+        "model_id": KITTEN_MODEL_ID,
+        "default_voice": DEFAULT_VOICE,
+        "voices": KITTEN_VOICES,
         "sample_rate": 24000
     }
     try:

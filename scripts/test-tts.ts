@@ -10,7 +10,7 @@ async function main() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       text: "The Lord is my shepherd; I shall not want.",
-      voice: "pastor_warm",
+      voice: "Jasper",
       speed: 0.88,
     }),
   });

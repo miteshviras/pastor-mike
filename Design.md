@@ -80,7 +80,7 @@ Keeping tool *definitions* separate from *execution* lets the same seven tools b
 
 ## Voice Pipeline
 
-- **TTS**: `server/kittentts_adapter.py` — local ONNX KittenTTS model, invoked as a child process per `/api/tts` request; `server/setup_kittentts.py` handles status-check and one-click weight download (surfaced in `OnboardingModal.tsx`). 8 voice presets, 0.8x–1.2x speed.
+- **TTS**: `server/kittentts_adapter.py` — real KittenTTS neural model (`KittenML/kitten-tts-mini-0.8`, default voice `Jasper`, 8 voices total), invoked as a child process per `/api/tts` request; falls back to Windows SAPI / macOS `say` if the `kittentts` package isn't installed, then to the browser's Web Speech API if neither is. `server/setup_kittentts.py` handles status-check and one-click install + model cache warm-up (surfaced in `OnboardingModal.tsx`). 0.8x–1.2x speed, passed natively to `model.generate()`.
 - **Client**: `lib/voice/speech-client.ts` wraps browser `SpeechRecognition` (STT) and audio playback, with turn-taking (mic muted while TTS audio plays) to prevent feedback loops. If KittenTTS isn't installed, playback falls back to the browser's built-in `speechSynthesis`.
 
 ## UI Shell (`components/*`, `app/page.tsx`)

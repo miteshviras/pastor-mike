@@ -52,7 +52,7 @@ async function runDemoScript() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       text: ttsText,
-      voice: "pastor_warm",
+      voice: "Jasper",
       speed: 0.88,
     }),
   });

@@ -46,7 +46,7 @@ export class PastoralSpeechClient {
   constructor(options: SpeechClientOptions = {}) {
     this.options = {
       speed: 0.88,
-      voicePreset: "pastor_warm",
+      voicePreset: "Jasper",
       ...options,
     };
 
@@ -144,7 +144,7 @@ export class PastoralSpeechClient {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           text,
-          voice: this.options.voicePreset || "pastor_warm",
+          voice: this.options.voicePreset || "Jasper",
           speed: this.options.speed || 0.88,
         }),
       });

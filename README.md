@@ -12,7 +12,7 @@ Built in accordance with the [Notion Implementation Plan](https://app.notion.com
 - **Local SQLite Persistence**: Uses Node.js native `node:sqlite` (`pastor_mike.db`) to persist messages, sessions, prayer requests, and user memories.
 - **Model Context Protocol (MCP) Server**: Exposes 7 pastoral tools for scripture search, prayer recording, and session recall via stdio (`npm run mcp:server`) or HTTP JSON-RPC (`/api/mcp`).
 - **Scripture Knowledge Base**: Offline public domain World English Bible (WEB) & King James Version (KJV) indexed by topics (anxiety, rest, peace, grief, forgiveness, guidance, healing, love).
-- **Voice Pipeline with KittenTTS**: Local Python KittenTTS ONNX adapter supporting 8 voice presets, adjustable delivery speeds (0.8x - 1.2x), and intelligent turn-taking (prevents microphone feedback while speaking).
+- **Voice Pipeline with KittenTTS**: Local Python adapter running the `kitten-tts-mini` neural model (default voice **Jasper**, 8 voices total), adjustable delivery speeds (0.8x - 1.2x), and intelligent turn-taking (prevents microphone feedback while speaking).
 - **Pastoral Safety Safeguards**: Built-in crisis detection with immediate compassionate referral to the **988 Suicide & Crisis Lifeline** (24/7 call/text) and Crisis Text Line.
 - **Serene Pastoral UI**: Calming parchment/sage aesthetic, formatted scripture citation cards with copy buttons, prayer cards with "Save to Journal", and active/answered petition tracking.
 
@@ -188,10 +188,10 @@ When opening the app for the first time, an interactive 3-step setup guide launc
   ```bash
   python server/setup_kittentts.py --download
   ```
-- **Adapter Script**: Located in [`server/kittentts_adapter.py`](server/kittentts_adapter.py).
+- **Adapter Script**: Located in [`server/kittentts_adapter.py`](server/kittentts_adapter.py). Uses the `KittenML/kitten-tts-mini-0.8` model with **Jasper** as the default voice (8 voices available: Bella, Jasper, Luna, Bruno, Rosie, Hugo, Kiki, Leo).
 - **Test CLI Synthesis**:
   ```bash
-  python server/kittentts_adapter.py --text "Peace be with you." --voice pastor_warm --speed 0.9 --output output.wav
+  python server/kittentts_adapter.py --text "Peace be with you." --voice Jasper --speed 0.9 --output output.wav
   ```
 - **Browser Playback & Microphone STT**: In the UI, click **Voice Mode** or the microphone icon to talk hands-free with turn-taking awareness and speed controls (0.8x to 1.1x).
 

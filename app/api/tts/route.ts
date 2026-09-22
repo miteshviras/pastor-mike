@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. TTS Speech Synthesis
-    const { text, voice = "pastor_warm", speed = 0.9 } = body;
+    const { text, voice = "Jasper", speed = 0.9 } = body;
 
     if (!text || typeof text !== "string" || !text.trim()) {
       return NextResponse.json({ error: "Text is required" }, { status: 400 });

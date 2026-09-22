@@ -70,7 +70,7 @@ async function runOnboardingTests() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       text: "The Lord bless you and keep you.",
-      voice: "pastor_warm",
+      voice: "Jasper",
       speed: 0.88,
     }),
   });
