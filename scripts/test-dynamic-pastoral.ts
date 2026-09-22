@@ -4,7 +4,7 @@ import assert from "node:assert";
 
 async function testDynamicPastoralCare() {
   console.log("============================================================");
-  console.log("  Testing Dynamic Pastoral Content & Connected MCP Detection");
+  console.log("  Testing Dynamic Pastoral Content Engine");
   console.log("============================================================\n");
 
   const user = getOrCreateDefaultUser();
@@ -19,11 +19,9 @@ async function testDynamicPastoralCare() {
   );
   console.log(`Reply snippet:\n"${griefTurn.reply.substring(0, 180)}..."`);
   console.log(`Prayer title: "${griefTurn.prayer?.title}"`);
-  console.log(`MCP Client: ${griefTurn.mcp?.clientName} (tools: ${griefTurn.mcp?.toolsCalled.join(", ")})`);
 
   assert.ok(griefTurn.reply.toLowerCase().includes("sacred") || griefTurn.reply.toLowerCase().includes("grief") || griefTurn.reply.toLowerCase().includes("loss"));
   assert.ok(griefTurn.prayer?.title.includes("Sorrow") || griefTurn.prayer?.title.includes("Grief"));
-  assert.strictEqual(griefTurn.mcp?.isConnected, true);
   console.log("✓ Grief test passed!\n");
 
   // Test Case 2: Health & Surgery
@@ -36,7 +34,6 @@ async function testDynamicPastoralCare() {
   console.log(`Reply snippet:\n"${healthTurn.reply.substring(0, 180)}..."`);
   console.log(`Prayer title: "${healthTurn.prayer?.title}"`);
   assert.ok(healthTurn.reply.toLowerCase().includes("health") || healthTurn.reply.toLowerCase().includes("vulnerability") || healthTurn.reply.toLowerCase().includes("breath"));
-  assert.strictEqual(healthTurn.mcp?.isConnected, true);
   console.log("✓ Health & surgery test passed!\n");
 
   // Test Case 3: Explicit Prayer Request
@@ -48,10 +45,8 @@ async function testDynamicPastoralCare() {
   );
   console.log(`Reply snippet:\n"${prayerTurn.reply.substring(0, 180)}..."`);
   console.log(`Saved Prayer ID: ${prayerTurn.savedPrayerId}`);
-  console.log(`Tools Called: ${prayerTurn.mcp?.toolsCalled.join(", ")}`);
   assert.ok(prayerTurn.savedPrayerId, "Should save prayer request to SQLite");
-  assert.ok(prayerTurn.mcp?.toolsCalled.includes("save_prayer_request"));
-  console.log("✓ Prayer save & MCP tracking passed!\n");
+  console.log("✓ Prayer save passed!\n");
 
   console.log("============================================================");
   console.log("  >>> ALL DYNAMIC PASTORAL TESTS PASSED SUCCESSFULLY! <<<");

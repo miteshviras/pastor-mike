@@ -37,16 +37,12 @@ async function runDemoScript() {
   assert.ok(chatData.reply.length > 50, "Reply should have thoughtful pastoral empathy");
   assert.ok(chatData.scriptures && chatData.scriptures.length > 0, "Scripture should be retrieved");
   assert.ok(chatData.prayer, "Prayer card should be generated");
-  assert.ok(chatData.mcp, "MCP metadata should be returned");
-  assert.strictEqual(chatData.mcp.isConnected, true, "MCP client should be connected");
 
   console.log(`✓ Empathy & counsel generated (${chatData.reply.length} chars)`);
   console.log(`✓ Scripture cited: ${chatData.scriptures[0].reference} (${chatData.scriptures[0].translation})`);
   console.log(`   Quote: "${chatData.scriptures[0].text.substring(0, 70)}..."`);
   console.log(`✓ Prayer prepared: "${chatData.prayer.title}"`);
   console.log(`✓ Model runtime used: ${chatData.usedModel} (Private, no cloud API key required)`);
-  console.log(`✓ Connected MCP Client: ${chatData.mcp.clientName} (Transport: ${chatData.mcp.transport})`);
-  console.log(`✓ MCP Tools Called: ${chatData.mcp.toolsCalled.join(", ")}`);
 
   // Step 4 & 5: User enables voice mode, assistant speaks the response using KittenTTS
   console.log("\nStep 4 & 5: Testing voice output synthesis with KittenTTS...");

@@ -5,7 +5,7 @@ import { Header } from "@/components/Header";
 import { ChatMessage, ChatMessageProps } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
 import { PrayerJournalModal } from "@/components/PrayerJournalModal";
-import { VisitHistoryModal } from "@/components/VisitHistoryModal";
+import { VisitHistorySidebar } from "@/components/VisitHistorySidebar";
 import { SettingsModal } from "@/components/SettingsModal";
 import { OnboardingModal } from "@/components/OnboardingModal";
 import { VoiceBar } from "@/components/VoiceBar";
@@ -558,81 +558,102 @@ export default function Home() {
         providerLabel={providerLabel}
       />
 
-      {/* Main Conversation Canvas — only this scrolls */}
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-y-auto overscroll-contain px-3 py-3 sm:px-4 sm:py-6">
-        {/* Safety Crisis Alert if triggered */}
-        {latestSafety && latestSafety.isCrisis && (
-          <CrisisBanner safety={latestSafety} />
-        )}
+      {/* Body row: persistent visit history sidebar + chat column */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Pastoral Visit History — persistent sidebar on desktop, drawer on mobile */}
+        <VisitHistorySidebar
+          isOpen={isHistoryOpen}
+          onClose={() => setIsHistoryOpen(false)}
+          currentSessionId={sessionId}
+          onSelectSession={handleSwitchSession}
+          onNewSession={() => {
+            setIsHistoryOpen(false);
+            handleNewSession();
+          }}
+        />
 
-        {/* Welcome Empty State */}
-        {messages.length === 0 && (
-          <div className="my-auto flex flex-col items-center justify-center text-center py-6 sm:py-10 px-2">
-            <div className="mb-3 sm:mb-4 flex h-13 w-13 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-[#5266eb]/10 text-[#5266eb] dark:bg-[#5266eb]/20 dark:text-[#9cb4e8]">
-              <HeartHandshake className="h-6 w-6 sm:h-8 sm:w-8" />
+        <div className="flex flex-1 flex-col overflow-hidden">
+          {/* Main Conversation Canvas — only this scrolls */}
+          <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-y-auto overscroll-contain px-3 py-3 sm:px-4 sm:py-6">
+            {/* Safety Crisis Alert if triggered */}
+            {latestSafety && latestSafety.isCrisis && (
+              <CrisisBanner safety={latestSafety} />
+            )}
+
+            {/* Welcome Empty State */}
+            {messages.length === 0 && (
+              <div className="my-auto flex flex-col items-center justify-center text-center py-6 sm:py-10 px-2">
+                <div className="mb-3 sm:mb-4 flex h-13 w-13 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-[#5266eb]/10 text-[#5266eb] dark:bg-[#5266eb]/20 dark:text-[#9cb4e8]">
+                  <HeartHandshake className="h-6 w-6 sm:h-8 sm:w-8" />
+                </div>
+                <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                  Welcome, Beloved Friend
+                </h2>
+                <p className="mt-2 max-w-md text-xs sm:text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                  I am Pastor Mike, your AI pastoral companion. I am here to
+                  offer a listening ear, gentle comfort, Holy Scripture, and
+                  prayer.
+                </p>
+                <div className="mt-3 sm:mt-4 flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
+                  <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
+                  <span>
+                    Safe, confidential, and saved locally on your device
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Conversation Transcript */}
+            <div className="flex-1 space-y-2">
+              {messages.map((msg) => (
+                <ChatMessage
+                  key={msg.id}
+                  {...msg}
+                  onSpeak={handleSpeak}
+                  onSavePrayer={handleSavePrayer}
+                  isSpeakingNow={isSpeaking}
+                />
+              ))}
+
+              {/* Typing/Thinking State */}
+              {isLoading && (
+                <div className="flex items-center gap-2 my-4 rounded-2xl rounded-tl-xs border border-slate-200/80 bg-card/90 p-4 text-xs dark:border-slate-800 dark:bg-slate-900/90">
+                  <Sparkles className="h-4 w-4 animate-spin text-amber-600" />
+                  <span className="font-medium text-slate-700 dark:text-slate-300">
+                    Pastor Mike is reflecting on your words...
+                  </span>
+                </div>
+              )}
+
+              <div ref={messagesEndRef} />
             </div>
-            <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-slate-100">
-              Welcome, Beloved Friend
-            </h2>
-            <p className="mt-2 max-w-md text-xs sm:text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-              I am Pastor Mike, your AI pastoral companion. I am here to offer a
-              listening ear, gentle comfort, Holy Scripture, and prayer.
-            </p>
-            <div className="mt-3 sm:mt-4 flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
-              <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
-              <span>Safe, confidential, and saved locally on your device</span>
-            </div>
-          </div>
-        )}
+          </main>
 
-        {/* Conversation Transcript */}
-        <div className="flex-1 space-y-2">
-          {messages.map((msg) => (
-            <ChatMessage
-              key={msg.id}
-              {...msg}
-              onSpeak={handleSpeak}
-              onSavePrayer={handleSavePrayer}
-              isSpeakingNow={isSpeaking}
-            />
-          ))}
+          {/* Floating Voice Status Bar */}
+          <VoiceBar
+            isVoiceMode={isVoiceMode}
+            isListening={isListening}
+            isSpeaking={isSpeaking}
+            speed={speechSpeed}
+            onSpeedChange={setSpeechSpeed}
+            voice={voicePreset}
+            onVoiceChange={setVoicePreset}
+            onClose={() => setIsVoiceMode(false)}
+          />
 
-          {/* Typing/Thinking State */}
-          {isLoading && (
-            <div className="flex items-center gap-2 my-4 rounded-2xl rounded-tl-xs border border-slate-200/80 bg-card/90 p-4 text-xs dark:border-slate-800 dark:bg-slate-900/90">
-              <Sparkles className="h-4 w-4 animate-spin text-amber-600" />
-              <span className="font-medium text-slate-700 dark:text-slate-300">
-                Pastor Mike is reflecting on your words...
-              </span>
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
+          {/* Bottom Composer Input */}
+          <ChatInput
+            onSendMessage={handleSendMessage}
+            isLoading={isLoading}
+            isListening={isListening}
+            onToggleListening={handleToggleListening}
+            isSpeaking={isSpeaking}
+            showStarterPills={messages.length === 0}
+            micError={micError}
+          />
         </div>
-      </main>
 
-      {/* Floating Voice Status Bar */}
-      <VoiceBar
-        isVoiceMode={isVoiceMode}
-        isListening={isListening}
-        isSpeaking={isSpeaking}
-        speed={speechSpeed}
-        onSpeedChange={setSpeechSpeed}
-        voice={voicePreset}
-        onVoiceChange={setVoicePreset}
-        onClose={() => setIsVoiceMode(false)}
-      />
-
-      {/* Bottom Composer Input */}
-      <ChatInput
-        onSendMessage={handleSendMessage}
-        isLoading={isLoading}
-        isListening={isListening}
-        onToggleListening={handleToggleListening}
-        isSpeaking={isSpeaking}
-        showStarterPills={messages.length === 0}
-        micError={micError}
-      />
+      </div>
 
       {/* Prayer Journal Modal */}
       <PrayerJournalModal
@@ -648,18 +669,6 @@ export default function Home() {
         onToggleScope={(newScope) => {
           setPrayerScope(newScope);
           loadPrayers(sessionId, newScope);
-        }}
-      />
-
-      {/* Visit History Modal */}
-      <VisitHistoryModal
-        isOpen={isHistoryOpen}
-        onClose={() => setIsHistoryOpen(false)}
-        currentSessionId={sessionId}
-        onSelectSession={handleSwitchSession}
-        onNewSession={() => {
-          setIsHistoryOpen(false);
-          handleNewSession();
         }}
       />
 
