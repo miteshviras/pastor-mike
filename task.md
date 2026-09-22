@@ -13,11 +13,12 @@ Each task is committed and pushed upon completion.
   - Configure serene pastoral theme tokens (warm stone/sage/parchment colors).
   - *Commit: `chore: setup project styling, lucide icons, and task tracking roadmap`*
 
-- [ ] **Task 2: SQLite Persistence Layer (`lib/db.ts`)**
+- [x] **Task 2: SQLite Persistence Layer (`lib/db.ts`)**
   - Implement SQLite database using Node.js built-in `node:sqlite` (`pastor_mike.db`).
   - Define schema: `users`, `sessions`, `messages`, `prayer_requests`, `preferences`, `scripture_notes`, `conversation_summaries`.
   - Provide CRUD utilities for active sessions, messages, and prayer journal.
-  - Add automated test verification.
+  - Add automated test verification (`scripts/test-db.ts`).
+  - *Commit: `feat: implement SQLite persistence layer and data model`*
 
 - [ ] **Task 3: Scripture Knowledge Base & Topical Search (`lib/scripture/`)**
   - Build curated offline Bible dataset (WEB & KJV public domain) organized by pastoral topics (anxiety, peace, grief, forgiveness, strength, hope, purpose, work, healing, etc.).
