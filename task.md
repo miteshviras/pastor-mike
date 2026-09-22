@@ -46,10 +46,11 @@ Each task is committed and pushed upon completion.
   - Add automated test verification (`scripts/test-api.ts`).
   - *Commit: `feat: implement backend API routes for chat, sessions, and prayers`*
 
-- [ ] **Task 7: Voice Pipeline (KittenTTS & Audio)**
-  - `/api/tts` & KittenTTS ONNX adapter integration script.
-  - Client-side voice controller with browser audio synthesis fallback, turn-taking, and speed controls (0.8x - 1.2x).
-  - Add automated test verification.
+- [x] **Task 7: Voice Pipeline (KittenTTS & Audio)**
+  - `/api/tts` & KittenTTS ONNX adapter integration script (`server/kittentts_adapter.py`).
+  - Client-side voice controller (`lib/voice/speech-client.ts`) with browser audio synthesis fallback, turn-taking, and speed controls (0.8x - 1.2x).
+  - Add automated test verification (`scripts/test-tts.ts`).
+  - *Commit: `feat: implement KittenTTS voice pipeline and speech client`*
 
 - [ ] **Task 8: Serene Pastoral UI Shell & Components**
   - Pastoral Header with Pastor Mike avatar, AI disclosure badge, and Prayer Journal trigger.
