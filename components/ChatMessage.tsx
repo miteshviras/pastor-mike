@@ -2,14 +2,15 @@
 
 import React, { useState } from "react";
 import { Volume2, VolumeX, BookMarked, BookmarkCheck, Heart, Copy, Check } from "lucide-react";
-import { ScriptureVerse } from "@/lib/scripture/bible-data";
+import { getVerseByReference, ScriptureVerse } from "@/lib/scripture/bible-data";
 
 export interface MessageMetadata {
-  scriptures?: ScriptureVerse[];
+  scriptures?: (ScriptureVerse | string)[];
   prayer?: {
     title: string;
     text: string;
   };
+  prayerTitle?: string;
   isCrisis?: boolean;
   isProphecyRefusal?: boolean;
   savedPrayerId?: string;
@@ -40,6 +41,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   const [prayerSaved, setPrayerSaved] = useState<boolean>(Boolean(metadata?.savedPrayerId));
   const [savingPrayer, setSavingPrayer] = useState<boolean>(false);
 
+  // Normalize prayer from metadata if only title was persisted
+  const activePrayer = metadata?.prayer || (metadata?.prayerTitle ? {
+    title: metadata.prayerTitle,
+    text: "May the peace of God which surpasses all understanding guard your heart and mind in Christ Jesus. Amen.",
+  } : undefined);
+
   const handleCopyVerse = (ref: string, text: string) => {
     navigator.clipboard.writeText(`"${text}" — ${ref}`);
     setCopiedVerse(ref);
@@ -47,9 +54,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   };
 
   const handleSavePrayer = async () => {
-    if (!metadata?.prayer || prayerSaved || savingPrayer || !onSavePrayer) return;
+    if (!activePrayer || prayerSaved || savingPrayer || !onSavePrayer) return;
     setSavingPrayer(true);
-    const success = await onSavePrayer(metadata.prayer.text);
+    const success = await onSavePrayer(activePrayer.text);
     if (success) {
       setPrayerSaved(true);
     }
@@ -114,62 +121,83 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         {/* Scripture Citation Cards */}
         {metadata?.scriptures && metadata.scriptures.length > 0 && (
           <div className="mt-4 space-y-2.5">
-            {metadata.scriptures.map((verse) => (
-              <div
-                key={verse.reference}
-                className="rounded-xl border border-[#d8cfc0] bg-[#f7f4ed] p-3.5 shadow-2xs dark:border-[#3d372e] dark:bg-[#1f1d19]"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="font-serif text-xs font-bold text-stone-900 dark:text-amber-100">
-                      {verse.reference}
-                    </span>
-                    <span className="rounded bg-stone-200/80 px-1.5 py-0.5 text-[10px] font-medium text-stone-600 dark:bg-stone-800 dark:text-stone-400">
-                      {verse.translation}
-                    </span>
+            {metadata.scriptures.map((verseItem, idx) => {
+              const verse: Partial<ScriptureVerse> & {
+                reference: string;
+                text: string;
+                translation?: string;
+                pastoralContext?: string;
+              } =
+                typeof verseItem === "string"
+                  ? (getVerseByReference(verseItem) || {
+                      reference: verseItem,
+                      text: verseItem,
+                      translation: "WEB",
+                      topic: "comfort",
+                      pastoralContext: undefined,
+                    })
+                  : verseItem;
+
+              const refKey = verse.reference || `ref_${idx}`;
+              const bodyText = verse.text || "";
+
+              return (
+                <div
+                  key={refKey + idx}
+                  className="rounded-xl border border-[#d8cfc0] bg-[#f7f4ed] p-3.5 shadow-2xs dark:border-[#3d372e] dark:bg-[#1f1d19]"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-serif text-xs font-bold text-stone-900 dark:text-amber-100">
+                        {verse.reference}
+                      </span>
+                      <span className="rounded bg-stone-200/80 px-1.5 py-0.5 text-[10px] font-medium text-stone-600 dark:bg-stone-800 dark:text-stone-400">
+                        {verse.translation || "WEB"}
+                      </span>
+                    </div>
+
+                    <button
+                      onClick={() => handleCopyVerse(verse.reference, bodyText)}
+                      title="Copy Scripture"
+                      className="flex items-center gap-1 text-[11px] text-stone-500 transition hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200"
+                    >
+                      {copiedVerse === verse.reference ? (
+                        <>
+                          <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                          <span>Copied</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3 w-3" />
+                          <span>Copy</span>
+                        </>
+                      )}
+                    </button>
                   </div>
 
-                  <button
-                    onClick={() => handleCopyVerse(verse.reference, verse.text)}
-                    title="Copy Scripture"
-                    className="flex items-center gap-1 text-[11px] text-stone-500 transition hover:text-stone-800 dark:hover:text-stone-300"
-                  >
-                    {copiedVerse === verse.reference ? (
-                      <>
-                        <Check className="h-3 w-3 text-emerald-600" />
-                        <span>Copied</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-3 w-3" />
-                        <span>Copy</span>
-                      </>
-                    )}
-                  </button>
+                  <blockquote className="mt-2 font-serif text-sm italic leading-relaxed text-stone-700 dark:text-stone-300">
+                    &ldquo;{bodyText}&rdquo;
+                  </blockquote>
+
+                  {verse.pastoralContext && (
+                    <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">
+                      {verse.pastoralContext}
+                    </p>
+                  )}
                 </div>
-
-                <blockquote className="mt-2 font-serif text-sm italic leading-relaxed text-stone-700 dark:text-stone-300">
-                  &ldquo;{verse.text}&rdquo;
-                </blockquote>
-
-                {verse.pastoralContext && (
-                  <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">
-                    {verse.pastoralContext}
-                  </p>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
         {/* Prayer Card */}
-        {metadata?.prayer && (
+        {activePrayer && (
           <div className="mt-4 rounded-xl border border-[#c8d7c6] bg-[#f3f6f3] p-4 shadow-2xs dark:border-[#283727] dark:bg-[#192019]">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Heart className="h-4 w-4 text-[#445942] dark:text-[#7ba277]" />
                 <h4 className="font-serif text-sm font-semibold text-stone-900 dark:text-emerald-100">
-                  {metadata.prayer.title}
+                  {activePrayer.title}
                 </h4>
               </div>
 
@@ -179,18 +207,18 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   disabled={prayerSaved || savingPrayer}
                   className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
                     prayerSaved
-                      ? "border-emerald-500/50 bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300"
-                      : "border-stone-300 bg-white text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300"
+                      ? "border-emerald-500/50 bg-emerald-100 text-emerald-800 dark:border-emerald-700/60 dark:bg-emerald-950/80 dark:text-emerald-300"
+                      : "border-stone-300/80 bg-white text-stone-800 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-750"
                   }`}
                 >
                   {prayerSaved ? (
                     <>
-                      <BookmarkCheck className="h-3.5 w-3.5 text-emerald-600" />
+                      <BookmarkCheck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                       <span>In Prayer Journal</span>
                     </>
                   ) : (
                     <>
-                      <BookMarked className="h-3.5 w-3.5 text-stone-500" />
+                      <BookMarked className="h-3.5 w-3.5 text-stone-500 dark:text-stone-400" />
                       <span>{savingPrayer ? "Saving..." : "Save to Journal"}</span>
                     </>
                   )}
@@ -199,7 +227,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             </div>
 
             <p className="mt-2.5 text-sm italic leading-relaxed text-stone-700 dark:text-stone-300">
-              {metadata.prayer.text}
+              {activePrayer.text}
             </p>
           </div>
         )}

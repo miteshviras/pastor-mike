@@ -144,8 +144,8 @@ export async function processPastoralTurn(
 
   // 8. Persist Assistant Response in SQLite
   saveMessage(sessionId, "assistant", replyText, {
-    scriptures: scriptures.map(s => s.reference),
-    prayerTitle: template.prayer.title,
+    scriptures,
+    prayer: template.prayer,
     usedModel,
     savedPrayerId,
   });

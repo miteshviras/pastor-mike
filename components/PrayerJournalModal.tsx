@@ -104,8 +104,8 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
                   key={prayer.id}
                   className={`group flex items-start gap-3 rounded-xl border p-4 transition shadow-2xs ${
                     isAnswered
-                      ? "border-emerald-200 bg-emerald-50/40 dark:border-emerald-900/40 dark:bg-emerald-950/20"
-                      : "border-stone-200/90 bg-white dark:border-stone-800 dark:bg-stone-850"
+                      ? "border-emerald-200 bg-emerald-50/40 dark:border-emerald-900/40 dark:bg-emerald-950/40"
+                      : "border-stone-200/90 bg-white dark:border-stone-800 dark:bg-stone-800/90"
                   }`}
                 >
                   <button

@@ -7,6 +7,8 @@ import {
   getSession,
 } from "@/lib/db";
 
+import { getVerseByReference, ScriptureVerse } from "@/lib/scripture/bible-data";
+
 export async function GET(req: NextRequest) {
   try {
     const user = getOrCreateDefaultUser();
@@ -18,7 +20,34 @@ export async function GET(req: NextRequest) {
       if (!session) {
         return NextResponse.json({ error: "Session not found" }, { status: 404 });
       }
-      const messages = getSessionMessages(sessionId);
+      const rawMessages = getSessionMessages(sessionId);
+
+      // Normalize metadata to ensure backward compatibility for existing records
+      const messages = rawMessages.map((m) => {
+        if (!m.metadata) return m;
+        try {
+          const parsed = JSON.parse(m.metadata);
+          if (Array.isArray(parsed.scriptures)) {
+            parsed.scriptures = parsed.scriptures.map((item: string | ScriptureVerse) => {
+              if (typeof item === "string") {
+                const found = getVerseByReference(item);
+                return found || { reference: item, text: item, translation: "WEB", topic: "faith" };
+              }
+              return item;
+            });
+          }
+          if (parsed.prayerTitle && !parsed.prayer) {
+            parsed.prayer = {
+              title: parsed.prayerTitle,
+              text: "Lord, bless and keep my friend in your perfect peace today. Amen.",
+            };
+          }
+          return { ...m, metadata: JSON.stringify(parsed) };
+        } catch {
+          return m;
+        }
+      });
+
       return NextResponse.json({ session, messages });
     }
 

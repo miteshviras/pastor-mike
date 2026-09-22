@@ -75,3 +75,12 @@ Each task is committed and pushed upon completion.
   - Add interactive in-app MCP & Tools modal with live test execution and copyable Claude Desktop/Cursor configuration (`components/McpModal.tsx`).
   - Rewrite `README.md` with complete setup guide, MCP connection instructions, voice pipeline guide, and test suite commands.
   - *Commit: `feat: add official MCP server, in-app tool inspector, and setup guide in README`*
+
+- [x] **Task 11: Fix UI Session Persistence, Scripture/Prayer Metadata & Dark Mode Contrast**
+  - Fix message metadata in `lib/ai/orchestrator.ts`: Persist full scripture verse objects `{ reference, text, translation, topic }` and prayer objects `{ title, text }` instead of raw string references to prevent empty quotes upon page reload.
+  - Add backward compatibility layer in `/api/sessions/route.ts` to automatically resolve legacy string references into full scripture verses and prayer text.
+  - Retain active session ID across browser refreshes via `localStorage` in `app/page.tsx`.
+  - Fix dark mode background contrast on prayer petition cards (`dark:bg-stone-800/90` instead of unsupported `dark:bg-stone-850`) in `components/PrayerJournalModal.tsx`.
+  - Improve prayer card "Save to Journal" button styling and contrast in `components/ChatMessage.tsx`.
+  - *Commit: `fix: resolve message metadata persistence and dark mode card contrast`*
+

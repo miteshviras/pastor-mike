@@ -65,18 +65,15 @@ export default function Home() {
           if (pData.prayers) setPrayers(pData.prayers);
         }
 
-        // 2. Fetch existing sessions or create new
-        const sRes = await fetch("/api/sessions");
-        if (sRes.ok) {
-          const sData = await sRes.json();
-          if (sData.sessions && sData.sessions.length > 0) {
-            const latestSession = sData.sessions[0];
-            setSessionId(latestSession.id);
+        // 2. Check localStorage for existing active session
+        const savedSessionId = typeof window !== "undefined" ? localStorage.getItem("pastor_mike_session_id") : null;
 
-            // Fetch messages for this session
-            const msgRes = await fetch(`/api/sessions?sessionId=${latestSession.id}`);
-            if (msgRes.ok) {
-              const msgData = await msgRes.json();
+        if (savedSessionId) {
+          const msgRes = await fetch(`/api/sessions?sessionId=${savedSessionId}`);
+          if (msgRes.ok) {
+            const msgData = await msgRes.json();
+            if (msgData.session) {
+              setSessionId(msgData.session.id);
               if (msgData.messages && msgData.messages.length > 0) {
                 setMessages(
                   msgData.messages.map((m: { id: string; role: "user" | "assistant" | "system"; content: string; metadata: string | null; created_at: string }) => ({
@@ -87,17 +84,59 @@ export default function Home() {
                     createdAt: m.created_at,
                   }))
                 );
-                return;
               }
+              return;
             }
           }
         }
 
-        // Create new session if none exists
+        // 3. If no saved session, look for the most recent session
+        const sRes = await fetch("/api/sessions");
+        if (sRes.ok) {
+          const sData = await sRes.json();
+          if (sData.sessions && sData.sessions.length > 0) {
+            // Find the most recent session with messages, or fallback to the latest
+            for (const s of sData.sessions) {
+              const msgRes = await fetch(`/api/sessions?sessionId=${s.id}`);
+              if (msgRes.ok) {
+                const msgData = await msgRes.json();
+                if (msgData.messages && msgData.messages.length > 0) {
+                  setSessionId(s.id);
+                  if (typeof window !== "undefined") {
+                    localStorage.setItem("pastor_mike_session_id", s.id);
+                  }
+                  setMessages(
+                    msgData.messages.map((m: { id: string; role: "user" | "assistant" | "system"; content: string; metadata: string | null; created_at: string }) => ({
+                      id: m.id,
+                      role: m.role,
+                      content: m.content,
+                      metadata: m.metadata ? JSON.parse(m.metadata) : null,
+                      createdAt: m.created_at,
+                    }))
+                  );
+                  return;
+                }
+              }
+            }
+
+            // Fallback to the latest session if all are empty
+            const latest = sData.sessions[0];
+            setSessionId(latest.id);
+            if (typeof window !== "undefined") {
+              localStorage.setItem("pastor_mike_session_id", latest.id);
+            }
+            return;
+          }
+        }
+
+        // 4. Create new session only if no sessions exist at all
         const createRes = await fetch("/api/sessions", { method: "POST" });
         if (createRes.ok) {
           const createData = await createRes.json();
           setSessionId(createData.session.id);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("pastor_mike_session_id", createData.session.id);
+          }
         }
       } catch (err) {
         console.error("Initialization error:", err);
@@ -139,8 +178,11 @@ export default function Home() {
       }
 
       const data = await res.json();
-      if (data.sessionId && data.sessionId !== sessionId) {
+      if (data.sessionId) {
         setSessionId(data.sessionId);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("pastor_mike_session_id", data.sessionId);
+        }
       }
 
       if (data.safety) {
@@ -260,6 +302,9 @@ export default function Home() {
       if (res.ok) {
         const data = await res.json();
         setSessionId(data.session.id);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("pastor_mike_session_id", data.session.id);
+        }
         setMessages([]);
         setLatestSafety(null);
       }
