@@ -22,6 +22,9 @@ export class LipSyncController {
   private current = 0;
   private target = 0;
   private clock = 0;
+  // Real playback amplitude (0..1) fed in per frame from the Web Audio analyser, or null when
+  // unavailable (e.g. the browser-speechSynthesis fallback, which exposes no audio buffer).
+  private externalLevel: number | null = null;
 
   // Reused scratch objects — never allocated per frame.
   private scratchQuaternion = new THREE.Quaternion();
@@ -86,16 +89,27 @@ export class LipSyncController {
     this.intensity = THREE.MathUtils.clamp(value, 0, 1);
   }
 
+  // Called once per frame with the current TTS playback's real RMS amplitude (0..1), or null
+  // when no analyser is attached — driving the mouth from the actual system audio waveform
+  // rather than the synthetic pattern below, which becomes a fallback only.
+  setExternalLevel(level: number | null) {
+    this.externalLevel = level;
+  }
+
   update(delta: number) {
     if (this.mode === "none") return;
 
     this.clock += delta;
 
     if (this.talking) {
-      // Fake speech envelope: fast sine wave + small random jitter, cheap to compute.
-      const wave = Math.sin(this.clock * 14) * 0.5 + 0.5;
-      const jitter = (Math.random() - 0.5) * 0.15;
-      this.target = THREE.MathUtils.clamp(wave * this.intensity + jitter, 0, 1);
+      if (this.externalLevel !== null) {
+        this.target = THREE.MathUtils.clamp(this.externalLevel * this.intensity, 0, 1);
+      } else {
+        // Fake speech envelope: fast sine wave + small random jitter, cheap to compute.
+        const wave = Math.sin(this.clock * 14) * 0.5 + 0.5;
+        const jitter = (Math.random() - 0.5) * 0.15;
+        this.target = THREE.MathUtils.clamp(wave * this.intensity + jitter, 0, 1);
+      }
     } else {
       this.target = 0;
     }

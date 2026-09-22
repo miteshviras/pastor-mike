@@ -79,7 +79,7 @@ export const VoiceBar: React.FC<VoiceBarProps> = ({
               className="bg-transparent text-[11px] font-medium text-card-foreground focus:outline-hidden"
             >
               {KITTEN_VOICES.map((v) => (
-                <option key={v} value={v}>
+                <option key={v} value={v} className="bg-slate-800 text-white">
                   {v}
                 </option>
               ))}
@@ -95,10 +95,10 @@ export const VoiceBar: React.FC<VoiceBarProps> = ({
               aria-label="Voice speed delivery"
               className="bg-transparent text-[11px] font-medium text-card-foreground focus:outline-hidden"
             >
-              <option value="0.8">0.8x Calm</option>
-              <option value="0.88">0.9x Warm</option>
-              <option value="1.0">1.0x Normal</option>
-              <option value="1.1">1.1x Brisk</option>
+              <option value="0.8" className="bg-slate-800 text-white">0.8x Calm</option>
+              <option value="0.88" className="bg-slate-800 text-white">0.9x Warm</option>
+              <option value="1" className="bg-slate-800 text-white">1.0x Normal</option>
+              <option value="1.1" className="bg-slate-800 text-white">1.1x Brisk</option>
             </select>
           </div>
 

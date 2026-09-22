@@ -4,6 +4,26 @@
 // Mirrors KITTEN_VOICES in server/kittentts_adapter.py
 export const KITTEN_VOICES = ["Bella", "Jasper", "Luna", "Bruno", "Rosie", "Hugo", "Kiki", "Leo"] as const;
 
+// Mirrors KITTEN_VOICE_PROFILES in server/kittentts_adapter.py — same reasoning applies here:
+// the Web Speech API has no Jasper/Luna/etc. voices either, only whatever the OS/browser
+// ships, so each preset maps onto a gender + pitch shift of an installed voice to keep the
+// dropdown audibly meaningful on this fallback path too.
+const KITTEN_VOICE_PROFILES: Record<string, { gender: "Male" | "Female"; pitch: number }> = {
+  Bella: { gender: "Female", pitch: 1.15 },
+  Jasper: { gender: "Male", pitch: 1.0 },
+  Luna: { gender: "Female", pitch: 0.9 },
+  Bruno: { gender: "Male", pitch: 0.8 },
+  Rosie: { gender: "Female", pitch: 1.3 },
+  Hugo: { gender: "Male", pitch: 1.15 },
+  Kiki: { gender: "Female", pitch: 1.4 },
+  Leo: { gender: "Male", pitch: 0.9 },
+};
+
+// SpeechSynthesisVoice has no standard "gender" field, so this infers it from common voice
+// names shipped by Windows/Chrome/Edge/macOS.
+const FEMALE_VOICE_NAME_PATTERN = /female|zira|susan|hazel|samantha|victoria|karen|moira|tessa|fiona|catherine|linda|heera|aria/i;
+const MALE_VOICE_NAME_PATTERN = /male(?!f)|david|guy|mark|george|daniel|fred|ryan|oliver|james|thomas/i;
+
 export interface SpeechClientOptions {
   speed?: number; // 0.8 to 1.2
   voicePreset?: string;
@@ -213,13 +233,24 @@ export class PastoralSpeechClient {
     const cleanText = text.replace(/[*#_>]/g, "").replace(/\n+/g, " ").trim();
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.rate = this.options.speed || 0.88;
-    utterance.pitch = 0.98;
 
-    // Pick a natural calm voice if available
+    const profile = KITTEN_VOICE_PROFILES[this.options.voicePreset || "Jasper"] ?? {
+      gender: "Male" as const,
+      pitch: 1,
+    };
+    utterance.pitch = profile.pitch;
+
+    // Pick a voice matching this preset's gender; fall back to any English voice, then
+    // whatever the browser defaults to — every preset used to search for the exact same
+    // "Guy/David/Male" pattern regardless of selection, which is why all voices sounded
+    // identical no matter which preset (male or female) was chosen.
     const voices = window.speechSynthesis.getVoices();
-    const calmVoice = voices.find(v => v.lang.startsWith("en") && (v.name.includes("Natural") || v.name.includes("Guy") || v.name.includes("David") || v.name.includes("Male")));
-    if (calmVoice) {
-      utterance.voice = calmVoice;
+    const genderPattern = profile.gender === "Female" ? FEMALE_VOICE_NAME_PATTERN : MALE_VOICE_NAME_PATTERN;
+    const englishVoices = voices.filter((v) => v.lang.startsWith("en"));
+    const matchedVoice = englishVoices.find((v) => genderPattern.test(v.name));
+    const pickedVoice = matchedVoice || englishVoices[0];
+    if (pickedVoice) {
+      utterance.voice = pickedVoice;
     }
 
     utterance.onend = () => {

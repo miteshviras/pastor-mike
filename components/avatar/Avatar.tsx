@@ -8,6 +8,7 @@ import { useGLTF, PerspectiveCamera } from "@react-three/drei";
 import { LipSyncController } from "./LipSyncController";
 import { BlinkController } from "./BlinkController";
 import { IdleController, AvatarMood } from "./IdleController";
+import { getAudioLevel, isAudioLevelAvailable } from "@/lib/voice/audioLevel";
 
 // ponytail: loose glTF (scene.gltf + scene.bin + textures/) rather than a packed .glb —
 // three's GLTFLoader resolves the relative texture paths fine over HTTP, so no repackaging
@@ -144,6 +145,7 @@ export const Avatar = forwardRef<AvatarHandle, { onModelError?: (err: unknown) =
     useFrame((_state, delta) => {
       idle.update(delta);
       blink.update(delta);
+      lipSync.setExternalLevel(isAudioLevelAvailable() ? getAudioLevel() : null);
       lipSync.update(delta);
       mixer.update(delta);
     });

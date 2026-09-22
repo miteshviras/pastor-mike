@@ -13,6 +13,7 @@ import { VoiceBar } from "@/components/VoiceBar";
 import { CrisisBanner } from "@/components/CrisisBanner";
 import { PastoralSpeechClient, KITTEN_VOICES } from "@/lib/voice/speech-client";
 import { useSentenceSync } from "@/lib/voice/useSentenceSync";
+import { attachAudioLevelAnalyser } from "@/lib/voice/audioLevel";
 import type { PrayerRequest } from "@/lib/db";
 import { SafetyCheckResult } from "@/lib/ai/safety";
 import { Sparkles, HeartHandshake } from "lucide-react";
@@ -72,7 +73,6 @@ export default function Home() {
   // Paces the last assistant reply's text reveal to match TTS playback, for the
   // Pastor Stage's current-turn view (Live Pastor mode).
   const lastAssistantMessage = [...messages].reverse().find((m) => m.role === "assistant");
-  const lastUserMessage = [...messages].reverse().find((m) => m.role === "user");
   const sentenceSync = useSentenceSync(lastAssistantMessage?.content ?? "", isSpeaking);
 
   // Initialize Speech Client
@@ -92,7 +92,10 @@ export default function Home() {
           }
         },
         onError: (err) => setMicError(err),
-        onAudioElement: (audio) => sentenceSync.setAudioElement(audio),
+        onAudioElement: (audio) => {
+          sentenceSync.setAudioElement(audio);
+          attachAudioLevelAnalyser(audio);
+        },
       });
       speechClientRef.current = client;
 
@@ -600,19 +603,20 @@ export default function Home() {
             {isVoiceMode ? (
               <motion.div
                 key="pastor-stage"
-                className="flex flex-1 overflow-hidden"
+                className="flex min-h-0 flex-1 overflow-hidden"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.25, ease: "easeOut" }}
               >
                 <PastorStage
-                  userText={lastUserMessage?.content ?? ""}
+                  assistantText={lastAssistantMessage?.content ?? ""}
                   revealedText={sentenceSync.revealedText}
                   sentences={sentenceSync.sentences}
                   currentSentenceIndex={sentenceSync.currentSentenceIndex}
                   isLoading={isLoading}
                   isSpeaking={isSpeaking}
+                  onSpeak={handleSpeak}
                 />
               </motion.div>
             ) : (

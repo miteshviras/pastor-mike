@@ -2,16 +2,17 @@
 
 import React, { Suspense, useEffect, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
-import { Sparkles } from "lucide-react";
+import { Volume2, VolumeX } from "lucide-react";
 import { Avatar, AvatarHandle } from "./Avatar";
 
 interface PastorStageProps {
-  userText: string;
+  assistantText: string;
   revealedText: string;
   sentences: string[];
   currentSentenceIndex: number;
   isLoading: boolean;
   isSpeaking: boolean;
+  onSpeak: (text: string) => void;
 }
 
 // Avoids a hard crash if the .glb is missing/corrupt — the rest of the app keeps working.
@@ -46,13 +47,28 @@ function PlaceholderAvatar() {
   );
 }
 
+function ThinkingDots() {
+  return (
+    <span className="flex items-center gap-1">
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400 dark:bg-slate-500"
+          style={{ animationDelay: `${i * 0.15}s` }}
+        />
+      ))}
+    </span>
+  );
+}
+
 export default function PastorStage({
-  userText,
+  assistantText,
   revealedText,
   sentences,
   currentSentenceIndex,
   isLoading,
   isSpeaking,
+  onSpeak,
 }: PastorStageProps) {
   const avatarRef = useRef<AvatarHandle>(null);
 
@@ -67,13 +83,14 @@ export default function PastorStage({
   }, [isLoading, isSpeaking]);
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col items-center gap-4 overflow-hidden px-4 py-4 md:flex-row md:gap-8 md:px-8">
-      {/* Avatar — always centered, never moves for message content */}
+    <div className="flex h-full min-h-0 w-full flex-col items-center gap-6 overflow-y-auto px-4 pb-8 pt-6 sm:pt-10">
+      {/* Avatar — the hero of the view. Fixed size regardless of message content, so it
+          never moves or resizes as text streams in below it. */}
       <div
-        className="relative aspect-square w-full max-w-[260px] shrink-0 md:max-w-[380px]"
+        className="relative aspect-square w-full max-w-[320px] shrink-0 sm:max-w-[380px]"
         style={{
           background:
-            "radial-gradient(circle at center, rgba(82,102,235,0.18), transparent 70%)",
+            "radial-gradient(circle at center, rgba(82,102,235,0.14), transparent 72%)",
         }}
       >
         <Canvas
@@ -92,22 +109,39 @@ export default function PastorStage({
         </Canvas>
       </div>
 
-      {/* Current turn — beside the avatar, not a full scrolling transcript. justify-start (not
-          center) so a long reply scrolls from its beginning rather than opening mid-content. */}
-      <div className="flex min-h-0 w-full max-w-md flex-1 flex-col justify-start gap-3 overflow-y-auto py-4">
-        {userText && (
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            You: <span className="normal-case text-slate-600 dark:text-slate-400">{userText}</span>
-          </p>
-        )}
+      {!isLoading && assistantText && (
+        <button
+          onClick={() => onSpeak(assistantText)}
+          title={isSpeaking ? "Stop speaking" : "Listen to Pastor Mike"}
+          className={`flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition ${
+            isSpeaking
+              ? "bg-emerald-100 text-emerald-800"
+              : "text-muted-foreground hover:bg-accent"
+          }`}
+        >
+          {isSpeaking ? (
+            <>
+              <VolumeX className="h-3.5 w-3.5 text-emerald-600 animate-pulse" />
+              <span>Speaking...</span>
+            </>
+          ) : (
+            <>
+              <Volume2 className="h-3.5 w-3.5" />
+              <span>Listen</span>
+            </>
+          )}
+        </button>
+      )}
 
+      {/* Current turn — reads as a caption beneath the pastor, not a chat bubble. */}
+      <div className="flex w-full max-w-[700px] flex-col items-center gap-3 text-center">
         {isLoading ? (
-          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-            <Sparkles className="h-4 w-4 animate-spin text-amber-600" />
+          <div className="flex flex-col items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
             <span>Pastor Mike is reflecting...</span>
+            <ThinkingDots />
           </div>
         ) : (
-          <p className="text-sm leading-relaxed text-slate-800 dark:text-slate-200 sm:text-base">
+          <p className="text-base leading-relaxed text-slate-800 dark:text-slate-200 sm:text-lg">
             {sentences.map((sentence, i) => {
               const isRevealed = i <= currentSentenceIndex;
               const isCurrent = isSpeaking && i === currentSentenceIndex;
