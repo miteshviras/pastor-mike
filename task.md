@@ -26,10 +26,11 @@ Each task is committed and pushed upon completion.
   - Add automated test verification (`scripts/test-scripture.ts`).
   - *Commit: `feat: implement scripture knowledge base and topical search engine`*
 
-- [ ] **Task 4: MCP Tool Layer (`lib/mcp/`)**
+- [x] **Task 4: MCP Tool Layer (`lib/mcp/`)**
   - Define tool contracts: `search_scripture`, `get_verse`, `save_prayer_request`, `get_recent_context`, `save_memory`, `load_memory`, `summarize_session`.
   - Connect tools to database and scripture search engine.
-  - Add automated test verification.
+  - Add automated test verification (`scripts/test-mcp.ts`).
+  - *Commit: `feat: implement MCP tool layer and tool contracts`*
 
 - [ ] **Task 5: Pastoral Conversation & Safety Engine (`lib/ai/`)**
   - Create Pastor Mike persona prompt (warm, calm, non-performative, non-divine AI disclosure).
