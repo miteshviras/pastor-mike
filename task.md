@@ -39,11 +39,12 @@ Each task is committed and pushed upon completion.
   - Add automated test verification (`scripts/test-ai.ts`).
   - *Commit: `feat: implement pastoral conversation engine and safety guardrails`*
 
-- [ ] **Task 6: Backend API Routes (`app/api/`)**
+- [x] **Task 6: Backend API Routes (`app/api/`)**
   - `/api/chat`: Handles conversation turns, tool calls, context injection, and message persistence.
   - `/api/sessions`: Manages sessions and conversation history.
   - `/api/prayers`: Handles prayer journal queries and status toggling (`active` / `answered`).
-  - Add automated test verification.
+  - Add automated test verification (`scripts/test-api.ts`).
+  - *Commit: `feat: implement backend API routes for chat, sessions, and prayers`*
 
 - [ ] **Task 7: Voice Pipeline (KittenTTS & Audio)**
   - `/api/tts` & KittenTTS ONNX adapter integration script.

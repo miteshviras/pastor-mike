@@ -10,7 +10,8 @@
     "test:db": "tsx scripts/test-db.ts",
     "test:scripture": "tsx scripts/test-scripture.ts",
     "test:mcp": "tsx scripts/test-mcp.ts",
-    "test:ai": "tsx scripts/test-ai.ts"
+    "test:ai": "tsx scripts/test-ai.ts",
+    "test:api": "tsx scripts/test-api.ts"
   },
   "dependencies": {
     "clsx": "^2.1.1",
