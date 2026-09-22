@@ -32,11 +32,12 @@ Each task is committed and pushed upon completion.
   - Add automated test verification (`scripts/test-mcp.ts`).
   - *Commit: `feat: implement MCP tool layer and tool contracts`*
 
-- [ ] **Task 5: Pastoral Conversation & Safety Engine (`lib/ai/`)**
+- [x] **Task 5: Pastoral Conversation & Safety Engine (`lib/ai/`)**
   - Create Pastor Mike persona prompt (warm, calm, non-performative, non-divine AI disclosure).
   - Implement crisis detection safeguards (self-harm, domestic abuse, medical emergency) with 988 Lifeline referral.
   - Implement local model orchestrator supporting local Ollama + offline pastoral reasoning engine.
-  - Add automated test verification.
+  - Add automated test verification (`scripts/test-ai.ts`).
+  - *Commit: `feat: implement pastoral conversation engine and safety guardrails`*
 
 - [ ] **Task 6: Backend API Routes (`app/api/`)**
   - `/api/chat`: Handles conversation turns, tool calls, context injection, and message persistence.
