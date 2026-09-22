@@ -62,7 +62,11 @@ export const VisitHistoryModal: React.FC<VisitHistoryModalProps> = ({
 
   const handleDelete = async (e: React.MouseEvent, sessionId: string) => {
     e.stopPropagation();
-    if (!window.confirm("Are you sure you want to delete this visit and its history?")) {
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this visit and its history?",
+      )
+    ) {
       return;
     }
 
@@ -100,7 +104,10 @@ export const VisitHistoryModal: React.FC<VisitHistoryModalProps> = ({
         date.getMonth() === yesterday.getMonth() &&
         date.getFullYear() === yesterday.getFullYear();
 
-      const timeStr = date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      const timeStr = date.toLocaleTimeString([], {
+        hour: "numeric",
+        minute: "2-digit",
+      });
 
       if (isToday) return `Today at ${timeStr}`;
       if (isYesterday) return `Yesterday at ${timeStr}`;
@@ -112,18 +119,18 @@ export const VisitHistoryModal: React.FC<VisitHistoryModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 backdrop-blur-xs">
-      <div className="flex h-[92dvh] sm:h-[85vh] w-full max-w-2xl flex-col rounded-t-3xl sm:rounded-2xl border border-stone-200 bg-[#faf8f5] shadow-2xl dark:border-stone-800 dark:bg-stone-900">
+      <div className="flex h-[92dvh] sm:h-[85vh] w-full max-w-2xl flex-col rounded-t-3xl sm:rounded-none border border-border-subtle bg-card shadow-elevated">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-stone-200/80 px-4 py-3.5 sm:px-5 sm:py-4 dark:border-stone-800">
+        <div className="flex items-center justify-between border-b border-slate-200/80 px-4 py-3.5 sm:px-5 sm:py-4 dark:border-slate-800">
           <div className="flex items-center gap-2.5">
-            <div className="rounded-lg bg-[#445942]/10 p-2 text-[#445942] dark:bg-[#5b7858]/20 dark:text-[#7ba277]">
+            <div className="rounded-lg bg-[#5266eb]/10 p-2 text-[#5266eb] dark:bg-[#5266eb]/20 dark:text-[#9cb4e8]">
               <History className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="font-serif text-lg font-semibold text-stone-900 dark:text-stone-100">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                 Pastoral Visit History
               </h2>
-              <p className="text-xs text-stone-500 dark:text-stone-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Resume any past conversation and recall its dedicated prayers
               </p>
             </div>
@@ -135,7 +142,7 @@ export const VisitHistoryModal: React.FC<VisitHistoryModalProps> = ({
                 onNewSession();
                 onClose();
               }}
-              className="flex items-center gap-1.5 rounded-lg border border-emerald-600/30 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-800 shadow-2xs transition hover:bg-emerald-100 dark:border-emerald-800/50 dark:bg-emerald-950/50 dark:text-emerald-300 dark:hover:bg-emerald-900/60"
+              className="flex items-center gap-1.5 rounded-lg border border-emerald-600/30 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-800 transition hover:bg-emerald-100 dark:border-emerald-800/50 dark:bg-emerald-950/50 dark:text-emerald-300 dark:hover:bg-emerald-900/60"
             >
               <PlusCircle className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
               <span>New Visit</span>
@@ -143,7 +150,7 @@ export const VisitHistoryModal: React.FC<VisitHistoryModalProps> = ({
 
             <button
               onClick={onClose}
-              className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-stone-800 dark:hover:text-stone-200"
+              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
             >
               <X className="h-5 w-5" />
             </button>
@@ -153,18 +160,19 @@ export const VisitHistoryModal: React.FC<VisitHistoryModalProps> = ({
         {/* List of Visits */}
         <div className="flex-1 overflow-y-auto p-5 space-y-3">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center text-stone-400">
-              <Sparkles className="h-8 w-8 animate-spin text-[#445942] dark:text-[#7ba277] mb-2" />
+            <div className="flex flex-col items-center justify-center py-16 text-center text-slate-400">
+              <Sparkles className="h-8 w-8 animate-spin text-[#5266eb] dark:text-[#9cb4e8] mb-2" />
               <p className="text-sm font-medium">Loading visit history...</p>
             </div>
           ) : sessions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center text-stone-400">
-              <History className="h-10 w-10 text-stone-300 dark:text-stone-600 mb-3" />
-              <p className="text-sm font-medium text-stone-700 dark:text-stone-300">
+            <div className="flex flex-col items-center justify-center py-16 text-center text-slate-400">
+              <History className="h-10 w-10 text-slate-300 dark:text-slate-600 mb-3" />
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 No previous visits recorded yet
               </p>
-              <p className="text-xs mt-1 text-stone-500 max-w-sm">
-                Each time you visit Pastor Mike, your conversation and prayer journal are saved here so you can return anytime.
+              <p className="text-xs mt-1 text-slate-500 max-w-sm">
+                Each time you visit Pastor Mike, your conversation and prayer
+                journal are saved here so you can return anytime.
               </p>
             </div>
           ) : (
@@ -181,15 +189,15 @@ export const VisitHistoryModal: React.FC<VisitHistoryModalProps> = ({
                   }}
                   className={`group relative flex flex-col gap-2.5 rounded-xl border p-4 transition cursor-pointer ${
                     isActive
-                      ? "border-emerald-500/60 bg-emerald-50/50 shadow-xs dark:border-emerald-700/60 dark:bg-emerald-950/30"
-                      : "border-stone-200/80 bg-white/90 hover:border-stone-300 hover:bg-stone-50/80 dark:border-stone-800 dark:bg-stone-800/80 dark:hover:border-stone-700 dark:hover:bg-stone-750"
+                      ? "border-emerald-500/60 bg-emerald-50/50 dark:border-emerald-700/60 dark:bg-emerald-950/30"
+                      : "border-slate-200/80 bg-card/90 hover:border-slate-300 hover:bg-slate-50/80 dark:border-slate-800 dark:bg-slate-800/80 dark:hover:border-slate-700 dark:hover:bg-slate-750"
                   }`}
                 >
                   {/* Top row: Date, Active badge, and Delete */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="flex items-center gap-1.5 text-xs font-semibold text-stone-900 dark:text-stone-100">
-                        <Calendar className="h-3.5 w-3.5 text-stone-400" />
+                      <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-900 dark:text-slate-100">
+                        <Calendar className="h-3.5 w-3.5 text-slate-400" />
                         {formatVisitDate(sess.started_at)}
                       </span>
 
@@ -205,35 +213,39 @@ export const VisitHistoryModal: React.FC<VisitHistoryModalProps> = ({
                       onClick={(e) => handleDelete(e, sess.id)}
                       disabled={deletingId === sess.id}
                       title="Delete this visit"
-                      className="opacity-70 sm:opacity-0 sm:group-hover:opacity-100 rounded-md p-1.5 sm:p-1 text-stone-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-400 transition"
+                      className="opacity-70 sm:opacity-0 sm:group-hover:opacity-100 rounded-md p-1.5 sm:p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-400 transition"
                     >
                       <Trash2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
                     </button>
                   </div>
 
                   {/* Visit Summary / First Message Preview */}
-                  <p className="text-xs text-stone-600 line-clamp-2 dark:text-stone-300">
+                  <p className="text-xs text-slate-600 line-clamp-2 dark:text-slate-300">
                     {sess.summary || sess.firstMessagePreview ? (
                       sess.summary || `"${sess.firstMessagePreview}"`
                     ) : (
-                      <span className="italic text-stone-400">Quiet visit without messages</span>
+                      <span className="italic text-slate-400">
+                        Quiet visit without messages
+                      </span>
                     )}
                   </p>
 
                   {/* Bottom row: Statistics (Messages, Prayers) & Switch indicator */}
-                  <div className="flex items-center justify-between pt-1 border-t border-stone-100 dark:border-stone-800/60">
-                    <div className="flex items-center gap-3 text-[11px] text-stone-500 dark:text-stone-400">
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800/60">
+                    <div className="flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400">
                       <span className="flex items-center gap-1">
                         <MessageSquare className="h-3 w-3" />
-                        {sess.messageCount} {sess.messageCount === 1 ? "message" : "messages"}
+                        {sess.messageCount}{" "}
+                        {sess.messageCount === 1 ? "message" : "messages"}
                       </span>
                       <span className="flex items-center gap-1">
                         <Heart className="h-3 w-3 text-rose-500" />
-                        {sess.prayerCount} {sess.prayerCount === 1 ? "prayer" : "prayers"}
+                        {sess.prayerCount}{" "}
+                        {sess.prayerCount === 1 ? "prayer" : "prayers"}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-1 text-[11px] font-medium text-[#445942] group-hover:translate-x-0.5 transition-transform dark:text-[#7ba277]">
+                    <div className="flex items-center gap-1 text-[11px] font-medium text-[#5266eb] group-hover:translate-x-0.5 transition-transform dark:text-[#9cb4e8]">
                       <span>{isActive ? "Viewing" : "Switch to Visit"}</span>
                       <ChevronRight className="h-3.5 w-3.5" />
                     </div>
@@ -245,11 +257,11 @@ export const VisitHistoryModal: React.FC<VisitHistoryModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-stone-200/80 bg-stone-50/50 px-5 py-3 text-xs text-stone-500 dark:border-stone-800 dark:bg-stone-950/40 dark:text-stone-400">
+        <div className="flex items-center justify-between border-t border-slate-200/80 bg-slate-50/50 px-5 py-3 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-400">
           <span>{sessions.length} total visits recorded in local SQLite</span>
           <button
             onClick={onClose}
-            className="rounded-lg border border-stone-300/80 bg-white px-3 py-1 font-medium text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700"
+            className="rounded-lg border border-slate-300/80 bg-card px-3 py-1 font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
           >
             Close
           </button>

@@ -26,7 +26,11 @@ import { PastoralSpeechClient } from "@/lib/voice/speech-client";
 interface OnboardingModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onComplete: (preferences: { name: string; topics: string[]; enableVoice: boolean }) => void;
+  onComplete: (preferences: {
+    name: string;
+    topics: string[];
+    enableVoice: boolean;
+  }) => void;
   sessionId: string | null;
 }
 
@@ -51,7 +55,10 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
   // Step 1: Persona & Profile
   const [userName, setUserName] = useState<string>("");
-  const [selectedTopics, setSelectedTopics] = useState<string[]>(["anxiety", "hope"]);
+  const [selectedTopics, setSelectedTopics] = useState<string[]>([
+    "anxiety",
+    "hope",
+  ]);
 
   // Step 2: MCP Connection
   const [isMcpTesting, setIsMcpTesting] = useState<boolean>(false);
@@ -119,7 +126,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
   const toggleTopic = (id: string) => {
     setSelectedTopics((prev) =>
-      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id],
     );
   };
 
@@ -158,7 +165,11 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
         body: JSON.stringify({ action: "download" }),
       });
       const data = await res.json();
-      if (data.installed || data.download_status === "success" || data.has_local_model) {
+      if (
+        data.installed ||
+        data.download_status === "success" ||
+        data.has_local_model
+      ) {
         setTtsStatus({
           installed: true,
           engine: "KittenTTS-Neural",
@@ -272,7 +283,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
             tool: "save_memory",
             arguments: {
               key: "preferred_topics",
-              value: selectedTopics.join(", "),
+              value: selectedTopics.join(","),
             },
           }),
         });
@@ -295,26 +306,27 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 backdrop-blur-xs">
-      <div className="flex max-h-[92dvh] sm:max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-t-3xl sm:rounded-2xl border border-stone-200 bg-[#faf8f5] shadow-2xl dark:border-stone-800 dark:bg-stone-900">
+      <div className="flex max-h-[92dvh] sm:max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-t-3xl sm:rounded-none border border-border-subtle bg-card shadow-elevated">
         {/* Header Bar */}
-        <div className="flex items-center justify-between border-b border-stone-200/80 px-4 py-3.5 sm:px-6 sm:py-4 dark:border-stone-800">
+        <div className="flex items-center justify-between border-b border-slate-200/80 px-4 py-3.5 sm:px-6 sm:py-4 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#445942] text-white shadow-xs dark:bg-[#5b7858]">
-              <span className="font-serif text-sm font-bold">M</span>
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#5266eb] text-white dark:bg-[#5266eb]">
+              <span className="text-sm font-bold">M</span>
             </div>
             <div>
-              <h2 className="font-serif text-base font-semibold text-stone-900 dark:text-stone-100">
+              <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
                 Welcome to Pastor Mike
               </h2>
-              <p className="text-xs text-stone-500 dark:text-stone-400">
-                First-time setup: Onboarding &rarr; Connect MCP &rarr; Test Voice
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                First-time setup: Onboarding &rarr; Connect MCP &rarr; Test
+                Voice
               </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-600 dark:hover:bg-stone-800 dark:hover:text-stone-300"
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300"
             title="Skip Setup"
           >
             <X className="h-4 w-4" />
@@ -322,16 +334,16 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
         </div>
 
         {/* Step Indicator Tabs */}
-        <div className="grid grid-cols-3 border-b border-stone-200/80 bg-stone-100/50 text-xs font-medium dark:border-stone-800 dark:bg-stone-950/40">
+        <div className="grid grid-cols-3 border-b border-slate-200/80 bg-slate-100/50 text-xs font-medium dark:border-slate-800 dark:bg-slate-950/40">
           <button
             onClick={() => setStep(1)}
             className={`flex items-center justify-center gap-1.5 py-3 border-b-2 transition ${
               step === 1
-                ? "border-[#445942] text-[#445942] font-semibold dark:border-[#7ba277] dark:text-[#7ba277]"
-                : "border-transparent text-stone-500 hover:text-stone-800 dark:text-stone-400"
+                ? "border-[#5266eb] text-[#5266eb] font-semibold dark:border-[#9cb4e8] dark:text-[#9cb4e8]"
+                : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400"
             }`}
           >
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-stone-200 text-[11px] dark:bg-stone-800">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-[11px] dark:bg-slate-800">
               1
             </span>
             <span>Onboarding</span>
@@ -341,30 +353,34 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
             onClick={() => setStep(2)}
             className={`flex items-center justify-center gap-1.5 py-3 border-b-2 transition ${
               step === 2
-                ? "border-[#445942] text-[#445942] font-semibold dark:border-[#7ba277] dark:text-[#7ba277]"
-                : "border-transparent text-stone-500 hover:text-stone-800 dark:text-stone-400"
+                ? "border-[#5266eb] text-[#5266eb] font-semibold dark:border-[#9cb4e8] dark:text-[#9cb4e8]"
+                : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400"
             }`}
           >
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-stone-200 text-[11px] dark:bg-stone-800">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-[11px] dark:bg-slate-800">
               2
             </span>
             <span>Connect to MCP</span>
-            {mcpVerified && <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />}
+            {mcpVerified && (
+              <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+            )}
           </button>
 
           <button
             onClick={() => setStep(3)}
             className={`flex items-center justify-center gap-1.5 py-3 border-b-2 transition ${
               step === 3
-                ? "border-[#445942] text-[#445942] font-semibold dark:border-[#7ba277] dark:text-[#7ba277]"
-                : "border-transparent text-stone-500 hover:text-stone-800 dark:text-stone-400"
+                ? "border-[#5266eb] text-[#5266eb] font-semibold dark:border-[#9cb4e8] dark:text-[#9cb4e8]"
+                : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400"
             }`}
           >
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-stone-200 text-[11px] dark:bg-stone-800">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-[11px] dark:bg-slate-800">
               3
             </span>
             <span>Test STT & TTS</span>
-            {micVerified && <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />}
+            {micVerified && (
+              <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+            )}
           </button>
         </div>
 
@@ -373,15 +389,17 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
           {/* STEP 1: ONBOARDING */}
           {step === 1 && (
             <div className="space-y-5">
-              <div className="rounded-xl border border-stone-200 bg-white/70 p-4 shadow-2xs dark:border-stone-800 dark:bg-stone-800/50">
+              <div className="rounded-xl border border-slate-200 bg-card/70 p-4 dark:border-slate-800 dark:bg-slate-800/50">
                 <div className="flex items-start gap-3">
-                  <HeartHandshake className="mt-0.5 h-5 w-5 text-[#445942] dark:text-[#7ba277]" />
+                  <HeartHandshake className="mt-0.5 h-5 w-5 text-[#5266eb] dark:text-[#9cb4e8]" />
                   <div>
-                    <h3 className="font-serif text-sm font-semibold text-stone-900 dark:text-stone-100">
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                       Meet Pastor Mike
                     </h3>
-                    <p className="mt-1 text-xs leading-relaxed text-stone-600 dark:text-stone-400">
-                      I am your AI pastoral companion. I offer empathetic listening, Holy Scripture, and personalized prayer for your daily walk.
+                    <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+                      I am your AI pastoral companion. I offer empathetic
+                      listening, Holy Scripture, and personalized prayer for
+                      your daily walk.
                     </p>
                   </div>
                 </div>
@@ -389,14 +407,17 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 <div className="mt-3 flex items-center gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-[11px] text-amber-800 dark:text-amber-300">
                   <ShieldCheck className="h-4 w-4 shrink-0" />
                   <span>
-                    <strong>Pastoral Disclaimer:</strong> Pastor Mike is an artificial intelligence assistant, not an ordained minister. All conversations and prayer requests remain private on your device.
+                    <strong>Pastoral Disclaimer:</strong> Pastor Mike is an
+                    artificial intelligence assistant, not an ordained minister.
+                    All conversations and prayer requests remain private on your
+                    device.
                   </span>
                 </div>
               </div>
 
               {/* Name input */}
               <div>
-                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
                   What name may I call you?
                 </label>
                 <input
@@ -404,17 +425,18 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   value={userName}
                   onChange={(e) => setUserName(e.target.value)}
                   placeholder="e.g. Sarah, David, or Friend (Optional)"
-                  className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-sm text-stone-800 placeholder-stone-400 outline-none transition focus:border-[#445942] dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:focus:border-[#7ba277]"
+                  className="mt-1.5 w-full rounded-xl border border-slate-200 bg-card px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#5266eb] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:focus:border-[#9cb4e8]"
                 />
               </div>
 
               {/* Spiritual Care Areas */}
               <div>
-                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
                   Select topics you are carrying on your heart:
                 </label>
-                <p className="text-[11px] text-stone-500 dark:text-stone-400">
-                  This helps Pastor Mike bring appropriate scripture and gentle prayers.
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  This helps Pastor Mike bring appropriate scripture and gentle
+                  prayers.
                 </p>
                 <div className="mt-2.5 flex flex-wrap gap-2">
                   {CARE_TOPICS.map((topic) => {
@@ -425,8 +447,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                         onClick={() => toggleTopic(topic.id)}
                         className={`rounded-full px-3 py-1 text-xs font-medium transition ${
                           isSelected
-                            ? "bg-[#445942] text-white shadow-2xs dark:bg-[#5b7858]"
-                            : "border border-stone-200 bg-white text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-750"
+                            ? "bg-[#5266eb] text-white dark:bg-[#5266eb]"
+                            : "border border-slate-200 bg-card text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-750"
                         }`}
                       >
                         {topic.label}
@@ -441,20 +463,23 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
           {/* STEP 2: CONNECT TO MCP */}
           {step === 2 && (
             <div className="space-y-5">
-              <div className="rounded-xl border border-stone-200 bg-white/70 p-4 shadow-2xs dark:border-stone-800 dark:bg-stone-800/50">
+              <div className="rounded-xl border border-slate-200 bg-card/70 p-4 dark:border-slate-800 dark:bg-slate-800/50">
                 <div className="flex items-start gap-3">
-                  <Wrench className="mt-0.5 h-5 w-5 text-[#445942] dark:text-[#7ba277]" />
+                  <Wrench className="mt-0.5 h-5 w-5 text-[#5266eb] dark:text-[#9cb4e8]" />
                   <div>
-                    <h3 className="font-serif text-sm font-semibold text-stone-900 dark:text-stone-100">
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                       Model Context Protocol (MCP) Integration
                     </h3>
-                    <p className="mt-1 text-xs leading-relaxed text-stone-600 dark:text-stone-400">
-                      Pastor Mike is equipped with <strong>7 standardized MCP tools</strong> that ground every conversation turn in offline scripture knowledge and persistent local SQLite memory.
+                    <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+                      Pastor Mike is equipped with{" "}
+                      <strong>7 standardized MCP tools</strong> that ground
+                      every conversation turn in offline scripture knowledge and
+                      persistent local SQLite memory.
                     </p>
                   </div>
                 </div>
 
-                <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-stone-600 dark:text-stone-400">
+                <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-slate-600 dark:text-slate-400">
                   <div className="flex items-center gap-1.5">
                     <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                     <span>search_scripture</span>
@@ -475,24 +500,25 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               </div>
 
               {/* MCP Live Verification Button */}
-              <div className="rounded-xl border border-stone-200 bg-stone-50/70 p-4 dark:border-stone-800 dark:bg-stone-800/40">
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-800/40">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-xs font-semibold text-stone-900 dark:text-stone-100">
+                    <h4 className="text-xs font-semibold text-slate-900 dark:text-slate-100">
                       Verify MCP Tool Connectivity
                     </h4>
-                    <p className="text-[11px] text-stone-500 dark:text-stone-400">
-                      Test real-time dispatching to the local MCP gateway (/api/mcp)
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Test real-time dispatching to the local MCP gateway
+                      (/api/mcp)
                     </p>
                   </div>
 
                   <button
                     onClick={handleTestMcp}
                     disabled={isMcpTesting}
-                    className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-medium transition shadow-2xs ${
+                    className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-medium transition ${
                       mcpVerified
                         ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                        : "bg-[#445942] text-white hover:bg-[#384a36] dark:bg-[#5b7858] dark:hover:bg-[#4d664a]"
+                        : "bg-[#5266eb] text-white hover:bg-[#3f52c9] dark:bg-[#5266eb] dark:hover:bg-[#4d664a]"
                     }`}
                   >
                     {isMcpTesting ? (
@@ -516,7 +542,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
                 {mcpVerified && (
                   <div className="mt-3 rounded-lg bg-emerald-50 p-2.5 text-[11px] text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
-                    &check; All {mcpToolCount} tools responded successfully. Pastor Mike is ready to read scripture and persist prayer requests.
+                    &check; All {mcpToolCount} tools responded successfully.
+                    Pastor Mike is ready to read scripture and persist prayer
+                    requests.
                   </div>
                 )}
               </div>
@@ -524,7 +552,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               {/* External Client Configuration (Claude Desktop / Cursor) */}
               <div>
                 <div className="flex items-center justify-between">
-                  <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
                     Connect External Agents (Claude Desktop / Cursor)
                   </label>
                   <button
@@ -534,19 +562,25 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                           mcpServers: {
                             "pastor-mike": {
                               command: "cmd.exe",
-                              args: ["/c", "npx", "-y", "tsx", "server/mcp_server.ts"],
+                              args: [
+                                "/c",
+                                "npx",
+                                "-y",
+                                "tsx",
+                                "server/mcp_server.ts",
+                              ],
                               cwd: "c:\\Users\\mitesh\\PersonalProjects\\pastor-mike",
                             },
                           },
                         },
                         null,
-                        2
+                        2,
                       );
                       navigator.clipboard.writeText(cfg);
                       setCopiedConfig(true);
                       setTimeout(() => setCopiedConfig(false), 2000);
                     }}
-                    className="flex items-center gap-1 text-[11px] text-[#445942] hover:underline dark:text-[#7ba277]"
+                    className="flex items-center gap-1 text-[11px] text-[#5266eb] hover:underline dark:text-[#9cb4e8]"
                   >
                     {copiedConfig ? (
                       <>
@@ -561,11 +595,11 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                     )}
                   </button>
                 </div>
-                <pre className="mt-1.5 overflow-x-auto rounded-lg bg-stone-900 p-2.5 font-mono text-[10px] text-stone-200 dark:bg-stone-950">
-{`"pastor-mike": {
-  "command": "cmd.exe",
-  "args": ["/c", "npx", "-y", "tsx", "server/mcp_server.ts"],
-  "cwd": "c:\\\\Users\\\\mitesh\\\\PersonalProjects\\\\pastor-mike"
+                <pre className="mt-1.5 overflow-x-auto rounded-lg bg-slate-900 p-2.5 font-mono text-[10px] text-slate-200 dark:bg-slate-950">
+                  {`"pastor-mike": {
+"command":"cmd.exe",
+"args": ["/c","npx","-y","tsx","server/mcp_server.ts"],
+"cwd":"c:\\\\Users\\\\mitesh\\\\PersonalProjects\\\\pastor-mike"
 }`}
                 </pre>
               </div>
@@ -576,17 +610,17 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
           {step === 3 && (
             <div className="space-y-5">
               {/* KittenTTS Engine Status Card & 1-Click Downloader */}
-              <div className="rounded-xl border border-stone-200 bg-white/70 p-4 shadow-2xs dark:border-stone-800 dark:bg-stone-800/50">
+              <div className="rounded-xl border border-slate-200 bg-card/70 p-4 dark:border-slate-800 dark:bg-slate-800/50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <div className="rounded-lg bg-[#445942]/10 p-2 text-[#445942] dark:bg-[#5b7858]/20 dark:text-[#7ba277]">
+                    <div className="rounded-lg bg-[#5266eb]/10 p-2 text-[#5266eb] dark:bg-[#5266eb]/20 dark:text-[#9cb4e8]">
                       <Volume2 className="h-5 w-5" />
                     </div>
                     <div>
-                      <h3 className="font-serif text-sm font-semibold text-stone-900 dark:text-stone-100">
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                         KittenTTS Voice Engine
                       </h3>
-                      <p className="text-xs text-stone-500 dark:text-stone-400">
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
                         {ttsStatus.installed || downloadSuccess
                           ? "🟢 KittenTTS Neural Engine Installed & Ready"
                           : "⚪ Not Downloaded (Using browser voice fallback)"}
@@ -599,7 +633,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                     <button
                       onClick={handleDownloadTts}
                       disabled={isDownloadingTts}
-                      className="flex items-center gap-1.5 rounded-lg bg-[#445942] px-3 py-1.5 text-xs font-medium text-white shadow-2xs transition hover:bg-[#384a36] disabled:opacity-60 dark:bg-[#5b7858] dark:hover:bg-[#4d664a]"
+                      className="flex items-center gap-1.5 rounded-lg bg-[#5266eb] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[#3f52c9] disabled:opacity-60 dark:bg-[#5266eb] dark:hover:bg-[#4d664a]"
                     >
                       {isDownloadingTts ? (
                         <>
@@ -618,29 +652,30 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
                 {downloadSuccess && (
                   <div className="mt-3 rounded-lg bg-emerald-50 p-2.5 text-[11px] text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
-                    &check; KittenTTS model downloaded and configured! The pastoral neural voice is now active.
+                    &check; KittenTTS model downloaded and configured! The
+                    pastoral neural voice is now active.
                   </div>
                 )}
               </div>
 
               {/* TTS Speech Test */}
-              <div className="rounded-xl border border-stone-200 bg-stone-50/70 p-4 dark:border-stone-800 dark:bg-stone-800/40">
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-800/40">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-xs font-semibold text-stone-900 dark:text-stone-100">
+                    <h4 className="text-xs font-semibold text-slate-900 dark:text-slate-100">
                       Test Text-to-Speech (TTS)
                     </h4>
-                    <p className="text-[11px] text-stone-500 dark:text-stone-400">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
                       Hear Pastor Mike speak a welcoming blessing
                     </p>
                   </div>
 
                   <button
                     onClick={handlePlayBlessing}
-                    className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-medium transition shadow-2xs ${
+                    className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-medium transition ${
                       isPlayingBlessing
                         ? "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200"
-                        : "border border-stone-300 bg-white text-stone-800 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200"
+                        : "border border-slate-300 bg-card text-slate-800 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
                     }`}
                   >
                     {isPlayingBlessing ? (
@@ -650,7 +685,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                       </>
                     ) : (
                       <>
-                        <Play className="h-3.5 w-3.5 fill-[#445942] text-[#445942] dark:fill-[#7ba277] dark:text-[#7ba277]" />
+                        <Play className="h-3.5 w-3.5 fill-[#5266eb] text-[#5266eb] dark:fill-[#9cb4e8] dark:text-[#9cb4e8]" />
                         <span>Play Blessing</span>
                       </>
                     )}
@@ -659,7 +694,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
                 {/* Speed selector */}
                 <div className="mt-3 flex items-center gap-3">
-                  <span className="text-[11px] text-stone-500 dark:text-stone-400">Voice Pace:</span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Voice Pace:
+                  </span>
                   <div className="flex items-center gap-1.5">
                     {[0.82, 0.88, 1.0].map((rate) => (
                       <button
@@ -667,11 +704,15 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                         onClick={() => setTestSpeed(rate)}
                         className={`rounded px-2 py-0.5 text-[10px] font-medium transition ${
                           testSpeed === rate
-                            ? "bg-[#445942] text-white dark:bg-[#5b7858]"
-                            : "bg-stone-200/80 text-stone-700 hover:bg-stone-300 dark:bg-stone-800 dark:text-stone-300"
+                            ? "bg-[#5266eb] text-white dark:bg-[#5266eb]"
+                            : "bg-slate-200/80 text-slate-700 hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-300"
                         }`}
                       >
-                        {rate === 0.82 ? "Gentle (0.8x)" : rate === 0.88 ? "Calm (0.9x)" : "Standard (1.0x)"}
+                        {rate === 0.82
+                          ? "Gentle (0.8x)"
+                          : rate === 0.88
+                            ? "Calm (0.9x)"
+                            : "Standard (1.0x)"}
                       </button>
                     ))}
                   </div>
@@ -679,25 +720,25 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               </div>
 
               {/* STT Microphone Test */}
-              <div className="rounded-xl border border-stone-200 bg-stone-50/70 p-4 dark:border-stone-800 dark:bg-stone-800/40">
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-800/40">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-xs font-semibold text-stone-900 dark:text-stone-100">
+                    <h4 className="text-xs font-semibold text-slate-900 dark:text-slate-100">
                       Test Speech-to-Text (STT / Microphone)
                     </h4>
-                    <p className="text-[11px] text-stone-500 dark:text-stone-400">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
                       Speak into your microphone to verify speech recognition
                     </p>
                   </div>
 
                   <button
                     onClick={handleTestMic}
-                    className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-medium transition shadow-2xs ${
+                    className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-medium transition ${
                       isTestingMic
                         ? "animate-pulse bg-emerald-600 text-white"
                         : micVerified
-                        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                        : "border border-stone-300 bg-white text-stone-800 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200"
+                          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                          : "border border-slate-300 bg-card text-slate-800 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
                     }`}
                   >
                     {isTestingMic ? (
@@ -720,38 +761,42 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 </div>
 
                 {isTestingMic && (
-                  <p className="mt-2 text-xs italic text-stone-600 dark:text-stone-400">
-                    Speak now, e.g.: &ldquo;Hello Pastor Mike, thank you for listening.&rdquo;
+                  <p className="mt-2 text-xs italic text-slate-600 dark:text-slate-400">
+                    Speak now, e.g.: &ldquo;Hello Pastor Mike, thank you for
+                    listening.&rdquo;
                   </p>
                 )}
 
                 {micTranscript && (
-                  <div className="mt-2.5 rounded-lg bg-white p-2.5 text-xs text-stone-800 shadow-2xs dark:bg-stone-900 dark:text-stone-200">
-                    <span className="font-semibold text-stone-500">Heard:</span> &ldquo;{micTranscript}&rdquo;
+                  <div className="mt-2.5 rounded-lg bg-card p-2.5 text-xs text-slate-800 dark:bg-slate-900 dark:text-slate-200">
+                    <span className="font-semibold text-slate-500">Heard:</span>{" "}
+                    &ldquo;{micTranscript}&rdquo;
                   </div>
                 )}
               </div>
 
               {/* Automatic Voice Mode checkbox */}
-              <label className="flex cursor-pointer items-center gap-2.5 text-xs text-stone-700 dark:text-stone-300">
+              <label className="flex cursor-pointer items-center gap-2.5 text-xs text-slate-700 dark:text-slate-300">
                 <input
                   type="checkbox"
                   checked={autoVoiceMode}
                   onChange={(e) => setAutoVoiceMode(e.target.checked)}
-                  className="rounded border-stone-300 text-[#445942] focus:ring-[#445942] dark:border-stone-700"
+                  className="rounded border-slate-300 text-[#5266eb] focus:ring-[#5266eb] dark:border-slate-700"
                 />
-                <span>Enable Voice Mode automatically when starting my visits</span>
+                <span>
+                  Enable Voice Mode automatically when starting my visits
+                </span>
               </label>
             </div>
           )}
         </div>
 
         {/* Footer Navigation Controls */}
-        <div className="flex items-center justify-between border-t border-stone-200/80 bg-[#f7f4ed] px-6 py-4 dark:border-stone-800 dark:bg-[#181716]">
+        <div className="flex items-center justify-between border-t border-slate-200/80 bg-[#f7f4ed] px-6 py-4 dark:border-slate-800 dark:bg-[#181716]">
           {step > 1 ? (
             <button
               onClick={() => setStep((prev) => (prev - 1) as 1 | 2)}
-              className="flex items-center gap-1 rounded-lg border border-stone-200 bg-white px-3.5 py-1.5 text-xs font-medium text-stone-700 shadow-2xs hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300"
+              className="flex items-center gap-1 rounded-lg border border-slate-200 bg-card px-3.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               <span>Previous</span>
@@ -759,7 +804,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
           ) : (
             <button
               onClick={onClose}
-              className="text-xs text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200"
+              className="text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
             >
               Skip Setup
             </button>
@@ -768,7 +813,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
           {step < 3 ? (
             <button
               onClick={() => setStep((prev) => (prev + 1) as 2 | 3)}
-              className="flex items-center gap-1.5 rounded-lg bg-[#445942] px-4 py-2 text-xs font-medium text-white shadow-2xs transition hover:bg-[#384a36] dark:bg-[#5b7858] dark:hover:bg-[#4d664a]"
+              className="flex items-center gap-1.5 rounded-lg bg-[#5266eb] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#3f52c9] dark:bg-[#5266eb] dark:hover:bg-[#4d664a]"
             >
               <span>Continue</span>
               <ArrowRight className="h-3.5 w-3.5" />
@@ -776,7 +821,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
           ) : (
             <button
               onClick={handleFinish}
-              className="flex items-center gap-1.5 rounded-lg bg-[#445942] px-4 py-2 text-xs font-semibold text-white shadow-2xs transition hover:bg-[#384a36] dark:bg-[#5b7858] dark:hover:bg-[#4d664a]"
+              className="flex items-center gap-1.5 rounded-lg bg-[#5266eb] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#3f52c9] dark:bg-[#5266eb] dark:hover:bg-[#4d664a]"
             >
               <Sparkles className="h-3.5 w-3.5 text-amber-300" />
               <span>Enter Sanctuary</span>

@@ -20,7 +20,11 @@ import {
 import { MCP_TOOLS } from "@/lib/mcp/definitions";
 import type { McpConnection, AiProviderSettings } from "@/lib/db";
 
-const GEMINI_MODEL_OPTIONS = ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"];
+const GEMINI_MODEL_OPTIONS = [
+  "gemini-2.5-flash",
+  "gemini-2.5-pro",
+  "gemini-2.0-flash",
+];
 
 interface McpModalProps {
   isOpen: boolean;
@@ -53,7 +57,8 @@ const MCP_CLIENTS: ClientDef[] = [
     label: "Cursor",
     format: "json",
     configFile: () => "~/.cursor/mcp.json",
-    instructions: "Or via Cursor Settings \u2192 Features \u2192 MCP \u2192 Add New MCP Server.",
+    instructions:
+      "Or via Cursor Settings \u2192 Features \u2192 MCP \u2192 Add New MCP Server.",
   },
   {
     id: "antigravity",
@@ -63,7 +68,8 @@ const MCP_CLIENTS: ClientDef[] = [
       os === "windows"
         ? "%USERPROFILE%\\.gemini\\config\\mcp_config.json"
         : "~/.gemini/config/mcp_config.json",
-    instructions: "Workspace-local alternative: .agents/mcp_config.json in this project.",
+    instructions:
+      "Workspace-local alternative: .agents/mcp_config.json in this project.",
   },
   {
     id: "codex",
@@ -99,12 +105,23 @@ async function fetchMcpInfo(): Promise<{
   }
 }
 
-export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose, onProviderChange }) => {
-  const [activeTab, setActiveTab] = useState<"tools" | "connect" | "runtime">("connect");
+export const McpModal: React.FC<McpModalProps> = ({
+  isOpen,
+  onClose,
+  onProviderChange,
+}) => {
+  const [activeTab, setActiveTab] = useState<"tools" | "connect" | "runtime">(
+    "connect",
+  );
   const [targetOs, setTargetOs] = useState<"windows" | "posix">("windows");
-  const [projectRoot, setProjectRoot] = useState<string>("c:\\Users\\mitesh\\PersonalProjects\\pastor-mike");
+  const [projectRoot, setProjectRoot] = useState<string>(
+    "c:\\Users\\mitesh\\PersonalProjects\\pastor-mike",
+  );
   const [copiedText, setCopiedText] = useState<string | null>(null);
-  const [testResult, setTestResult] = useState<{ tool: string; output: string } | null>(null);
+  const [testResult, setTestResult] = useState<{
+    tool: string;
+    output: string;
+  } | null>(null);
   const [isTesting, setIsTesting] = useState(false);
   const [selectedClient, setSelectedClient] = useState<ClientId>("claude");
   const [connections, setConnections] = useState<McpConnection[]>([]);
@@ -114,7 +131,11 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose, onProviderC
     geminiModel: "gemini-2.5-flash",
     ollamaModel: "llama3.2",
   });
-  const [providerAvailability, setProviderAvailability] = useState<{ gemini: boolean; ollama: boolean; offline: boolean }>({
+  const [providerAvailability, setProviderAvailability] = useState<{
+    gemini: boolean;
+    ollama: boolean;
+    offline: boolean;
+  }>({
     gemini: false,
     ollama: false,
     offline: true,
@@ -133,7 +154,8 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose, onProviderC
       if (cancelled || !data) return;
       if (data.projectRoot) setProjectRoot(data.projectRoot);
       if (data.platform === "win32") setTargetOs("windows");
-      else if (data.platform === "darwin" || data.platform === "linux") setTargetOs("posix");
+      else if (data.platform === "darwin" || data.platform === "linux")
+        setTargetOs("posix");
       if (Array.isArray(data.connections)) setConnections(data.connections);
       setLastPolledAt(Date.now());
     }
@@ -170,7 +192,9 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose, onProviderC
 
   if (!isOpen) return null;
 
-  const handleSaveProviderSettings = async (update: Partial<AiProviderSettings>) => {
+  const handleSaveProviderSettings = async (
+    update: Partial<AiProviderSettings>,
+  ) => {
     const next = { ...providerSettings, ...update };
     setProviderSettings(next);
     setIsSavingSettings(true);
@@ -206,16 +230,27 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose, onProviderC
     setTestResult(null);
     try {
       let args: Record<string, unknown> = {};
-      if (toolName === "search_scripture") args = { topic_or_keyword: "peace and calm" };
-      else if (toolName === "get_verse") args = { reference: "Philippians 4:6-7" };
-      else if (toolName === "save_prayer_request") args = { text: "For health and peaceful thoughts." };
-      else if (toolName === "save_memory") args = { key: "favorite_passage", value: "Psalm 23" };
+      if (toolName === "search_scripture")
+        args = { topic_or_keyword: "peace and calm" };
+      else if (toolName === "get_verse")
+        args = { reference: "Philippians 4:6-7" };
+      else if (toolName === "save_prayer_request")
+        args = { text: "For health and peaceful thoughts." };
+      else if (toolName === "save_memory")
+        args = { key: "favorite_passage", value: "Psalm 23" };
       else if (toolName === "load_memory") args = { key: "favorite_passage" };
-      else if (toolName === "summarize_session") args = { session_id: "test_session", summary: "Brief pastoral discussion." };
+      else if (toolName === "summarize_session")
+        args = {
+          session_id: "test_session",
+          summary: "Brief pastoral discussion.",
+        };
 
       const res = await fetch("/api/mcp", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "X-MCP-Client": "Pastor Mike Web UI (Test Console)" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-MCP-Client": "Pastor Mike Web UI (Test Console)",
+        },
         body: JSON.stringify({ tool: toolName, arguments: args }),
       });
 
@@ -246,7 +281,7 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose, onProviderC
   const jsonConfigSnippet = JSON.stringify(
     { mcpServers: { "pastor-mike": { command, args, cwd: projectRoot } } },
     null,
-    2
+    2,
   );
 
   const tomlConfigSnippet = [
@@ -257,22 +292,24 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose, onProviderC
   ].join("\n");
 
   const activeClient = MCP_CLIENTS.find((c) => c.id === selectedClient)!;
-  const activeSnippet = activeClient.format === "toml" ? tomlConfigSnippet : jsonConfigSnippet;
+  const activeSnippet =
+    activeClient.format === "toml" ? tomlConfigSnippet : jsonConfigSnippet;
 
-  const isLive = (iso: string) => lastPolledAt > 0 && lastPolledAt - new Date(iso).getTime() < 15000;
+  const isLive = (iso: string) =>
+    lastPolledAt > 0 && lastPolledAt - new Date(iso).getTime() < 15000;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 backdrop-blur-xs">
-      <div className="flex h-[92dvh] sm:h-[88vh] w-full max-w-2xl flex-col rounded-t-3xl sm:rounded-2xl border border-stone-200 bg-[#faf8f5] shadow-2xl dark:border-stone-800 dark:bg-stone-900">
+      <div className="flex h-[92dvh] sm:h-[88vh] w-full max-w-2xl flex-col rounded-t-3xl sm:rounded-none border border-border-subtle bg-card shadow-elevated">
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-stone-200/80 px-4 py-3.5 sm:px-5 sm:py-4 dark:border-stone-800">
+        <div className="flex items-center justify-between border-b border-slate-200/80 px-4 py-3.5 sm:px-5 sm:py-4 dark:border-slate-800">
           <div className="flex items-center gap-2.5">
-            <div className="rounded-lg bg-[#445942]/10 p-2 text-[#445942] dark:bg-[#5b7858]/20 dark:text-[#7ba277]">
+            <div className="rounded-lg bg-[#5266eb]/10 p-2 text-[#5266eb] dark:bg-[#5266eb]/20 dark:text-[#9cb4e8]">
               <Wrench className="h-5 w-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="font-serif text-lg font-semibold text-stone-900 dark:text-stone-100">
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                   Model Context Protocol (MCP) & Runtime
                 </h2>
                 <span className="flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300">
@@ -280,28 +317,29 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose, onProviderC
                   Active
                 </span>
               </div>
-              <p className="text-xs text-stone-500 dark:text-stone-400">
-                Connect external models or inspect local pastoral tools & persistence
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Connect external models or inspect local pastoral tools &
+                persistence
               </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-stone-800 dark:hover:text-stone-200"
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-stone-200/60 bg-stone-50/50 px-5 dark:border-stone-800/60 dark:bg-stone-950/30">
+        <div className="flex border-b border-slate-200/60 bg-slate-50/50 px-5 dark:border-slate-800/60 dark:bg-slate-950/30">
           <button
             onClick={() => setActiveTab("connect")}
             className={`border-b-2 px-4 py-2.5 text-xs font-medium transition ${
               activeTab === "connect"
-                ? "border-[#445942] text-[#445942] font-semibold dark:border-[#7ba277] dark:text-[#7ba277]"
-                : "border-transparent text-stone-500 hover:text-stone-800 dark:hover:text-stone-300"
+                ? "border-[#5266eb] text-[#5266eb] font-semibold dark:border-[#9cb4e8] dark:text-[#9cb4e8]"
+                : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300"
             }`}
           >
             Connect MCP Clients
@@ -311,8 +349,8 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose, onProviderC
             onClick={() => setActiveTab("tools")}
             className={`border-b-2 px-4 py-2.5 text-xs font-medium transition ${
               activeTab === "tools"
-                ? "border-[#445942] text-[#445942] font-semibold dark:border-[#7ba277] dark:text-[#7ba277]"
-                : "border-transparent text-stone-500 hover:text-stone-800 dark:hover:text-stone-300"
+                ? "border-[#5266eb] text-[#5266eb] font-semibold dark:border-[#9cb4e8] dark:text-[#9cb4e8]"
+                : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300"
             }`}
           >
             Pastoral MCP Tools ({MCP_TOOLS.length})
@@ -322,8 +360,8 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose, onProviderC
             onClick={() => setActiveTab("runtime")}
             className={`border-b-2 px-4 py-2.5 text-xs font-medium transition ${
               activeTab === "runtime"
-                ? "border-[#445942] text-[#445942] font-semibold dark:border-[#7ba277] dark:text-[#7ba277]"
-                : "border-transparent text-stone-500 hover:text-stone-800 dark:hover:text-stone-300"
+                ? "border-[#5266eb] text-[#5266eb] font-semibold dark:border-[#9cb4e8] dark:text-[#9cb4e8]"
+                : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300"
             }`}
           >
             Model Runtime
@@ -336,45 +374,54 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose, onProviderC
           {activeTab === "connect" && (
             <div className="space-y-4">
               {/* Connected Clients */}
-              <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-2xs dark:border-stone-700 dark:bg-stone-800">
+              <div className="rounded-xl border border-slate-200 bg-card p-4 dark:border-slate-700 dark:bg-slate-800">
                 <div className="flex items-center gap-2 mb-3">
-                  <Wifi className="h-4 w-4 text-[#445942] dark:text-[#7ba277]" />
-                  <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100">
+                  <Wifi className="h-4 w-4 text-[#5266eb] dark:text-[#9cb4e8]" />
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                     Connected MCP Clients
                   </h3>
                 </div>
 
                 {connections.length === 0 ? (
-                  <div className="flex items-center gap-2 rounded-lg bg-stone-50 px-3 py-2.5 text-xs text-stone-500 dark:bg-stone-900/60 dark:text-stone-400">
+                  <div className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2.5 text-xs text-slate-500 dark:bg-slate-900/60 dark:text-slate-400">
                     <WifiOff className="h-3.5 w-3.5 shrink-0" />
-                    <span>No MCP client has connected yet. Add a config below, then open or restart that client.</span>
+                    <span>
+                      No MCP client has connected yet. Add a config below, then
+                      open or restart that client.
+                    </span>
                   </div>
                 ) : (
                   <div className="space-y-1.5">
                     {connections.map((c) => (
                       <div
                         key={c.id}
-                        className="flex items-center justify-between rounded-lg bg-stone-50 px-3 py-2 text-xs dark:bg-stone-900/60"
+                        className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-xs dark:bg-slate-900/60"
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <Bot className="h-3.5 w-3.5 shrink-0 text-stone-400" />
-                          <span className="truncate font-medium text-stone-800 dark:text-stone-200">
+                          <Bot className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                          <span className="truncate font-medium text-slate-800 dark:text-slate-200">
                             {c.client_name}
                           </span>
                           {c.client_version && (
-                            <span className="shrink-0 text-stone-400 dark:text-stone-500">v{c.client_version}</span>
+                            <span className="shrink-0 text-slate-400 dark:text-slate-500">
+                              v{c.client_version}
+                            </span>
                           )}
-                          <span className="shrink-0 rounded bg-stone-200/70 px-1.5 py-0.5 text-[10px] text-stone-600 dark:bg-stone-800 dark:text-stone-400">
+                          <span className="shrink-0 rounded bg-slate-200/70 px-1.5 py-0.5 text-[10px] text-slate-600 dark:bg-slate-800 dark:text-slate-400">
                             {c.transport}
                           </span>
                         </div>
                         <div className="flex shrink-0 items-center gap-1.5 pl-2">
                           <span
                             className={`h-1.5 w-1.5 rounded-full ${
-                              isLive(c.last_seen_at) ? "bg-emerald-500 animate-pulse" : "bg-stone-300 dark:bg-stone-600"
+                              isLive(c.last_seen_at)
+                                ? "bg-emerald-500 animate-pulse"
+                                : "bg-slate-300 dark:bg-slate-600"
                             }`}
                           />
-                          <span className="text-stone-500 dark:text-stone-400">{timeAgo(c.last_seen_at)}</span>
+                          <span className="text-slate-500 dark:text-slate-400">
+                            {timeAgo(c.last_seen_at)}
+                          </span>
                         </div>
                       </div>
                     ))}
@@ -383,17 +430,17 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose, onProviderC
               </div>
 
               {/* OS Selection Toggle */}
-              <div className="flex items-center justify-between rounded-xl border border-stone-200 bg-white p-3 shadow-2xs dark:border-stone-700 dark:bg-stone-800">
-                <span className="text-xs font-medium text-stone-700 dark:text-stone-300">
+              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-card p-3 dark:border-slate-700 dark:bg-slate-800">
+                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
                   Target Operating System:
                 </span>
-                <div className="flex items-center gap-1.5 rounded-lg bg-stone-100 p-1 dark:bg-stone-900">
+                <div className="flex items-center gap-1.5 rounded-lg bg-slate-100 p-1 dark:bg-slate-900">
                   <button
                     onClick={() => setTargetOs("windows")}
                     className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition ${
                       targetOs === "windows"
-                        ? "bg-white text-stone-900 shadow-xs dark:bg-stone-800 dark:text-stone-100"
-                        : "text-stone-500 hover:text-stone-800 dark:text-stone-400"
+                        ? "bg-card text-slate-900 dark:bg-slate-800 dark:text-slate-100"
+                        : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
                     }`}
                   >
                     <Monitor className="h-3.5 w-3.5" />
@@ -404,8 +451,8 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose, onProviderC
                     onClick={() => setTargetOs("posix")}
                     className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition ${
                       targetOs === "posix"
-                        ? "bg-white text-stone-900 shadow-xs dark:bg-stone-800 dark:text-stone-100"
-                        : "text-stone-500 hover:text-stone-800 dark:text-stone-400"
+                        ? "bg-card text-slate-900 dark:bg-slate-800 dark:text-slate-100"
+                        : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
                     }`}
                   >
                     <Apple className="h-3.5 w-3.5" />
@@ -415,10 +462,10 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose, onProviderC
               </div>
 
               {/* MCP AI Provider Selector */}
-              <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-2xs dark:border-stone-700 dark:bg-stone-800">
+              <div className="rounded-xl border border-slate-200 bg-card p-4 dark:border-slate-700 dark:bg-slate-800">
                 <div className="flex items-center gap-2 mb-3">
-                  <Terminal className="h-4 w-4 text-[#445942] dark:text-[#7ba277]" />
-                  <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100">
+                  <Terminal className="h-4 w-4 text-[#5266eb] dark:text-[#9cb4e8]" />
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                     Connect an MCP Client
                   </h3>
                 </div>
@@ -430,8 +477,8 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose, onProviderC
                       onClick={() => setSelectedClient(c.id)}
                       className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
                         selectedClient === c.id
-                          ? "border-[#445942] bg-[#445942] text-white dark:border-[#7ba277] dark:bg-[#5b7858]"
-                          : "border-stone-200 bg-white text-stone-600 hover:border-stone-400 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300"
+                          ? "border-[#5266eb] bg-[#5266eb] text-white dark:border-[#9cb4e8] dark:bg-[#5266eb]"
+                          : "border-slate-200 bg-card text-slate-600 hover:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
                       }`}
                     >
                       {c.label}
@@ -439,23 +486,34 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose, onProviderC
                   ))}
                 </div>
 
-                <p className="text-xs text-stone-600 dark:text-stone-300 mb-3 leading-relaxed">
-                  Add this block to <strong>{activeClient.label}</strong>&apos;s config file, located at{" "}
-                  <code className="rounded bg-stone-100 px-1 py-0.5 text-[11px] dark:bg-stone-900">
+                <p className="text-xs text-slate-600 dark:text-slate-300 mb-3 leading-relaxed">
+                  Add this block to <strong>{activeClient.label}</strong>&apos;s
+                  config file, located at{""}
+                  <code className="rounded bg-slate-100 px-1 py-0.5 text-[11px] dark:bg-slate-900">
                     {activeClient.configFile(targetOs)}
                   </code>
-                  {activeClient.instructions && <> &mdash; {activeClient.instructions}</>}
+                  {activeClient.instructions && (
+                    <> &mdash; {activeClient.instructions}</>
+                  )}
                   {targetOs === "windows" && (
                     <>
-                      {" "}Note: on Windows, <code className="font-semibold text-emerald-700 dark:text-emerald-400">cmd.exe</code> and the <code className="font-semibold text-emerald-700 dark:text-emerald-400">cwd</code> parameter are required to resolve Node.js modules.
+                      {""}Note: on Windows,{" "}
+                      <code className="font-semibold text-emerald-700 dark:text-emerald-400">
+                        cmd.exe
+                      </code>{" "}
+                      and the{" "}
+                      <code className="font-semibold text-emerald-700 dark:text-emerald-400">
+                        cwd
+                      </code>{" "}
+                      parameter are required to resolve Node.js modules.
                     </>
                   )}
                 </p>
 
-                <div className="relative rounded-lg bg-stone-900 p-3 font-mono text-xs text-stone-100 dark:bg-stone-950">
+                <div className="relative rounded-lg bg-slate-900 p-3 font-mono text-xs text-slate-100 dark:bg-slate-950">
                   <button
                     onClick={() => handleCopy(activeSnippet, selectedClient)}
-                    className="absolute right-2.5 top-2.5 flex items-center gap-1 rounded border border-stone-700 bg-stone-800 px-2.5 py-1 text-[11px] text-stone-200 hover:bg-stone-700"
+                    className="absolute right-2.5 top-2.5 flex items-center gap-1 rounded border border-slate-700 bg-slate-800 px-2.5 py-1 text-[11px] text-slate-200 hover:bg-slate-700"
                   >
                     {copiedText === selectedClient ? (
                       <>
@@ -465,30 +523,35 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose, onProviderC
                     ) : (
                       <>
                         <Copy className="h-3 w-3" />
-                        <span>Copy {activeClient.format === "toml" ? "TOML" : "JSON"}</span>
+                        <span>
+                          Copy{" "}
+                          {activeClient.format === "toml" ? "TOML" : "JSON"}
+                        </span>
                       </>
                     )}
                   </button>
-                  <pre className="overflow-x-auto pr-24 leading-relaxed">{activeSnippet}</pre>
+                  <pre className="overflow-x-auto pr-24 leading-relaxed">
+                    {activeSnippet}
+                  </pre>
                 </div>
               </div>
 
               {/* Standalone Terminal Command */}
-              <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-2xs dark:border-stone-700 dark:bg-stone-800">
+              <div className="rounded-xl border border-slate-200 bg-card p-4 dark:border-slate-700 dark:bg-slate-800">
                 <div className="flex items-center gap-2 mb-2">
-                  <Server className="h-4 w-4 text-[#445942] dark:text-[#7ba277]" />
-                  <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100">
+                  <Server className="h-4 w-4 text-[#5266eb] dark:text-[#9cb4e8]" />
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                     Standalone MCP Stdio Server (Terminal)
                   </h3>
                 </div>
-                <p className="text-xs text-stone-600 dark:text-stone-300 mb-2">
+                <p className="text-xs text-slate-600 dark:text-slate-300 mb-2">
                   To test or run the MCP server standalone in your terminal:
                 </p>
-                <div className="flex items-center justify-between rounded-lg bg-stone-900 px-3 py-2 font-mono text-xs text-emerald-400 dark:bg-stone-950">
+                <div className="flex items-center justify-between rounded-lg bg-slate-900 px-3 py-2 font-mono text-xs text-emerald-400 dark:bg-slate-950">
                   <span>npm run mcp:server</span>
                   <button
                     onClick={() => handleCopy("npm run mcp:server", "cmd")}
-                    className="text-stone-400 hover:text-white"
+                    className="text-slate-400 hover:text-white"
                   >
                     {copiedText === "cmd" ? (
                       <Check className="h-3.5 w-3.5 text-emerald-400" />
@@ -500,17 +563,18 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose, onProviderC
               </div>
 
               {/* HTTP Endpoint */}
-              <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-2xs dark:border-stone-700 dark:bg-stone-800">
+              <div className="rounded-xl border border-slate-200 bg-card p-4 dark:border-slate-700 dark:bg-slate-800">
                 <div className="flex items-center gap-2 mb-2">
-                  <Server className="h-4 w-4 text-[#445942] dark:text-[#7ba277]" />
-                  <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100">
+                  <Server className="h-4 w-4 text-[#5266eb] dark:text-[#9cb4e8]" />
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                     HTTP JSON-RPC Gateway
                   </h3>
                 </div>
-                <p className="text-xs text-stone-600 dark:text-stone-300 mb-2">
-                  Standard JSON-RPC 2.0 endpoint available when the app is running:
+                <p className="text-xs text-slate-600 dark:text-slate-300 mb-2">
+                  Standard JSON-RPC 2.0 endpoint available when the app is
+                  running:
                 </p>
-                <code className="block rounded-lg bg-stone-100 px-3 py-2 font-mono text-xs text-stone-800 dark:bg-stone-900 dark:text-stone-200">
+                <code className="block rounded-lg bg-slate-100 px-3 py-2 font-mono text-xs text-slate-800 dark:bg-slate-900 dark:text-slate-200">
                   POST http://localhost:3000/api/mcp
                 </code>
               </div>
@@ -520,24 +584,26 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose, onProviderC
           {/* TAB 2: PASTORAL TOOLS */}
           {activeTab === "tools" && (
             <div className="space-y-4">
-              <div className="rounded-xl border border-stone-200 bg-white p-3 text-xs text-stone-600 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300">
-                These tools allow local models and MCP clients to query scripture, record prayers into the SQLite database, and maintain conversational context.
+              <div className="rounded-xl border border-slate-200 bg-card p-3 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                These tools allow local models and MCP clients to query
+                scripture, record prayers into the SQLite database, and maintain
+                conversational context.
               </div>
 
               <div className="space-y-3">
                 {MCP_TOOLS.map((tool) => (
                   <div
                     key={tool.name}
-                    className="rounded-xl border border-stone-200 bg-white p-3.5 shadow-2xs dark:border-stone-700 dark:bg-stone-800"
+                    className="rounded-xl border border-slate-200 bg-card p-3.5 dark:border-slate-700 dark:bg-slate-800"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-2">
-                          <code className="rounded bg-stone-100 px-1.5 py-0.5 text-xs font-semibold text-[#445942] dark:bg-stone-900 dark:text-[#7ba277]">
+                          <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-semibold text-[#5266eb] dark:bg-slate-900 dark:text-[#9cb4e8]">
                             {tool.name}
                           </code>
                         </div>
-                        <p className="mt-1 text-xs text-stone-600 dark:text-stone-300">
+                        <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
                           {tool.description}
                         </p>
                       </div>
@@ -545,7 +611,7 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose, onProviderC
                       <button
                         onClick={() => handleTestTool(tool.name)}
                         disabled={isTesting}
-                        className="flex shrink-0 items-center gap-1 rounded-lg border border-stone-200 bg-stone-50 px-2.5 py-1 text-[11px] font-medium text-stone-700 transition hover:bg-stone-100 dark:border-stone-750 dark:bg-stone-900 dark:text-stone-300 dark:hover:bg-stone-750"
+                        className="flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-750 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-750"
                       >
                         <Play className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
                         <span>Test Call</span>
@@ -557,14 +623,14 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose, onProviderC
 
               {/* Test Result Box */}
               {testResult && (
-                <div className="mt-4 rounded-xl border border-stone-300 bg-stone-900 p-3.5 text-stone-100 dark:border-stone-700 dark:bg-stone-950">
-                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-stone-800 text-xs text-stone-400">
+                <div className="mt-4 rounded-xl border border-slate-300 bg-slate-900 p-3.5 text-slate-100 dark:border-slate-700 dark:bg-slate-950">
+                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800 text-xs text-slate-400">
                     <span>
                       Live Output for: <code>{testResult.tool}</code>
                     </span>
                     <button
                       onClick={() => setTestResult(null)}
-                      className="text-stone-400 hover:text-stone-200"
+                      className="text-slate-400 hover:text-slate-200"
                     >
                       Clear
                     </button>
@@ -580,11 +646,11 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose, onProviderC
           {/* TAB 3: RUNTIME */}
           {activeTab === "runtime" && (
             <div className="space-y-4">
-              <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-2xs dark:border-stone-700 dark:bg-stone-800">
+              <div className="rounded-xl border border-slate-200 bg-card p-4 dark:border-slate-700 dark:bg-slate-800">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <Cpu className="h-4 w-4 text-[#445942] dark:text-[#7ba277]" />
-                    <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100">
+                    <Cpu className="h-4 w-4 text-[#5266eb] dark:text-[#9cb4e8]" />
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                       AI Reasoning Engine
                     </h3>
                   </div>
@@ -594,32 +660,45 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose, onProviderC
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-stone-600 leading-relaxed dark:text-stone-300 mb-3">
-                  Choose which engine generates Pastor Mike&apos;s replies. Falls back to the offline engine automatically if the selected one is unavailable for a given message.
+                <p className="text-xs text-slate-600 leading-relaxed dark:text-slate-300 mb-3">
+                  Choose which engine generates Pastor Mike&apos;s replies.
+                  Falls back to the offline engine automatically if the selected
+                  one is unavailable for a given message.
                 </p>
 
                 <div className="space-y-2">
                   {/* Gemini */}
                   <button
-                    onClick={() => handleSaveProviderSettings({ provider: "gemini" })}
+                    onClick={() =>
+                      handleSaveProviderSettings({ provider: "gemini" })
+                    }
                     disabled={isSavingSettings}
                     className={`w-full rounded-lg border p-3 text-left text-xs transition ${
                       providerSettings.provider === "gemini"
                         ? "border-emerald-400/80 bg-emerald-50/60 dark:border-emerald-700/60 dark:bg-emerald-950/30"
-                        : "border-stone-200 bg-stone-50 hover:border-stone-300 dark:border-stone-700 dark:bg-stone-900/60"
+                        : "border-slate-200 bg-slate-50 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900/60"
                     }`}
                   >
                     <div className="flex items-start gap-2">
-                      <CheckCircle2 className={`h-4 w-4 shrink-0 mt-0.5 ${providerSettings.provider === "gemini" ? "text-emerald-600 dark:text-emerald-400" : "text-stone-300 dark:text-stone-600"}`} />
+                      <CheckCircle2
+                        className={`h-4 w-4 shrink-0 mt-0.5 ${providerSettings.provider === "gemini" ? "text-emerald-600 dark:text-emerald-400" : "text-slate-300 dark:text-slate-600"}`}
+                      />
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-stone-900 dark:text-stone-100">Google Gemini (Default)</span>
-                          <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${providerAvailability.gemini ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"}`}>
-                            {providerAvailability.gemini ? "Configured" : "No API key set"}
+                          <span className="font-semibold text-slate-900 dark:text-slate-100">
+                            Google Gemini (Default)
+                          </span>
+                          <span
+                            className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${providerAvailability.gemini ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"}`}
+                          >
+                            {providerAvailability.gemini
+                              ? "Configured"
+                              : "No API key set"}
                           </span>
                         </div>
-                        <p className="text-stone-500 dark:text-stone-400 mt-0.5">
-                          Cloud model. Requires <code>GEMINI_API_KEY</code> in <code>.env</code>.
+                        <p className="text-slate-500 dark:text-slate-400 mt-0.5">
+                          Cloud model. Requires <code>GEMINI_API_KEY</code> in{" "}
+                          <code>.env</code>.
                         </p>
                       </div>
                     </div>
@@ -627,15 +706,23 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose, onProviderC
 
                   {providerSettings.provider === "gemini" && (
                     <div className="ml-6 flex items-center gap-2">
-                      <span className="text-[11px] text-stone-500 dark:text-stone-400">Model:</span>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Model:
+                      </span>
                       <select
                         value={providerSettings.geminiModel}
-                        onChange={(e) => handleSaveProviderSettings({ geminiModel: e.target.value })}
+                        onChange={(e) =>
+                          handleSaveProviderSettings({
+                            geminiModel: e.target.value,
+                          })
+                        }
                         disabled={isSavingSettings}
-                        className="rounded-lg border border-stone-200 bg-white px-2 py-1 text-[11px] text-stone-700 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300"
+                        className="rounded-lg border border-slate-200 bg-card px-2 py-1 text-[11px] text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
                       >
                         {GEMINI_MODEL_OPTIONS.map((m) => (
-                          <option key={m} value={m}>{m}</option>
+                          <option key={m} value={m}>
+                            {m}
+                          </option>
                         ))}
                       </select>
                     </div>
@@ -643,25 +730,37 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose, onProviderC
 
                   {/* Ollama */}
                   <button
-                    onClick={() => handleSaveProviderSettings({ provider: "ollama" })}
+                    onClick={() =>
+                      handleSaveProviderSettings({ provider: "ollama" })
+                    }
                     disabled={isSavingSettings}
                     className={`w-full rounded-lg border p-3 text-left text-xs transition ${
                       providerSettings.provider === "ollama"
                         ? "border-emerald-400/80 bg-emerald-50/60 dark:border-emerald-700/60 dark:bg-emerald-950/30"
-                        : "border-stone-200 bg-stone-50 hover:border-stone-300 dark:border-stone-700 dark:bg-stone-900/60"
+                        : "border-slate-200 bg-slate-50 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900/60"
                     }`}
                   >
                     <div className="flex items-start gap-2">
-                      <CheckCircle2 className={`h-4 w-4 shrink-0 mt-0.5 ${providerSettings.provider === "ollama" ? "text-emerald-600 dark:text-emerald-400" : "text-stone-300 dark:text-stone-600"}`} />
+                      <CheckCircle2
+                        className={`h-4 w-4 shrink-0 mt-0.5 ${providerSettings.provider === "ollama" ? "text-emerald-600 dark:text-emerald-400" : "text-slate-300 dark:text-slate-600"}`}
+                      />
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-stone-900 dark:text-stone-100">Local Ollama</span>
-                          <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${providerAvailability.ollama ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"}`}>
-                            {providerAvailability.ollama ? "Reachable" : "Not running"}
+                          <span className="font-semibold text-slate-900 dark:text-slate-100">
+                            Local Ollama
+                          </span>
+                          <span
+                            className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${providerAvailability.ollama ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"}`}
+                          >
+                            {providerAvailability.ollama
+                              ? "Reachable"
+                              : "Not running"}
                           </span>
                         </div>
-                        <p className="text-stone-500 dark:text-stone-400 mt-0.5">
-                          Free, fully local. Requires <code>ollama run &lt;model&gt;</code> at <code>http://127.0.0.1:11434</code>.
+                        <p className="text-slate-500 dark:text-slate-400 mt-0.5">
+                          Free, fully local. Requires{" "}
+                          <code>ollama run &lt;model&gt;</code> at{" "}
+                          <code>http://127.0.0.1:11434</code>.
                         </p>
                       </div>
                     </div>
@@ -669,40 +768,58 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose, onProviderC
 
                   {providerSettings.provider === "ollama" && (
                     <div className="ml-6 flex items-center gap-2">
-                      <span className="text-[11px] text-stone-500 dark:text-stone-400">Model:</span>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Model:
+                      </span>
                       <input
                         type="text"
                         value={providerSettings.ollamaModel}
-                        onChange={(e) => setProviderSettings((p) => ({ ...p, ollamaModel: e.target.value }))}
-                        onBlur={(e) => handleSaveProviderSettings({ ollamaModel: e.target.value })}
+                        onChange={(e) =>
+                          setProviderSettings((p) => ({
+                            ...p,
+                            ollamaModel: e.target.value,
+                          }))
+                        }
+                        onBlur={(e) =>
+                          handleSaveProviderSettings({
+                            ollamaModel: e.target.value,
+                          })
+                        }
                         placeholder="llama3.2"
                         disabled={isSavingSettings}
-                        className="rounded-lg border border-stone-200 bg-white px-2 py-1 text-[11px] text-stone-700 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300"
+                        className="rounded-lg border border-slate-200 bg-card px-2 py-1 text-[11px] text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
                       />
                     </div>
                   )}
 
                   {/* Offline */}
                   <button
-                    onClick={() => handleSaveProviderSettings({ provider: "offline" })}
+                    onClick={() =>
+                      handleSaveProviderSettings({ provider: "offline" })
+                    }
                     disabled={isSavingSettings}
                     className={`w-full rounded-lg border p-3 text-left text-xs transition ${
                       providerSettings.provider === "offline"
                         ? "border-emerald-400/80 bg-emerald-50/60 dark:border-emerald-700/60 dark:bg-emerald-950/30"
-                        : "border-stone-200 bg-stone-50 hover:border-stone-300 dark:border-stone-700 dark:bg-stone-900/60"
+                        : "border-slate-200 bg-slate-50 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900/60"
                     }`}
                   >
                     <div className="flex items-start gap-2">
-                      <CheckCircle2 className={`h-4 w-4 shrink-0 mt-0.5 ${providerSettings.provider === "offline" ? "text-emerald-600 dark:text-emerald-400" : "text-stone-300 dark:text-stone-600"}`} />
+                      <CheckCircle2
+                        className={`h-4 w-4 shrink-0 mt-0.5 ${providerSettings.provider === "offline" ? "text-emerald-600 dark:text-emerald-400" : "text-slate-300 dark:text-slate-600"}`}
+                      />
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-stone-900 dark:text-stone-100">Offline Pastoral Engine</span>
+                          <span className="font-semibold text-slate-900 dark:text-slate-100">
+                            Offline Pastoral Engine
+                          </span>
                           <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
                             Always ready
                           </span>
                         </div>
-                        <p className="text-stone-500 dark:text-stone-400 mt-0.5">
-                          Zero external calls, zero cost. Tailored empathy + prayer generated locally from your message.
+                        <p className="text-slate-500 dark:text-slate-400 mt-0.5">
+                          Zero external calls, zero cost. Tailored empathy +
+                          prayer generated locally from your message.
                         </p>
                       </div>
                     </div>

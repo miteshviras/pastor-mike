@@ -30,39 +30,39 @@ export const VoiceBar: React.FC<VoiceBarProps> = ({
   return (
     <aside
       aria-label="Active voice conversation controls"
-      className="fixed bottom-24 left-1/2 z-30 -translate-x-1/2 w-[92%] max-w-lg rounded-2xl border border-stone-300/80 bg-white/95 px-4 py-3 shadow-xl backdrop-blur-md dark:border-stone-700 dark:bg-stone-900/95"
+      className="fixed bottom-24 left-1/2 z-30 -translate-x-1/2 w-[92%] max-w-lg border border-border-subtle bg-card px-4 py-3 shadow-elevated backdrop-blur-md"
     >
       <div className="flex items-center justify-between gap-3">
         {/* State Status */}
         <div className="flex items-center gap-2.5">
           {isSpeaking ? (
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
               <Volume2 className="h-4 w-4 animate-pulse" />
             </div>
           ) : isListening ? (
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-500 text-white shadow-xs animate-pulse">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-500 text-white animate-pulse">
               <Mic className="h-4 w-4" />
             </div>
           ) : (
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-accent-foreground">
               <Mic className="h-4 w-4" />
             </div>
           )}
 
           <div>
-            <p className="text-xs font-semibold text-stone-800 dark:text-stone-200">
+            <p className="text-xs font-semibold text-card-foreground">
               {isSpeaking
                 ? "Pastor Mike is speaking..."
                 : isListening
-                ? "Listening... speak now"
-                : "Voice Mode Active"}
+                  ? "Listening... speak now"
+                  : "Voice Mode Active"}
             </p>
-            <p className="text-[11px] text-stone-500 dark:text-stone-400">
+            <p className="text-[11px] text-muted-foreground">
               {isSpeaking
                 ? "Turn-taking: mic paused during speech"
                 : isListening
-                ? "Your audio is processed locally"
-                : "Tap microphone below to speak"}
+                  ? "Your audio is processed locally"
+                  : "Tap microphone below to speak"}
             </p>
           </div>
         </div>
@@ -70,28 +70,30 @@ export const VoiceBar: React.FC<VoiceBarProps> = ({
         {/* Voice, Speed Controls & Exit */}
         <div className="flex items-center gap-2">
           {/* Voice Selector */}
-          <div className="flex items-center gap-1 rounded-lg border border-stone-200 bg-stone-50 px-2 py-1 dark:border-stone-700 dark:bg-stone-800">
-            <User className="h-3 w-3 text-stone-400" />
+          <div className="flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-1">
+            <User className="h-3 w-3 text-muted-foreground" />
             <select
               value={voice}
               onChange={(e) => onVoiceChange(e.target.value)}
               aria-label="Voice"
-              className="bg-transparent text-[11px] font-medium text-stone-700 focus:outline-hidden dark:text-stone-300"
+              className="bg-transparent text-[11px] font-medium text-card-foreground focus:outline-hidden"
             >
               {KITTEN_VOICES.map((v) => (
-                <option key={v} value={v}>{v}</option>
+                <option key={v} value={v}>
+                  {v}
+                </option>
               ))}
             </select>
           </div>
 
           {/* Speed Selector */}
-          <div className="flex items-center gap-1 rounded-lg border border-stone-200 bg-stone-50 px-2 py-1 dark:border-stone-700 dark:bg-stone-800">
-            <Sliders className="h-3 w-3 text-stone-400" />
+          <div className="flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-1">
+            <Sliders className="h-3 w-3 text-muted-foreground" />
             <select
               value={speed}
               onChange={(e) => onSpeedChange(parseFloat(e.target.value))}
               aria-label="Voice speed delivery"
-              className="bg-transparent text-[11px] font-medium text-stone-700 focus:outline-hidden dark:text-stone-300"
+              className="bg-transparent text-[11px] font-medium text-card-foreground focus:outline-hidden"
             >
               <option value="0.8">0.8x Calm</option>
               <option value="0.88">0.9x Warm</option>
@@ -104,7 +106,7 @@ export const VoiceBar: React.FC<VoiceBarProps> = ({
             onClick={onClose}
             title="Exit Voice Mode"
             aria-label="Exit Voice Mode"
-            className="rounded-lg p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-stone-800 dark:hover:text-stone-200"
+            className="rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-card-foreground"
           >
             <X className="h-4 w-4" />
           </button>

@@ -1,21 +1,30 @@
 @import "tailwindcss";
 
+/* Mercury design system — dark-mode-first fintech palette */
 :root {
-  --background: #faf8f5;
-  --foreground: #292524;
+  --background: #171721;
+  --foreground: #ededf3;
   --card: #ffffff;
-  --card-foreground: #292524;
-  --primary: #445942;
-  --primary-foreground: #ffffff;
-  --accent: #e9ece6;
-  --accent-foreground: #2c3a2b;
-  --muted: #f4f1ea;
-  --muted-foreground: #78716c;
-  --border: #e7e3dc;
-  --scripture-bg: #f7f4ed;
-  --scripture-border: #d8cfc0;
-  --prayer-bg: #f3f6f3;
-  --prayer-border: #c8d7c6;
+  --card-foreground: #000000;
+  --primary: #5266eb;
+  --primary-hover: #3f52c9;
+  --primary-foreground: #ededf3;
+  --accent: rgba(156, 180, 232, 0.2);
+  --accent-foreground: #ededf3;
+  --accent-soft: #afb2ce;
+  --accent-light: #ededf3;
+  --muted: #272735;
+  --muted-foreground: #c3c3cc;
+  --border: rgba(156, 180, 232, 0.3);
+  --border-subtle: #ebebeb;
+  --surface-darker: #272735;
+  --scripture-bg: #ededf3;
+  --scripture-border: rgba(156, 180, 232, 0.3);
+  --prayer-bg: rgba(82, 102, 235, 0.06);
+  --prayer-border: rgba(82, 102, 235, 0.25);
+  --shadow-nav: 0px 0px 6px 0px rgba(86, 86, 118, 0.1);
+  --shadow-hover: 0px 10px 16px 0px rgba(28, 28, 35, 0.02), 0px 6px 10px 0px rgba(28, 28, 35, 0.04), 0px 0px 3px 0px rgba(28, 28, 35, 0.09);
+  --shadow-elevated: 0px 0px 3px 0px rgba(0, 0, 0, 0.05), 0px 8px 12px 0px rgba(0, 0, 0, 0.05), 0px 12px 20px 0px rgba(0, 0, 0, 0.05);
 }
 
 @theme inline {
@@ -24,40 +33,53 @@
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-light: var(--accent-light);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
-  --font-sans: var(--font-geist-sans);
+  --color-border-subtle: var(--border-subtle);
+  --color-surface-darker: var(--surface-darker);
+  --shadow-nav: var(--shadow-nav);
+  --shadow-hover: var(--shadow-hover);
+  --shadow-elevated: var(--shadow-elevated);
+  --radius-input: 32px;
+  --radius-pill: 40px;
+  --font-sans: 'General Sans', var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  --font-display: 'General Sans', var(--font-geist-sans), system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-geist-mono);
 }
 
+/* True OS dark mode: deepen to pure black per the Mercury token sheet's surface/on-surface pair */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #141312;
-    --foreground: #f5f5f4;
-    --card: #1c1b19;
-    --card-foreground: #f5f5f4;
-    --primary: #6b8764;
-    --primary-foreground: #ffffff;
-    --accent: #232a22;
-    --accent-foreground: #d3e0d1;
-    --muted: #242220;
-    --muted-foreground: #a8a29e;
-    --border: #322f2c;
-    --scripture-bg: #1f1d19;
-    --scripture-border: #3d372e;
-    --prayer-bg: #192019;
-    --prayer-border: #283727;
+    --background: #000000;
+    --foreground: #ffffff;
+    --card: #171721;
+    --card-foreground: #ededf3;
+    --accent: rgba(156, 180, 232, 0.15);
+    --accent-foreground: #ededf3;
+    --muted: #171721;
+    --muted-foreground: #c3c3cc;
+    --border: rgba(156, 180, 232, 0.2);
+    --border-subtle: #272735;
+    --surface-darker: #000000;
+    --scripture-bg: #171721;
+    --scripture-border: rgba(156, 180, 232, 0.25);
+    --prayer-bg: rgba(82, 102, 235, 0.1);
+    --prayer-border: rgba(82, 102, 235, 0.3);
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-sans);
+  font-weight: 420;
   min-height: 100vh;
 }
 
@@ -70,11 +92,11 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(120, 113, 108, 0.2);
+  background: rgba(156, 180, 232, 0.25);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(120, 113, 108, 0.4);
+  background: rgba(156, 180, 232, 0.45);
 }
 
 /* Utility to hide scrollbars while preserving scrolling */

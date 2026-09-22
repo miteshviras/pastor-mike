@@ -1,14 +1,26 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, BookOpen, CheckCircle, Clock, Plus, Sparkles, Trash2, Calendar } from "lucide-react";
+import {
+  X,
+  BookOpen,
+  CheckCircle,
+  Clock,
+  Plus,
+  Sparkles,
+  Trash2,
+  Calendar,
+} from "lucide-react";
 import { PrayerRequest } from "@/lib/db";
 
 interface PrayerJournalModalProps {
   isOpen: boolean;
   onClose: () => void;
   prayers: PrayerRequest[];
-  onToggleStatus: (prayerId: string, currentStatus: "active" | "answered") => Promise<void>;
+  onToggleStatus: (
+    prayerId: string,
+    currentStatus: "active" | "answered",
+  ) => Promise<void>;
   onAddPrayer: (text: string) => Promise<void>;
   onDeletePrayer?: (prayerId: string) => Promise<void>;
   scope?: "session" | "all";
@@ -49,7 +61,10 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
 
   const handleDelete = async (prayerId: string) => {
     if (!onDeletePrayer) return;
-    if (!window.confirm("Are you sure you want to remove this prayer petition?")) return;
+    if (
+      !window.confirm("Are you sure you want to remove this prayer petition?")
+    )
+      return;
     setDeletingId(prayerId);
     try {
       await onDeletePrayer(prayerId);
@@ -60,18 +75,18 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 backdrop-blur-xs">
-      <div className="flex h-[92dvh] sm:h-[85vh] w-full max-w-xl flex-col rounded-t-3xl sm:rounded-2xl border border-stone-200 bg-[#faf8f5] shadow-2xl dark:border-stone-800 dark:bg-stone-900">
+      <div className="flex h-[92dvh] sm:h-[85vh] w-full max-w-xl flex-col rounded-t-3xl sm:rounded-none border border-border-subtle bg-card shadow-elevated">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-stone-200/80 px-4 py-3.5 sm:px-5 sm:py-4 dark:border-stone-800">
+        <div className="flex items-center justify-between border-b border-slate-200/80 px-4 py-3.5 sm:px-5 sm:py-4 dark:border-slate-800">
           <div className="flex items-center gap-2.5">
-            <div className="rounded-lg bg-[#445942]/10 p-2 text-[#445942] dark:bg-[#5b7858]/20 dark:text-[#7ba277]">
+            <div className="rounded-lg bg-[#5266eb]/10 p-2 text-[#5266eb] dark:bg-[#5266eb]/20 dark:text-[#9cb4e8]">
               <BookOpen className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="font-serif text-base sm:text-lg font-semibold text-stone-900 dark:text-stone-100">
+              <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100">
                 Personal Prayer Journal
               </h2>
-              <p className="text-[11px] sm:text-xs text-stone-500 dark:text-stone-400">
+              <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
                 {scope === "session"
                   ? "Petitions and answered prayers for this visit"
                   : "All petitions across your visits, stored in SQLite"}
@@ -81,24 +96,24 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
 
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-stone-800 dark:hover:text-stone-200"
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Scope and Filter Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-200/60 bg-stone-50/50 px-4 py-2 sm:px-5 sm:py-2.5 dark:border-stone-800/60 dark:bg-stone-950/30">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/60 bg-slate-50/50 px-4 py-2 sm:px-5 sm:py-2.5 dark:border-slate-800/60 dark:bg-slate-950/30">
           {/* Scope Selector: This Visit vs All Visits */}
           {onToggleScope && (
-            <div className="flex rounded-lg bg-stone-200/60 p-0.5 text-xs font-medium dark:bg-stone-800">
+            <div className="flex rounded-lg bg-slate-200/60 p-0.5 text-xs font-medium dark:bg-slate-800">
               <button
                 type="button"
                 onClick={() => onToggleScope("session")}
                 className={`rounded-md px-2.5 py-1 transition ${
                   scope === "session"
-                    ? "bg-white text-stone-900 shadow-xs dark:bg-stone-700 dark:text-white"
-                    : "text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-white"
+                    ? "bg-card text-slate-900 dark:bg-slate-700 dark:text-white"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                 }`}
               >
                 This Visit
@@ -108,8 +123,8 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
                 onClick={() => onToggleScope("all")}
                 className={`rounded-md px-2.5 py-1 transition ${
                   scope === "all"
-                    ? "bg-white text-stone-900 shadow-xs dark:bg-stone-700 dark:text-white"
-                    : "text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-white"
+                    ? "bg-card text-slate-900 dark:bg-slate-700 dark:text-white"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                 }`}
               >
                 All Visits
@@ -126,11 +141,17 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
                 onClick={() => setFilter(tab)}
                 className={`rounded-lg px-2.5 py-1 text-xs font-medium capitalize transition ${
                   filter === tab
-                    ? "bg-[#445942] text-white dark:bg-[#5b7858]"
-                    : "text-stone-600 hover:bg-stone-200/60 dark:text-stone-400 dark:hover:bg-stone-800"
+                    ? "bg-[#5266eb] text-white dark:bg-[#5266eb]"
+                    : "text-slate-600 hover:bg-slate-200/60 dark:text-slate-400 dark:hover:bg-slate-800"
                 }`}
               >
-                {tab} ({prayers.filter((p) => (tab === "all" ? true : p.status === tab)).length})
+                {tab} (
+                {
+                  prayers.filter((p) =>
+                    tab === "all" ? true : p.status === tab,
+                  ).length
+                }
+                )
               </button>
             ))}
           </div>
@@ -139,14 +160,14 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
         {/* Prayer List */}
         <div className="flex-1 overflow-y-auto p-5 space-y-3">
           {filteredPrayers.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center text-stone-400">
-              <Sparkles className="h-8 w-8 text-stone-300 dark:text-stone-600 mb-2" />
-              <p className="text-sm font-medium text-stone-600 dark:text-stone-300">
+            <div className="flex flex-col items-center justify-center py-16 text-center text-slate-400">
+              <Sparkles className="h-8 w-8 text-slate-300 dark:text-slate-600 mb-2" />
+              <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
                 {scope === "session"
                   ? "No prayers recorded in this visit yet"
                   : "No prayers recorded in your journal yet"}
               </p>
-              <p className="text-xs mt-1 max-w-sm text-stone-500 dark:text-stone-400">
+              <p className="text-xs mt-1 max-w-sm text-slate-500 dark:text-slate-400">
                 {scope === "session"
                   ? "Prayers shared with Pastor Mike or entered below will be preserved specifically for this conversation."
                   : "Start by writing a petition below or asking Pastor Mike for prayer during your visit."}
@@ -158,10 +179,10 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
               return (
                 <div
                   key={prayer.id}
-                  className={`group flex items-start gap-3 rounded-xl border p-4 transition shadow-2xs ${
+                  className={`group flex items-start gap-3 rounded-xl border p-4 transition ${
                     isAnswered
                       ? "border-emerald-200 bg-emerald-50/40 dark:border-emerald-900/40 dark:bg-emerald-950/40"
-                      : "border-stone-200/90 bg-white dark:border-stone-800 dark:bg-stone-800/90"
+                      : "border-slate-200/90 bg-card dark:border-slate-800 dark:bg-slate-800/90"
                   }`}
                 >
                   <button
@@ -172,7 +193,7 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
                     {isAnswered ? (
                       <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                     ) : (
-                      <div className="h-5 w-5 rounded-full border-2 border-stone-300 hover:border-[#445942] dark:border-stone-600" />
+                      <div className="h-5 w-5 rounded-full border-2 border-slate-300 hover:border-[#5266eb] dark:border-slate-600" />
                     )}
                   </button>
 
@@ -180,22 +201,25 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
                     <p
                       className={`text-sm leading-relaxed ${
                         isAnswered
-                          ? "text-stone-500 line-through dark:text-stone-400"
-                          : "text-stone-800 dark:text-stone-200"
+                          ? "text-slate-500 line-through dark:text-slate-400"
+                          : "text-slate-800 dark:text-slate-200"
                       }`}
                     >
                       {prayer.request_text}
                     </p>
 
-                    <div className="mt-2 flex items-center justify-between text-[11px] text-stone-400">
+                    <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400">
                       <div className="flex items-center gap-3">
                         <span className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          {new Date(prayer.created_at).toLocaleDateString(undefined, {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
+                          {new Date(prayer.created_at).toLocaleDateString(
+                            undefined,
+                            {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            },
+                          )}
                         </span>
                         <span
                           className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
@@ -214,7 +238,7 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
                           onClick={() => handleDelete(prayer.id)}
                           disabled={deletingId === prayer.id}
                           title="Delete prayer from journal"
-                          className="opacity-70 sm:opacity-0 sm:group-hover:opacity-100 transition rounded-md p-1.5 sm:p-1 text-stone-400 hover:bg-stone-100 hover:text-rose-600 dark:hover:bg-stone-700 dark:hover:text-rose-400"
+                          className="opacity-70 sm:opacity-0 sm:group-hover:opacity-100 transition rounded-md p-1.5 sm:p-1 text-slate-400 hover:bg-slate-100 hover:text-rose-600 dark:hover:bg-slate-700 dark:hover:text-rose-400"
                         >
                           <Trash2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
                         </button>
@@ -230,7 +254,7 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
         {/* Add Prayer Form */}
         <form
           onSubmit={handleCreate}
-          className="border-t border-stone-200/80 bg-white p-3 sm:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:pb-4 dark:border-stone-800 dark:bg-stone-900"
+          className="border-t border-slate-200/80 bg-card p-3 sm:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:pb-4 dark:border-slate-800 dark:bg-slate-900"
         >
           <div className="flex gap-2">
             <input
@@ -243,12 +267,12 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
                   : "Add a new prayer to your journal..."
               }
               disabled={isSubmitting}
-              className="flex-1 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-base sm:text-sm text-stone-900 placeholder:text-stone-400 focus:border-stone-400 focus:outline-hidden dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100"
+              className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-hidden dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             />
             <button
               type="submit"
               disabled={!newPrayerText.trim() || isSubmitting}
-              className="flex items-center gap-1 rounded-xl bg-[#445942] px-3.5 sm:px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-[#384a36] disabled:opacity-50 dark:bg-[#5b7858]"
+              className="flex items-center gap-1 rounded-xl bg-[#5266eb] px-3.5 sm:px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#3f52c9] disabled:opacity-50 dark:bg-[#5266eb]"
             >
               <Plus className="h-4 w-4" />
               <span>Add</span>

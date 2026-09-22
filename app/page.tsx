@@ -26,7 +26,9 @@ export default function Home() {
   const [voicePreset, setVoicePreset] = useState<string>(() => {
     if (typeof window === "undefined") return "Jasper";
     const saved = localStorage.getItem("pastor_mike_voice");
-    return saved && (KITTEN_VOICES as readonly string[]).includes(saved) ? saved : "Jasper";
+    return saved && (KITTEN_VOICES as readonly string[]).includes(saved)
+      ? saved
+      : "Jasper";
   });
   const [prayers, setPrayers] = useState<PrayerRequest[]>([]);
   const [prayerScope, setPrayerScope] = useState<"session" | "all">("session");
@@ -34,7 +36,9 @@ export default function Home() {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isMcpOpen, setIsMcpOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
-  const [latestSafety, setLatestSafety] = useState<SafetyCheckResult | null>(null);
+  const [latestSafety, setLatestSafety] = useState<SafetyCheckResult | null>(
+    null,
+  );
   const [micError, setMicError] = useState<string | null>(null);
   const [mcpInfo, setMcpInfo] = useState<{
     isConnected: boolean;
@@ -90,14 +94,17 @@ export default function Home() {
     }
   }, [voicePreset]);
 
-  const loadPrayers = async (sid?: string | null, scope: "session" | "all" = prayerScope) => {
+  const loadPrayers = async (
+    sid?: string | null,
+    scope: "session" | "all" = prayerScope,
+  ) => {
     try {
       const url =
         scope === "all"
           ? "/api/prayers?sessionId=all"
           : sid
-          ? `/api/prayers?sessionId=${encodeURIComponent(sid)}`
-          : "/api/prayers";
+            ? `/api/prayers?sessionId=${encodeURIComponent(sid)}`
+            : "/api/prayers";
       const pRes = await fetch(url);
       if (pRes.ok) {
         const pData = await pRes.json();
@@ -129,18 +136,30 @@ export default function Home() {
           if (settingsRes.ok) {
             const settingsData = await settingsRes.json();
             if (settingsData.settings?.provider) {
-              const labels: Record<string, string> = { gemini: "Gemini", ollama: "Ollama", offline: "Offline" };
-              setProviderLabel(labels[settingsData.settings.provider] || settingsData.settings.provider);
+              const labels: Record<string, string> = {
+                gemini: "Gemini",
+                ollama: "Ollama",
+                offline: "Offline",
+              };
+              setProviderLabel(
+                labels[settingsData.settings.provider] ||
+                  settingsData.settings.provider,
+              );
             }
           }
         } catch {}
 
         // 2. Check localStorage for existing active session
         let activeSessionId: string | null = null;
-        const savedSessionId = typeof window !== "undefined" ? localStorage.getItem("pastor_mike_session_id") : null;
+        const savedSessionId =
+          typeof window !== "undefined"
+            ? localStorage.getItem("pastor_mike_session_id")
+            : null;
 
         if (savedSessionId) {
-          const msgRes = await fetch(`/api/sessions?sessionId=${encodeURIComponent(savedSessionId)}`);
+          const msgRes = await fetch(
+            `/api/sessions?sessionId=${encodeURIComponent(savedSessionId)}`,
+          );
           if (msgRes.ok) {
             const msgData = await msgRes.json();
             if (msgData.session) {
@@ -148,13 +167,21 @@ export default function Home() {
               setSessionId(msgData.session.id);
               if (msgData.messages && msgData.messages.length > 0) {
                 setMessages(
-                  msgData.messages.map((m: { id: string; role: "user" | "assistant" | "system"; content: string; metadata: string | null; created_at: string }) => ({
-                    id: m.id,
-                    role: m.role,
-                    content: m.content,
-                    metadata: m.metadata ? JSON.parse(m.metadata) : null,
-                    createdAt: m.created_at,
-                  }))
+                  msgData.messages.map(
+                    (m: {
+                      id: string;
+                      role: "user" | "assistant" | "system";
+                      content: string;
+                      metadata: string | null;
+                      created_at: string;
+                    }) => ({
+                      id: m.id,
+                      role: m.role,
+                      content: m.content,
+                      metadata: m.metadata ? JSON.parse(m.metadata) : null,
+                      createdAt: m.created_at,
+                    }),
+                  ),
                 );
               }
             }
@@ -168,7 +195,9 @@ export default function Home() {
             const sData = await sRes.json();
             if (sData.sessions && sData.sessions.length > 0) {
               for (const s of sData.sessions) {
-                const msgRes = await fetch(`/api/sessions?sessionId=${encodeURIComponent(s.id)}`);
+                const msgRes = await fetch(
+                  `/api/sessions?sessionId=${encodeURIComponent(s.id)}`,
+                );
                 if (msgRes.ok) {
                   const msgData = await msgRes.json();
                   if (msgData.messages && msgData.messages.length > 0) {
@@ -178,13 +207,21 @@ export default function Home() {
                       localStorage.setItem("pastor_mike_session_id", s.id);
                     }
                     setMessages(
-                      msgData.messages.map((m: { id: string; role: "user" | "assistant" | "system"; content: string; metadata: string | null; created_at: string }) => ({
-                        id: m.id,
-                        role: m.role,
-                        content: m.content,
-                        metadata: m.metadata ? JSON.parse(m.metadata) : null,
-                        createdAt: m.created_at,
-                      }))
+                      msgData.messages.map(
+                        (m: {
+                          id: string;
+                          role: "user" | "assistant" | "system";
+                          content: string;
+                          metadata: string | null;
+                          created_at: string;
+                        }) => ({
+                          id: m.id,
+                          role: m.role,
+                          content: m.content,
+                          metadata: m.metadata ? JSON.parse(m.metadata) : null,
+                          createdAt: m.created_at,
+                        }),
+                      ),
                     );
                     break;
                   }
@@ -211,7 +248,10 @@ export default function Home() {
             activeSessionId = createData.session.id;
             setSessionId(createData.session.id);
             if (typeof window !== "undefined") {
-              localStorage.setItem("pastor_mike_session_id", createData.session.id);
+              localStorage.setItem(
+                "pastor_mike_session_id",
+                createData.session.id,
+              );
             }
           }
         }
@@ -224,7 +264,10 @@ export default function Home() {
         }
 
         // 6. Check if first-time onboarding should be displayed
-        const hasOnboarded = typeof window !== "undefined" ? localStorage.getItem("pastor_mike_onboarded") === "true" : true;
+        const hasOnboarded =
+          typeof window !== "undefined"
+            ? localStorage.getItem("pastor_mike_onboarded") === "true"
+            : true;
         if (!hasOnboarded) {
           setIsOnboardingOpen(true);
         }
@@ -318,7 +361,8 @@ export default function Home() {
       const errorMsg: ChatMessageProps = {
         id: "err_" + Date.now(),
         role: "assistant",
-        content: "I'm having a brief moment of difficulty connecting. Please take a quiet breath and try speaking with me again.",
+        content:
+          "I'm having a brief moment of difficulty connecting. Please take a quiet breath and try speaking with me again.",
         createdAt: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, errorMsg]);
@@ -366,7 +410,10 @@ export default function Home() {
 
   const handleDeletePrayer = async (prayerId: string) => {
     try {
-      const res = await fetch(`/api/prayers?id=${encodeURIComponent(prayerId)}`, { method: "DELETE" });
+      const res = await fetch(
+        `/api/prayers?id=${encodeURIComponent(prayerId)}`,
+        { method: "DELETE" },
+      );
       if (res.ok) {
         setPrayers((prev) => prev.filter((p) => p.id !== prayerId));
       }
@@ -375,7 +422,10 @@ export default function Home() {
     }
   };
 
-  const handleTogglePrayerStatus = async (prayerId: string, currentStatus: "active" | "answered") => {
+  const handleTogglePrayerStatus = async (
+    prayerId: string,
+    currentStatus: "active" | "answered",
+  ) => {
     const nextStatus = currentStatus === "active" ? "answered" : "active";
     try {
       const res = await fetch("/api/prayers", {
@@ -385,7 +435,9 @@ export default function Home() {
       });
       if (res.ok) {
         setPrayers((prev) =>
-          prev.map((p) => (p.id === prayerId ? { ...p, status: nextStatus } : p))
+          prev.map((p) =>
+            p.id === prayerId ? { ...p, status: nextStatus } : p,
+          ),
         );
       }
     } catch (err) {
@@ -424,7 +476,9 @@ export default function Home() {
       speechClientRef.current?.stopListening();
       setIsLoading(true);
 
-      const msgRes = await fetch(`/api/sessions?sessionId=${encodeURIComponent(targetSessionId)}`);
+      const msgRes = await fetch(
+        `/api/sessions?sessionId=${encodeURIComponent(targetSessionId)}`,
+      );
       if (msgRes.ok) {
         const msgData = await msgRes.json();
         setSessionId(targetSessionId);
@@ -432,13 +486,25 @@ export default function Home() {
           localStorage.setItem("pastor_mike_session_id", targetSessionId);
         }
         setMessages(
-          (msgData.messages || []).map((m: { id: string; role: "user" | "assistant" | "system"; content: string; metadata: string | null; created_at: string }) => ({
-            id: m.id,
-            role: m.role,
-            content: m.content,
-            metadata: m.metadata ? (typeof m.metadata === "string" ? JSON.parse(m.metadata) : m.metadata) : null,
-            createdAt: m.created_at,
-          }))
+          (msgData.messages || []).map(
+            (m: {
+              id: string;
+              role: "user" | "assistant" | "system";
+              content: string;
+              metadata: string | null;
+              created_at: string;
+            }) => ({
+              id: m.id,
+              role: m.role,
+              content: m.content,
+              metadata: m.metadata
+                ? typeof m.metadata === "string"
+                  ? JSON.parse(m.metadata)
+                  : m.metadata
+                : null,
+              createdAt: m.created_at,
+            }),
+          ),
         );
         setLatestSafety(null);
 
@@ -454,13 +520,20 @@ export default function Home() {
     }
   };
 
-  const handleCompleteOnboarding = (prefs: { name: string; topics: string[]; enableVoice: boolean }) => {
+  const handleCompleteOnboarding = (prefs: {
+    name: string;
+    topics: string[];
+    enableVoice: boolean;
+  }) => {
     if (prefs.enableVoice) {
       setIsVoiceMode(true);
     }
 
     if (messages.length === 0) {
-      const topicText = prefs.topics.length > 0 ? `regarding ${prefs.topics.join(" and ")}` : "in your heart";
+      const topicText =
+        prefs.topics.length > 0
+          ? `regarding ${prefs.topics.join("and")}`
+          : "in your heart";
       const greeting = `Peace and grace to you, ${prefs.name || "Beloved Friend"}. I am Pastor Mike. I am glad you have joined me in this quiet space today. I am holding what is ${topicText} with gentle care. How can I walk alongside you right now?`;
 
       const welcomeMsg: ChatMessageProps = {
@@ -478,7 +551,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-[#faf8f5] text-stone-900 selection:bg-[#445942]/20 selection:text-stone-900 dark:bg-[#141312] dark:text-stone-100">
+    <div className="flex min-h-[100dvh] flex-col bg-background text-foreground selection:bg-[#5266eb]/30 selection:text-white">
       {/* Top Header */}
       <Header
         isVoiceMode={isVoiceMode}
@@ -504,16 +577,17 @@ export default function Home() {
         {/* Welcome Empty State */}
         {messages.length === 0 && (
           <div className="my-auto flex flex-col items-center justify-center text-center py-6 sm:py-10 px-2">
-            <div className="mb-3 sm:mb-4 flex h-13 w-13 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-[#445942]/10 text-[#445942] dark:bg-[#5b7858]/20 dark:text-[#7ba277]">
+            <div className="mb-3 sm:mb-4 flex h-13 w-13 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-[#5266eb]/10 text-[#5266eb] dark:bg-[#5266eb]/20 dark:text-[#9cb4e8]">
               <HeartHandshake className="h-6 w-6 sm:h-8 sm:w-8" />
             </div>
-            <h2 className="font-serif text-xl sm:text-2xl font-semibold text-stone-900 dark:text-stone-100">
+            <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-slate-100">
               Welcome, Beloved Friend
             </h2>
-            <p className="mt-2 max-w-md text-xs sm:text-sm leading-relaxed text-stone-600 dark:text-stone-400">
-              I am Pastor Mike, your AI pastoral companion. I am here to offer a listening ear, gentle comfort, Holy Scripture, and prayer.
+            <p className="mt-2 max-w-md text-xs sm:text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+              I am Pastor Mike, your AI pastoral companion. I am here to offer a
+              listening ear, gentle comfort, Holy Scripture, and prayer.
             </p>
-            <div className="mt-3 sm:mt-4 flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-stone-500 dark:text-stone-400">
+            <div className="mt-3 sm:mt-4 flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
               <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
               <span>Safe, confidential, and saved locally on your device</span>
             </div>
@@ -534,11 +608,13 @@ export default function Home() {
 
           {/* Typing/Thinking State with Live MCP Connection Check */}
           {isLoading && (
-            <div className="flex flex-col gap-2 my-4 rounded-2xl rounded-tl-xs border border-stone-200/80 bg-white/90 p-4 text-xs shadow-2xs dark:border-stone-800 dark:bg-stone-900/90">
+            <div className="flex flex-col gap-2 my-4 rounded-2xl rounded-tl-xs border border-slate-200/80 bg-card/90 p-4 text-xs dark:border-slate-800 dark:bg-slate-900/90">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2 text-stone-700 dark:text-stone-300">
+                <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
                   <Sparkles className="h-4 w-4 animate-spin text-amber-600" />
-                  <span className="font-serif font-medium">Pastor Mike is reflecting on your words...</span>
+                  <span className="font-medium">
+                    Pastor Mike is reflecting on your words...
+                  </span>
                 </div>
                 {mcpInfo.isConnected && (
                   <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/70 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50 text-[11px] font-medium">
@@ -546,12 +622,22 @@ export default function Home() {
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
                     </span>
-                    <span>MCP Active: <strong>{mcpInfo.clientName}</strong></span>
+                    <span>
+                      MCP Active: <strong>{mcpInfo.clientName}</strong>
+                    </span>
                   </div>
                 )}
               </div>
-              <p className="text-[11px] text-stone-400 dark:text-stone-500 pl-6">
-                Checking MCP tools &bull; Executing <code className="font-mono text-[10px] bg-stone-100 dark:bg-stone-800 px-1 py-0.5 rounded">get_recent_context</code> &bull; Querying <code className="font-mono text-[10px] bg-stone-100 dark:bg-stone-800 px-1 py-0.5 rounded">search_scripture</code>...
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 pl-6">
+                Checking MCP tools &bull; Executing{" "}
+                <code className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">
+                  get_recent_context
+                </code>{" "}
+                &bull; Querying{" "}
+                <code className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">
+                  search_scripture
+                </code>
+                ...
               </p>
             </div>
           )}
@@ -617,7 +703,11 @@ export default function Home() {
         isOpen={isMcpOpen}
         onClose={() => setIsMcpOpen(false)}
         onProviderChange={(provider) => {
-          const labels: Record<string, string> = { gemini: "Gemini", ollama: "Ollama", offline: "Offline" };
+          const labels: Record<string, string> = {
+            gemini: "Gemini",
+            ollama: "Ollama",
+            offline: "Offline",
+          };
           setProviderLabel(labels[provider] || provider);
         }}
       />
