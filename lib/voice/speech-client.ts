@@ -11,6 +11,10 @@ export interface SpeechClientOptions {
   onSpeakingStateChange?: (isSpeaking: boolean) => void;
   onTranscriptionResult?: (text: string, isFinal: boolean) => void;
   onError?: (err: string) => void;
+  // Fired with the live HTMLAudioElement while KittenTTS audio is playing (and with
+  // null when it stops), so callers can read currentTime/duration for pacing UI —
+  // e.g. syncing avatar mouth movement or text reveal — without this class knowing about them.
+  onAudioElement?: (audio: HTMLAudioElement | null) => void;
 }
 
 // Global browser SpeechRecognition interface
@@ -174,10 +178,12 @@ export class PastoralSpeechClient {
         const audioUrl = URL.createObjectURL(blob);
         const audio = new Audio(audioUrl);
         this.currentAudio = audio;
+        this.options.onAudioElement?.(audio);
 
         audio.onended = () => {
           this.isSpeaking = false;
           this.options.onSpeakingStateChange?.(false);
+          this.options.onAudioElement?.(null);
           URL.revokeObjectURL(audioUrl);
         };
 
@@ -233,6 +239,7 @@ export class PastoralSpeechClient {
     if (this.currentAudio) {
       this.currentAudio.pause();
       this.currentAudio = null;
+      this.options.onAudioElement?.(null);
     }
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();

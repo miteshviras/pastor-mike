@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import dynamic from "next/dynamic";
+import { AnimatePresence, motion } from "framer-motion";
 import { Header } from "@/components/Header";
 import { ChatMessage, ChatMessageProps } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
@@ -10,9 +12,15 @@ import { OnboardingModal } from "@/components/OnboardingModal";
 import { VoiceBar } from "@/components/VoiceBar";
 import { CrisisBanner } from "@/components/CrisisBanner";
 import { PastoralSpeechClient, KITTEN_VOICES } from "@/lib/voice/speech-client";
+import { useSentenceSync } from "@/lib/voice/useSentenceSync";
 import type { PrayerRequest } from "@/lib/db";
 import { SafetyCheckResult } from "@/lib/ai/safety";
 import { Sparkles, HeartHandshake } from "lucide-react";
+
+// Keeps the three.js/R3F bundle out of the server-rendered chunk.
+const PastorStage = dynamic(() => import("@/components/avatar/PastorStage"), {
+  ssr: false,
+});
 
 function safeGetStorage(key: string): string | null {
   try {
@@ -61,6 +69,12 @@ export default function Home() {
   const speechClientRef = useRef<PastoralSpeechClient | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Paces the last assistant reply's text reveal to match TTS playback, for the
+  // Pastor Stage's current-turn view (Live Pastor mode).
+  const lastAssistantMessage = [...messages].reverse().find((m) => m.role === "assistant");
+  const lastUserMessage = [...messages].reverse().find((m) => m.role === "user");
+  const sentenceSync = useSentenceSync(lastAssistantMessage?.content ?? "", isSpeaking);
+
   // Initialize Speech Client
   useEffect(() => {
     try {
@@ -78,6 +92,7 @@ export default function Home() {
           }
         },
         onError: (err) => setMicError(err),
+        onAudioElement: (audio) => sentenceSync.setAudioElement(audio),
       });
       speechClientRef.current = client;
 
@@ -374,6 +389,14 @@ export default function Home() {
     }
   };
 
+  const handleToggleLivePastor = () => {
+    const next = !isVoiceMode;
+    setIsVoiceMode(next);
+    if (!next) {
+      speechClientRef.current?.stopSpeaking();
+    }
+  };
+
   const handleToggleListening = () => {
     if (!speechClientRef.current) return;
     if (isListening) {
@@ -548,7 +571,7 @@ export default function Home() {
       {/* Top Header */}
       <Header
         isVoiceMode={isVoiceMode}
-        onToggleVoiceMode={() => setIsVoiceMode(!isVoiceMode)}
+        onToggleVoiceMode={handleToggleLivePastor}
         onOpenJournal={() => setIsJournalOpen(true)}
         onOpenHistory={() => setIsHistoryOpen(true)}
         onOpenSettings={() => setGuideModalTab("settings")}
@@ -573,61 +596,89 @@ export default function Home() {
         />
 
         <div className="flex flex-1 flex-col overflow-hidden">
-          {/* Main Conversation Canvas — only this scrolls */}
-          <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-y-auto overscroll-contain px-3 py-3 sm:px-4 sm:py-6">
-            {/* Safety Crisis Alert if triggered */}
-            {latestSafety && latestSafety.isCrisis && (
-              <CrisisBanner safety={latestSafety} />
-            )}
-
-            {/* Welcome Empty State */}
-            {messages.length === 0 && (
-              <div className="my-auto flex flex-col items-center justify-center text-center py-6 sm:py-10 px-2">
-                <div className="mb-3 sm:mb-4 flex h-13 w-13 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-[#5266eb]/10 text-[#5266eb] dark:bg-[#5266eb]/20 dark:text-[#9cb4e8]">
-                  <HeartHandshake className="h-6 w-6 sm:h-8 sm:w-8" />
-                </div>
-                <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-slate-100">
-                  Welcome, Beloved Friend
-                </h2>
-                <p className="mt-2 max-w-md text-xs sm:text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-                  I am Pastor Mike, your AI pastoral companion. I am here to
-                  offer a listening ear, gentle comfort, Holy Scripture, and
-                  prayer.
-                </p>
-                <div className="mt-3 sm:mt-4 flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
-                  <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
-                  <span>
-                    Safe, confidential, and saved locally on your device
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Conversation Transcript */}
-            <div className={messages.length > 0 ? "flex-1 space-y-2" : "space-y-2"}>
-              {messages.map((msg) => (
-                <ChatMessage
-                  key={msg.id}
-                  {...msg}
-                  onSpeak={handleSpeak}
-                  onSavePrayer={handleSavePrayer}
-                  isSpeakingNow={isSpeaking}
+          <AnimatePresence mode="wait" initial={false}>
+            {isVoiceMode ? (
+              <motion.div
+                key="pastor-stage"
+                className="flex flex-1 overflow-hidden"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+              >
+                <PastorStage
+                  userText={lastUserMessage?.content ?? ""}
+                  revealedText={sentenceSync.revealedText}
+                  sentences={sentenceSync.sentences}
+                  currentSentenceIndex={sentenceSync.currentSentenceIndex}
+                  isLoading={isLoading}
+                  isSpeaking={isSpeaking}
                 />
-              ))}
+              </motion.div>
+            ) : (
+              <motion.main
+                key="conversation-list"
+                className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-y-auto overscroll-contain px-3 py-3 sm:px-4 sm:py-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+              >
+                {/* Safety Crisis Alert if triggered */}
+                {latestSafety && latestSafety.isCrisis && (
+                  <CrisisBanner safety={latestSafety} />
+                )}
 
-              {/* Typing/Thinking State */}
-              {isLoading && (
-                <div className="flex items-center gap-2 my-4 rounded-2xl rounded-tl-xs border border-slate-200/80 bg-card/90 p-4 text-xs dark:border-slate-800 dark:bg-slate-900/90">
-                  <Sparkles className="h-4 w-4 animate-spin text-amber-600" />
-                  <span className="font-medium text-slate-700 dark:text-slate-300">
-                    Pastor Mike is reflecting on your words...
-                  </span>
+                {/* Welcome Empty State */}
+                {messages.length === 0 && (
+                  <div className="my-auto flex flex-col items-center justify-center text-center py-6 sm:py-10 px-2">
+                    <div className="mb-3 sm:mb-4 flex h-13 w-13 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-[#5266eb]/10 text-[#5266eb] dark:bg-[#5266eb]/20 dark:text-[#9cb4e8]">
+                      <HeartHandshake className="h-6 w-6 sm:h-8 sm:w-8" />
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                      Welcome, Beloved Friend
+                    </h2>
+                    <p className="mt-2 max-w-md text-xs sm:text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                      I am Pastor Mike, your AI pastoral companion. I am here to
+                      offer a listening ear, gentle comfort, Holy Scripture, and
+                      prayer.
+                    </p>
+                    <div className="mt-3 sm:mt-4 flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
+                      <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
+                      <span>
+                        Safe, confidential, and saved locally on your device
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Conversation Transcript */}
+                <div className={messages.length > 0 ? "flex-1 space-y-2" : "space-y-2"}>
+                  {messages.map((msg) => (
+                    <ChatMessage
+                      key={msg.id}
+                      {...msg}
+                      onSpeak={handleSpeak}
+                      onSavePrayer={handleSavePrayer}
+                      isSpeakingNow={isSpeaking}
+                    />
+                  ))}
+
+                  {/* Typing/Thinking State */}
+                  {isLoading && (
+                    <div className="flex items-center gap-2 my-4 rounded-2xl rounded-tl-xs border border-slate-200/80 bg-card/90 p-4 text-xs dark:border-slate-800 dark:bg-slate-900/90">
+                      <Sparkles className="h-4 w-4 animate-spin text-amber-600" />
+                      <span className="font-medium text-slate-700 dark:text-slate-300">
+                        Pastor Mike is reflecting on your words...
+                      </span>
+                    </div>
+                  )}
+
+                  <div ref={messagesEndRef} />
                 </div>
-              )}
-
-              <div ref={messagesEndRef} />
-            </div>
-          </main>
+              </motion.main>
+            )}
+          </AnimatePresence>
 
           {/* Voice Status Bar + Composer, pinned together at the bottom */}
           <div className="sticky bottom-0 z-20">
@@ -639,7 +690,7 @@ export default function Home() {
               onSpeedChange={setSpeechSpeed}
               voice={voicePreset}
               onVoiceChange={setVoicePreset}
-              onClose={() => setIsVoiceMode(false)}
+              onClose={handleToggleLivePastor}
             />
 
             <ChatInput

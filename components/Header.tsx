@@ -77,7 +77,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={onToggleVoiceMode}
-            title={isVoiceMode ? "Disable Voice Mode" : "Enable Voice Mode"}
+            title={isVoiceMode ? "Disable Live Pastor" : "Enable Live Pastor"}
             className={`flex items-center justify-center gap-1.5 rounded-full border p-2 min-h-[38px] min-w-[38px] sm:min-h-0 sm:min-w-0 sm:px-3 sm:py-1.5 text-xs font-medium transition cursor-pointer touch-manipulation active:scale-95 ${
               isVoiceMode
                 ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300"
@@ -87,12 +87,12 @@ export const Header: React.FC<HeaderProps> = ({
             {isVoiceMode ? (
               <>
                 <Mic className="h-4 w-4 sm:h-3.5 sm:w-3.5 text-emerald-400 animate-pulse" />
-                <span className="hidden md:inline">Voice Active</span>
+                <span className="hidden md:inline">Live Pastor ON</span>
               </>
             ) : (
               <>
                 <MicOff className="h-4 w-4 sm:h-3.5 sm:w-3.5 text-[#c3c3cc]" />
-                <span className="hidden md:inline">Voice Mode</span>
+                <span className="hidden md:inline">Live Pastor</span>
               </>
             )}
           </button>
