@@ -52,12 +52,15 @@ Each task is committed and pushed upon completion.
   - Add automated test verification (`scripts/test-tts.ts`).
   - *Commit: `feat: implement KittenTTS voice pipeline and speech client`*
 
-- [ ] **Task 8: Serene Pastoral UI Shell & Components**
-  - Pastoral Header with Pastor Mike avatar, AI disclosure badge, and Prayer Journal trigger.
-  - Message transcript with scripture citation cards, prayer cards with "Save to Journal", and audio play buttons.
-  - Calm chat input with starter suggestion pills and microphone speech button.
-  - Prayer Journal slide-over drawer / modal.
-  - Crisis banner component.
+- [x] **Task 8: Serene Pastoral UI Shell & Components**
+  - Pastoral Header with Pastor Mike avatar, AI disclosure badge, and Prayer Journal trigger (`components/Header.tsx`).
+  - Message transcript with scripture citation cards, prayer cards with "Save to Journal", and audio play buttons (`components/ChatMessage.tsx`).
+  - Calm chat input with starter suggestion pills and microphone speech button (`components/ChatInput.tsx`).
+  - Prayer Journal slide-over drawer / modal (`components/PrayerJournalModal.tsx`).
+  - Crisis banner component with 988 emergency escalation (`components/CrisisBanner.tsx`).
+  - Floating VoiceBar with speed controls and turn-taking feedback (`components/VoiceBar.tsx`).
+  - Main unified pastoral experience (`app/page.tsx`).
+  - *Commit: `feat: implement serene pastoral UI shell, components, and prayer journal`*
 
 - [ ] **Task 9: End-to-End Testing & Demo Flow Verification**
   - Verify complete demo script from Notion (anxiety prompt -> scripture -> prayer -> voice -> journal save).
