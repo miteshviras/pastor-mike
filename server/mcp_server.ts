@@ -7,6 +7,7 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { MCP_TOOLS, executeMcpTool } from "../lib/mcp/tools";
+import { recordMcpConnection } from "../lib/db";
 
 /**
  * Digital Pastor ("Pastor Mike") — Official Model Context Protocol (MCP) Server
@@ -25,6 +26,12 @@ const server = new Server(
     },
   }
 );
+
+// Record which MCP client (Claude Desktop, Cursor, Antigravity, Codex, ...) connected
+server.oninitialized = () => {
+  const clientInfo = server.getClientVersion();
+  recordMcpConnection(clientInfo?.name || "Unknown MCP Client", clientInfo?.version || null, "stdio");
+};
 
 // Register list of available tools
 server.setRequestHandler(ListToolsRequestSchema, async () => {

@@ -27,6 +27,7 @@ export default function Home() {
   const [isMcpOpen, setIsMcpOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [latestSafety, setLatestSafety] = useState<SafetyCheckResult | null>(null);
+  const [micError, setMicError] = useState<string | null>(null);
 
   const speechClientRef = useRef<PastoralSpeechClient | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -35,13 +36,17 @@ export default function Home() {
   useEffect(() => {
     const client = new PastoralSpeechClient({
       speed: speechSpeed,
-      onListeningStateChange: (listening) => setIsListening(listening),
+      onListeningStateChange: (listening) => {
+        setIsListening(listening);
+        if (listening) setMicError(null);
+      },
       onSpeakingStateChange: (speaking) => setIsSpeaking(speaking),
       onTranscriptionResult: (transcript, isFinal) => {
         if (isFinal && transcript.trim()) {
           handleSendMessage(transcript.trim());
         }
       },
+      onError: (err) => setMicError(err),
     });
     speechClientRef.current = client;
 
@@ -259,6 +264,7 @@ export default function Home() {
     if (isListening) {
       speechClientRef.current.stopListening();
     } else {
+      setMicError(null);
       speechClientRef.current.startListening();
     }
   };
@@ -425,6 +431,7 @@ export default function Home() {
         onToggleListening={handleToggleListening}
         isSpeaking={isSpeaking}
         showStarterPills={messages.length === 0}
+        micError={micError}
       />
 
       {/* Prayer Journal Modal */}

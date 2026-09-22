@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { MCP_TOOLS, executeMcpTool } from "@/lib/mcp/tools";
+import { recordMcpConnection, listMcpConnections } from "@/lib/db";
 
 /**
  * HTTP MCP Gateway & Tool Inspector Endpoint
@@ -19,6 +20,7 @@ export async function GET() {
     projectRoot: cwd,
     platform: process.platform,
     tools: MCP_TOOLS,
+    connections: listMcpConnections(),
     connectionOptions: {
       stdioCommand: "npm run mcp:server",
       claudeDesktopConfigWindows: {
@@ -57,6 +59,9 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+
+    const clientName = req.headers.get("x-mcp-client") || req.headers.get("user-agent")?.slice(0, 80) || "Unknown HTTP Client";
+    recordMcpConnection(clientName, null, "http");
 
     // 1. Check for standard JSON-RPC 2.0 format
     if (body.jsonrpc === "2.0") {

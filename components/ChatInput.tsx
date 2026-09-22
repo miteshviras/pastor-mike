@@ -10,6 +10,7 @@ interface ChatInputProps {
   onToggleListening: () => void;
   isSpeaking: boolean;
   showStarterPills?: boolean;
+  micError?: string | null;
 }
 
 const STARTER_PROMPTS = [
@@ -26,6 +27,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onToggleListening,
   isSpeaking,
   showStarterPills = false,
+  micError,
 }) => {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -141,6 +143,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             <Send className="h-4 w-4" />
           </button>
         </div>
+
+        {micError && (
+          <div className="mt-2 px-1 text-[11px] text-rose-500 dark:text-rose-400">
+            {micError}
+          </div>
+        )}
 
         <div className="mt-2 flex items-center justify-between px-1 text-[11px] text-stone-400 dark:text-stone-500">
           <span>Private & stored locally in SQLite</span>

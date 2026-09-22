@@ -13,12 +13,87 @@ import {
   Cpu,
   Monitor,
   Apple,
+  Wifi,
+  WifiOff,
+  Bot,
 } from "lucide-react";
 import { MCP_TOOLS } from "@/lib/mcp/definitions";
+import type { McpConnection } from "@/lib/db";
 
 interface McpModalProps {
   isOpen: boolean;
   onClose: () => void;
+}
+
+type ClientId = "claude" | "cursor" | "antigravity" | "codex";
+
+interface ClientDef {
+  id: ClientId;
+  label: string;
+  format: "json" | "toml";
+  configFile: (os: "windows" | "posix") => string;
+  instructions?: string;
+}
+
+const MCP_CLIENTS: ClientDef[] = [
+  {
+    id: "claude",
+    label: "Claude Desktop",
+    format: "json",
+    configFile: (os) =>
+      os === "windows"
+        ? "%APPDATA%\\Claude\\claude_desktop_config.json"
+        : "~/Library/Application Support/Claude/claude_desktop_config.json",
+  },
+  {
+    id: "cursor",
+    label: "Cursor",
+    format: "json",
+    configFile: () => "~/.cursor/mcp.json",
+    instructions: "Or via Cursor Settings \u2192 Features \u2192 MCP \u2192 Add New MCP Server.",
+  },
+  {
+    id: "antigravity",
+    label: "Antigravity",
+    format: "json",
+    configFile: (os) =>
+      os === "windows"
+        ? "%USERPROFILE%\\.gemini\\config\\mcp_config.json"
+        : "~/.gemini/config/mcp_config.json",
+    instructions: "Workspace-local alternative: .agents/mcp_config.json in this project.",
+  },
+  {
+    id: "codex",
+    label: "Codex CLI",
+    format: "toml",
+    configFile: () => "~/.codex/config.toml",
+  },
+];
+
+function timeAgo(iso: string): string {
+  const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (seconds < 10) return "just now";
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
+// Pure fetch, no setState here, so it's safe to call from both an effect and an event handler
+async function fetchMcpInfo(): Promise<{
+  projectRoot?: string;
+  platform?: string;
+  connections?: McpConnection[];
+} | null> {
+  try {
+    const res = await fetch("/api/mcp");
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
 }
 
 export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose }) => {
@@ -28,30 +103,32 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose }) => {
   const [copiedText, setCopiedText] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<{ tool: string; output: string } | null>(null);
   const [isTesting, setIsTesting] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<ClientId>("claude");
+  const [connections, setConnections] = useState<McpConnection[]>([]);
+  const [lastPolledAt, setLastPolledAt] = useState(0);
 
-  // Fetch project root and platform from backend
+  // Fetch project root, platform, and currently-connected MCP clients, then poll while open
+  // so newly-connected clients (stdio or HTTP) show up live.
   useEffect(() => {
     if (!isOpen) return;
+    let cancelled = false;
 
-    async function fetchInfo() {
-      try {
-        const res = await fetch("/api/mcp");
-        if (res.ok) {
-          const data = await res.json();
-          if (data.projectRoot) {
-            setProjectRoot(data.projectRoot);
-          }
-          if (data.platform === "win32") {
-            setTargetOs("windows");
-          } else if (data.platform === "darwin" || data.platform === "linux") {
-            setTargetOs("posix");
-          }
-        }
-      } catch {
-        // Fallback default
-      }
+    async function poll() {
+      const data = await fetchMcpInfo();
+      if (cancelled || !data) return;
+      if (data.projectRoot) setProjectRoot(data.projectRoot);
+      if (data.platform === "win32") setTargetOs("windows");
+      else if (data.platform === "darwin" || data.platform === "linux") setTargetOs("posix");
+      if (Array.isArray(data.connections)) setConnections(data.connections);
+      setLastPolledAt(Date.now());
     }
-    fetchInfo();
+
+    poll();
+    const interval = setInterval(poll, 4000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -76,7 +153,7 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose }) => {
 
       const res = await fetch("/api/mcp", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-MCP-Client": "Pastor Mike Web UI (Test Console)" },
         body: JSON.stringify({ tool: toolName, arguments: args }),
       });
 
@@ -85,6 +162,7 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose }) => {
         tool: toolName,
         output: JSON.stringify(data, null, 2),
       });
+      // The Connected Clients panel picks this test call up on its next 4s poll tick
     } catch (err) {
       setTestResult({
         tool: toolName,
@@ -95,44 +173,31 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  // Generate verified configuration for Claude Desktop
-  const claudeConfig =
+  // All four clients launch the same stdio command; only the file format and Windows
+  // cmd.exe wrapping differ.
+  const command = targetOs === "windows" ? "cmd.exe" : "npx";
+  const args =
     targetOs === "windows"
-      ? {
-          mcpServers: {
-            "pastor-mike": {
-              command: "cmd.exe",
-              args: ["/c", "npx", "-y", "tsx", "server/mcp_server.ts"],
-              cwd: projectRoot,
-            },
-          },
-        }
-      : {
-          mcpServers: {
-            "pastor-mike": {
-              command: "npx",
-              args: ["-y", "tsx", "server/mcp_server.ts"],
-              cwd: projectRoot,
-            },
-          },
-        };
+      ? ["/c", "npx", "-y", "tsx", "server/mcp_server.ts"]
+      : ["-y", "tsx", "server/mcp_server.ts"];
 
-  const claudeConfigSnippet = JSON.stringify(claudeConfig, null, 2);
+  const jsonConfigSnippet = JSON.stringify(
+    { mcpServers: { "pastor-mike": { command, args, cwd: projectRoot } } },
+    null,
+    2
+  );
 
-  // Generate verified configuration for Cursor (~/.cursor/mcp.json)
-  const cursorConfig = {
-    mcpServers: {
-      "pastor-mike": {
-        command: targetOs === "windows" ? "cmd.exe" : "npx",
-        args:
-          targetOs === "windows"
-            ? ["/c", "npx", "-y", "tsx", "server/mcp_server.ts"]
-            : ["-y", "tsx", "server/mcp_server.ts"],
-        cwd: projectRoot,
-      },
-    },
-  };
-  const cursorConfigSnippet = JSON.stringify(cursorConfig, null, 2);
+  const tomlConfigSnippet = [
+    "[mcp_servers.pastor-mike]",
+    `command = ${JSON.stringify(command)}`,
+    `args = ${JSON.stringify(args)}`,
+    `cwd = ${JSON.stringify(projectRoot)}`,
+  ].join("\n");
+
+  const activeClient = MCP_CLIENTS.find((c) => c.id === selectedClient)!;
+  const activeSnippet = activeClient.format === "toml" ? tomlConfigSnippet : jsonConfigSnippet;
+
+  const isLive = (iso: string) => lastPolledAt > 0 && lastPolledAt - new Date(iso).getTime() < 15000;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
@@ -208,6 +273,53 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose }) => {
           {/* TAB 1: CONNECT MCP CLIENTS */}
           {activeTab === "connect" && (
             <div className="space-y-4">
+              {/* Connected Clients */}
+              <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-2xs dark:border-stone-700 dark:bg-stone-800">
+                <div className="flex items-center gap-2 mb-3">
+                  <Wifi className="h-4 w-4 text-[#445942] dark:text-[#7ba277]" />
+                  <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100">
+                    Connected MCP Clients
+                  </h3>
+                </div>
+
+                {connections.length === 0 ? (
+                  <div className="flex items-center gap-2 rounded-lg bg-stone-50 px-3 py-2.5 text-xs text-stone-500 dark:bg-stone-900/60 dark:text-stone-400">
+                    <WifiOff className="h-3.5 w-3.5 shrink-0" />
+                    <span>No MCP client has connected yet. Add a config below, then open or restart that client.</span>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    {connections.map((c) => (
+                      <div
+                        key={c.id}
+                        className="flex items-center justify-between rounded-lg bg-stone-50 px-3 py-2 text-xs dark:bg-stone-900/60"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Bot className="h-3.5 w-3.5 shrink-0 text-stone-400" />
+                          <span className="truncate font-medium text-stone-800 dark:text-stone-200">
+                            {c.client_name}
+                          </span>
+                          {c.client_version && (
+                            <span className="shrink-0 text-stone-400 dark:text-stone-500">v{c.client_version}</span>
+                          )}
+                          <span className="shrink-0 rounded bg-stone-200/70 px-1.5 py-0.5 text-[10px] text-stone-600 dark:bg-stone-800 dark:text-stone-400">
+                            {c.transport}
+                          </span>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1.5 pl-2">
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              isLive(c.last_seen_at) ? "bg-emerald-500 animate-pulse" : "bg-stone-300 dark:bg-stone-600"
+                            }`}
+                          />
+                          <span className="text-stone-500 dark:text-stone-400">{timeAgo(c.last_seen_at)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* OS Selection Toggle */}
               <div className="flex items-center justify-between rounded-xl border border-stone-200 bg-white p-3 shadow-2xs dark:border-stone-700 dark:bg-stone-800">
                 <span className="text-xs font-medium text-stone-700 dark:text-stone-300">
@@ -240,108 +352,62 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose }) => {
                 </div>
               </div>
 
-              {/* Claude Desktop Configuration */}
+              {/* MCP AI Provider Selector */}
               <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-2xs dark:border-stone-700 dark:bg-stone-800">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Terminal className="h-4 w-4 text-[#445942] dark:text-[#7ba277]" />
-                    <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100">
-                      Claude Desktop Configuration
-                    </h3>
-                  </div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Terminal className="h-4 w-4 text-[#445942] dark:text-[#7ba277]" />
+                  <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100">
+                    Connect an MCP Client
+                  </h3>
+                </div>
 
-                  <span className="rounded bg-stone-100 px-2 py-0.5 text-[10px] font-mono text-stone-600 dark:bg-stone-900 dark:text-stone-400">
-                    claude_desktop_config.json
-                  </span>
+                <div className="mb-3 flex flex-wrap gap-1.5">
+                  {MCP_CLIENTS.map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => setSelectedClient(c.id)}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                        selectedClient === c.id
+                          ? "border-[#445942] bg-[#445942] text-white dark:border-[#7ba277] dark:bg-[#5b7858]"
+                          : "border-stone-200 bg-white text-stone-600 hover:border-stone-400 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300"
+                      }`}
+                    >
+                      {c.label}
+                    </button>
+                  ))}
                 </div>
 
                 <p className="text-xs text-stone-600 dark:text-stone-300 mb-3 leading-relaxed">
-                  Add this block to your Claude Desktop config file (located at{" "}
+                  Add this block to <strong>{activeClient.label}</strong>&apos;s config file, located at{" "}
                   <code className="rounded bg-stone-100 px-1 py-0.5 text-[11px] dark:bg-stone-900">
-                    {targetOs === "windows"
-                      ? "%APPDATA%\\Claude\\claude_desktop_config.json"
-                      : "~/Library/Application Support/Claude/claude_desktop_config.json"}
+                    {activeClient.configFile(targetOs)}
                   </code>
-                  ). Note: On Windows, <code className="font-semibold text-emerald-700 dark:text-emerald-400">cmd.exe</code> and the <code className="font-semibold text-emerald-700 dark:text-emerald-400">cwd</code> parameter are required to resolve Node.js modules.
+                  {activeClient.instructions && <> &mdash; {activeClient.instructions}</>}
+                  {targetOs === "windows" && (
+                    <>
+                      {" "}Note: on Windows, <code className="font-semibold text-emerald-700 dark:text-emerald-400">cmd.exe</code> and the <code className="font-semibold text-emerald-700 dark:text-emerald-400">cwd</code> parameter are required to resolve Node.js modules.
+                    </>
+                  )}
                 </p>
 
                 <div className="relative rounded-lg bg-stone-900 p-3 font-mono text-xs text-stone-100 dark:bg-stone-950">
                   <button
-                    onClick={() => handleCopy(claudeConfigSnippet, "claude")}
+                    onClick={() => handleCopy(activeSnippet, selectedClient)}
                     className="absolute right-2.5 top-2.5 flex items-center gap-1 rounded border border-stone-700 bg-stone-800 px-2.5 py-1 text-[11px] text-stone-200 hover:bg-stone-700"
                   >
-                    {copiedText === "claude" ? (
+                    {copiedText === selectedClient ? (
                       <>
                         <Check className="h-3 w-3 text-emerald-400" />
-                        <span>Copied JSON</span>
+                        <span>Copied</span>
                       </>
                     ) : (
                       <>
                         <Copy className="h-3 w-3" />
-                        <span>Copy JSON</span>
+                        <span>Copy {activeClient.format === "toml" ? "TOML" : "JSON"}</span>
                       </>
                     )}
                   </button>
-                  <pre className="overflow-x-auto pr-24 leading-relaxed">{claudeConfigSnippet}</pre>
-                </div>
-              </div>
-
-              {/* Cursor Configuration */}
-              <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-2xs dark:border-stone-700 dark:bg-stone-800">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Terminal className="h-4 w-4 text-[#445942] dark:text-[#7ba277]" />
-                    <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100">
-                      Cursor MCP Settings
-                    </h3>
-                  </div>
-
-                  <span className="rounded bg-stone-100 px-2 py-0.5 text-[10px] font-mono text-stone-600 dark:bg-stone-900 dark:text-stone-400">
-                    Cursor Settings &rarr; MCP
-                  </span>
-                </div>
-
-                <p className="text-xs text-stone-600 dark:text-stone-300 mb-2.5">
-                  In Cursor, navigate to <strong>Cursor Settings &rarr; Features &rarr; MCP &rarr; Add New MCP Server</strong>:
-                </p>
-
-                <div className="space-y-1.5 rounded-lg bg-stone-100 p-3 text-xs font-mono dark:bg-stone-900">
-                  <div className="flex justify-between">
-                    <span className="text-stone-500">Name:</span>
-                    <span className="font-semibold text-stone-800 dark:text-stone-200">pastor-mike</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-stone-500">Type:</span>
-                    <span className="font-semibold text-stone-800 dark:text-stone-200">command</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-stone-500">Command:</span>
-                    <span className="font-semibold text-stone-800 dark:text-stone-200">
-                      {targetOs === "windows"
-                        ? "cmd.exe /c npx -y tsx server/mcp_server.ts"
-                        : "npx -y tsx server/mcp_server.ts"}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="relative mt-3 rounded-lg bg-stone-900 p-3 font-mono text-xs text-stone-100 dark:bg-stone-950">
-                  <button
-                    onClick={() => handleCopy(cursorConfigSnippet, "cursor")}
-                    className="absolute right-2.5 top-2.5 flex items-center gap-1 rounded border border-stone-700 bg-stone-800 px-2.5 py-1 text-[11px] text-stone-200 hover:bg-stone-700"
-                  >
-                    {copiedText === "cursor" ? (
-                      <>
-                        <Check className="h-3 w-3 text-emerald-400" />
-                        <span>Copied Cursor JSON</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-3 w-3" />
-                        <span>Copy Cursor JSON</span>
-                      </>
-                    )}
-                  </button>
-                  <pre className="overflow-x-auto pr-28 leading-relaxed">{cursorConfigSnippet}</pre>
+                  <pre className="overflow-x-auto pr-24 leading-relaxed">{activeSnippet}</pre>
                 </div>
               </div>
 

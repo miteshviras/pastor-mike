@@ -86,9 +86,14 @@ export class PastoralSpeechClient {
       rec.onerror = (e) => {
         this.isListening = false;
         this.options.onListeningStateChange?.(false);
-        if (e.error !== "no-speech") {
-          this.options.onError?.(`Speech recognition error: ${e.error}`);
-        }
+        if (e.error === "no-speech") return;
+        const messages: Record<string, string> = {
+          "not-allowed": "Microphone access was blocked. Allow it in your browser's site settings and try again.",
+          "audio-capture": "No microphone was found. Check that one is connected and try again.",
+          network: "Speech recognition needs an internet connection (Chrome routes it through Google's servers) — it isn't available offline.",
+          "service-not-allowed": "The browser blocked speech recognition on this page.",
+        };
+        this.options.onError?.(messages[e.error] || `Speech recognition error: ${e.error}`);
       };
 
       rec.onresult = (e: SpeechRecognitionEvent) => {
@@ -112,7 +117,11 @@ export class PastoralSpeechClient {
     if (this.isSpeaking) {
       return; // Do not listen over assistant speech
     }
-    if (this.recognition && !this.isListening) {
+    if (!this.recognition) {
+      this.options.onError?.("Speech recognition isn't supported in this browser. Try Chrome or Edge.");
+      return;
+    }
+    if (!this.isListening) {
       try {
         this.recognition.start();
       } catch {
