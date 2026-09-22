@@ -143,6 +143,14 @@ Each task is committed and pushed upon completion.
   - Add comprehensive test suite (`scripts/test-visit-history.ts`) verifying cross-session isolation, clean new visits, and stats calculations.
   - *Commit: `feat: add visit history switcher and visit-scoped prayer journal isolation`*
 
+- [x] **Task 19: Mobile Responsive Overhaul & Layout Optimization**
+  - Configure mobile viewport settings in `app/layout.tsx` (`viewportFit: cover`, `initialScale: 1`, themeColor) and use dynamic viewport units (`100dvh`).
+  - Redesign Header for mobile viewports (`components/Header.tsx`): eliminate horizontal clipping/overflow with compact icon buttons (Voice, History, Journal) and an elegant mobile overflow menu (New Visit, MCP Settings, Setup Guide).
+  - Optimize Starter Prompts in `components/ChatInput.tsx`: replace tall vertical stack with a sleek horizontally scrollable row (`no-scrollbar`) on mobile, preserving screen real estate.
+  - Optimize Input Composer: use `text-base sm:text-sm` to prevent mobile browser auto-zoom, and add safe-area bottom padding.
+  - Transform all modals (`VisitHistoryModal`, `PrayerJournalModal`, `McpModal`, `OnboardingModal`) into smooth bottom-sheet drawers on mobile with touch-accessible buttons.
+  - *Commit: `feat: overhaul mobile responsiveness, header overflow, and composer layout`*
+
 
 
 

@@ -478,7 +478,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#faf8f5] text-stone-900 selection:bg-[#445942]/20 selection:text-stone-900 dark:bg-[#141312] dark:text-stone-100">
+    <div className="flex min-h-[100dvh] flex-col bg-[#faf8f5] text-stone-900 selection:bg-[#445942]/20 selection:text-stone-900 dark:bg-[#141312] dark:text-stone-100">
       {/* Top Header */}
       <Header
         isVoiceMode={isVoiceMode}
@@ -495,7 +495,7 @@ export default function Home() {
       />
 
       {/* Main Conversation Canvas */}
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-6">
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-3 py-3 sm:px-4 sm:py-6">
         {/* Safety Crisis Alert if triggered */}
         {latestSafety && latestSafety.isCrisis && (
           <CrisisBanner safety={latestSafety} />
@@ -503,17 +503,17 @@ export default function Home() {
 
         {/* Welcome Empty State */}
         {messages.length === 0 && (
-          <div className="my-auto flex flex-col items-center justify-center text-center py-10">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#445942]/10 text-[#445942] dark:bg-[#5b7858]/20 dark:text-[#7ba277]">
-              <HeartHandshake className="h-8 w-8" />
+          <div className="my-auto flex flex-col items-center justify-center text-center py-6 sm:py-10 px-2">
+            <div className="mb-3 sm:mb-4 flex h-13 w-13 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-[#445942]/10 text-[#445942] dark:bg-[#5b7858]/20 dark:text-[#7ba277]">
+              <HeartHandshake className="h-6 w-6 sm:h-8 sm:w-8" />
             </div>
-            <h2 className="font-serif text-2xl font-semibold text-stone-900 dark:text-stone-100">
+            <h2 className="font-serif text-xl sm:text-2xl font-semibold text-stone-900 dark:text-stone-100">
               Welcome, Beloved Friend
             </h2>
-            <p className="mt-2 max-w-md text-sm leading-relaxed text-stone-600 dark:text-stone-400">
+            <p className="mt-2 max-w-md text-xs sm:text-sm leading-relaxed text-stone-600 dark:text-stone-400">
               I am Pastor Mike, your AI pastoral companion. I am here to offer a listening ear, gentle comfort, Holy Scripture, and prayer.
             </p>
-            <div className="mt-4 flex items-center gap-2 text-xs text-stone-500 dark:text-stone-400">
+            <div className="mt-3 sm:mt-4 flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-stone-500 dark:text-stone-400">
               <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
               <span>Safe, confidential, and saved locally on your device</span>
             </div>

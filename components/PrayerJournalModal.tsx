@@ -59,22 +59,22 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-xs">
-      <div className="flex h-[85vh] w-full max-w-xl flex-col rounded-2xl border border-stone-200 bg-[#faf8f5] shadow-2xl dark:border-stone-800 dark:bg-stone-900">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 backdrop-blur-xs">
+      <div className="flex h-[92dvh] sm:h-[85vh] w-full max-w-xl flex-col rounded-t-3xl sm:rounded-2xl border border-stone-200 bg-[#faf8f5] shadow-2xl dark:border-stone-800 dark:bg-stone-900">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-stone-200/80 px-5 py-4 dark:border-stone-800">
+        <div className="flex items-center justify-between border-b border-stone-200/80 px-4 py-3.5 sm:px-5 sm:py-4 dark:border-stone-800">
           <div className="flex items-center gap-2.5">
             <div className="rounded-lg bg-[#445942]/10 p-2 text-[#445942] dark:bg-[#5b7858]/20 dark:text-[#7ba277]">
               <BookOpen className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="font-serif text-lg font-semibold text-stone-900 dark:text-stone-100">
+              <h2 className="font-serif text-base sm:text-lg font-semibold text-stone-900 dark:text-stone-100">
                 Personal Prayer Journal
               </h2>
-              <p className="text-xs text-stone-500 dark:text-stone-400">
+              <p className="text-[11px] sm:text-xs text-stone-500 dark:text-stone-400">
                 {scope === "session"
-                  ? "Petitions and answered prayers recorded during this visit"
-                  : "All petitions across your visits, stored locally in SQLite"}
+                  ? "Petitions and answered prayers for this visit"
+                  : "All petitions across your visits, stored in SQLite"}
               </p>
             </div>
           </div>
@@ -88,7 +88,7 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
         </div>
 
         {/* Scope and Filter Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-200/60 bg-stone-50/50 px-5 py-2.5 dark:border-stone-800/60 dark:bg-stone-950/30">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-200/60 bg-stone-50/50 px-4 py-2 sm:px-5 sm:py-2.5 dark:border-stone-800/60 dark:bg-stone-950/30">
           {/* Scope Selector: This Visit vs All Visits */}
           {onToggleScope && (
             <div className="flex rounded-lg bg-stone-200/60 p-0.5 text-xs font-medium dark:bg-stone-800">
@@ -214,9 +214,9 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
                           onClick={() => handleDelete(prayer.id)}
                           disabled={deletingId === prayer.id}
                           title="Delete prayer from journal"
-                          className="opacity-0 group-hover:opacity-100 transition rounded-md p-1 text-stone-400 hover:bg-stone-100 hover:text-rose-600 dark:hover:bg-stone-700 dark:hover:text-rose-400"
+                          className="opacity-70 sm:opacity-0 sm:group-hover:opacity-100 transition rounded-md p-1.5 sm:p-1 text-stone-400 hover:bg-stone-100 hover:text-rose-600 dark:hover:bg-stone-700 dark:hover:text-rose-400"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <Trash2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
                         </button>
                       )}
                     </div>
@@ -230,7 +230,7 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
         {/* Add Prayer Form */}
         <form
           onSubmit={handleCreate}
-          className="border-t border-stone-200/80 bg-white p-4 dark:border-stone-800 dark:bg-stone-900"
+          className="border-t border-stone-200/80 bg-white p-3 sm:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:pb-4 dark:border-stone-800 dark:bg-stone-900"
         >
           <div className="flex gap-2">
             <input
@@ -243,12 +243,12 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
                   : "Add a new prayer to your journal..."
               }
               disabled={isSubmitting}
-              className="flex-1 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 focus:border-stone-400 focus:outline-hidden dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100"
+              className="flex-1 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-base sm:text-sm text-stone-900 placeholder:text-stone-400 focus:border-stone-400 focus:outline-hidden dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100"
             />
             <button
               type="submit"
               disabled={!newPrayerText.trim() || isSubmitting}
-              className="flex items-center gap-1 rounded-xl bg-[#445942] px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-[#384a36] disabled:opacity-50 dark:bg-[#5b7858]"
+              className="flex items-center gap-1 rounded-xl bg-[#445942] px-3.5 sm:px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-[#384a36] disabled:opacity-50 dark:bg-[#5b7858]"
             >
               <Plus className="h-4 w-4" />
               <span>Add</span>

@@ -262,10 +262,10 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose, onProviderC
   const isLive = (iso: string) => lastPolledAt > 0 && lastPolledAt - new Date(iso).getTime() < 15000;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-      <div className="flex h-[88vh] w-full max-w-2xl flex-col rounded-2xl border border-stone-200 bg-[#faf8f5] shadow-2xl dark:border-stone-800 dark:bg-stone-900">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 backdrop-blur-xs">
+      <div className="flex h-[92dvh] sm:h-[88vh] w-full max-w-2xl flex-col rounded-t-3xl sm:rounded-2xl border border-stone-200 bg-[#faf8f5] shadow-2xl dark:border-stone-800 dark:bg-stone-900">
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-stone-200/80 px-5 py-4 dark:border-stone-800">
+        <div className="flex items-center justify-between border-b border-stone-200/80 px-4 py-3.5 sm:px-5 sm:py-4 dark:border-stone-800">
           <div className="flex items-center gap-2.5">
             <div className="rounded-lg bg-[#445942]/10 p-2 text-[#445942] dark:bg-[#5b7858]/20 dark:text-[#7ba277]">
               <Wrench className="h-5 w-5" />
