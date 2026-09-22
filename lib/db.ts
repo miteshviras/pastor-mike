@@ -75,7 +75,7 @@ export function getDb(): DatabaseSync {
     if (!fs.existsSync(dataDir)) {
       fs.mkdirSync(dataDir, { recursive: true });
     }
-    const dbPath = path.join(dataDir, "pastor_mike.db");
+    const dbPath = process.env.SQLITE_DB_PATH || path.join(dataDir, "pastor_mike.db");
     dbInstance = new DatabaseSync(dbPath);
 
     // Initialize Schema

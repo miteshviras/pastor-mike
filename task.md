@@ -117,6 +117,14 @@ Each task is committed and pushed upon completion.
   - Add dynamic pastoral testing suite (`scripts/test-dynamic-pastoral.ts`) and verify end-to-end demo flow.
   - *Commit: `feat: add connected MCP detection, UI badges, and dynamic pastoral content engine`*
 
+- [x] **Task 16: Environment Configuration Template (`.env.example`)**
+  - Create `.env.example` template covering server port, SQLite DB location, local Ollama URLs/models, voice presets, and MCP server configuration.
+  - Whitelist `.env.example` in `.gitignore` (`!.env.example`) so the template is tracked while protecting local `.env*` files.
+  - Support `process.env.SQLITE_DB_PATH` in `lib/db.ts` and `process.env.OLLAMA_BASE_URL` / `OLLAMA_MODEL` in `lib/ai/orchestrator.ts`.
+  - Update `README.md` Quickstart Guide with environment configuration step (`cp .env.example .env.local`).
+  - *Commit: `chore: add .env.example template and environment variable support`*
+
+
 
 
 

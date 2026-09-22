@@ -27,13 +27,14 @@ export interface PastoralResponse {
 async function tryOllamaChat(
   prompt: string,
   systemPrompt: string,
-  model = "llama3.2"
+  model = process.env.OLLAMA_MODEL || "llama3.2"
 ): Promise<string | null> {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 3500);
 
-    const res = await fetch("http://127.0.0.1:11434/api/chat", {
+    const baseUrl = process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434";
+    const res = await fetch(`${baseUrl.replace(/\/+$/, "")}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       signal: controller.signal,

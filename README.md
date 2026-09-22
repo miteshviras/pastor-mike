@@ -57,7 +57,16 @@ cd pastor-mike
 npm install
 ```
 
-### 2. Run the Test Suite
+### 2. Configure Environment (Optional)
+
+Pastor Mike is 100% local-first and requires **zero external cloud API keys**.
+To customize your local port, database location, or optional Ollama settings, create a local environment file from the template:
+
+```bash
+cp .env.example .env.local
+```
+
+### 3. Run the Test Suite
 
 Verify database persistence, scripture search, MCP tools, safety rules, and the complete Notion demo script:
 
@@ -65,7 +74,7 @@ Verify database persistence, scripture search, MCP tools, safety rules, and the 
 npm test
 ```
 
-### 3. Start the Development Server
+### 4. Start the Development Server
 
 ```bash
 npm run dev
