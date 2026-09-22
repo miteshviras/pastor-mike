@@ -27,7 +27,7 @@ export interface PastoralResponse {
 async function tryGeminiChat(
   prompt: string,
   systemPrompt: string,
-  model = process.env.GEMINI_MODEL || "gemini-2.5-flash"
+  model = process.env.GEMINI_MODEL || "gemma-4-26b-a4b-it"
 ): Promise<string | null> {
   const apiKey =
     process.env.GEMINI_API_KEY ||
@@ -39,16 +39,42 @@ async function tryGeminiChat(
   try {
     const { GoogleGenAI } = await import("@google/genai");
     const ai = new GoogleGenAI({ apiKey });
-    const response = await ai.models.generateContent({
-      model,
-      contents: prompt,
-      config: {
-        systemInstruction: systemPrompt,
-        temperature: 0.7,
-      },
-    });
 
-    return response.text || null;
+    // Try requested model first, then fallback to current modern Google models
+    const candidates = Array.from(new Set([
+      model,
+      "gemma-4-26b-a4b-it",
+      "gemini-3.5-flash",
+      "gemini-3.6-flash",
+      "gemini-3.7-flash",
+      "gemini-flash-latest",
+      "gemini-3.8-flash",
+      "gemma-4-31b-it",
+    ]));
+
+    for (const candidate of candidates) {
+      try {
+        const response = await ai.models.generateContent({
+          model: candidate,
+          contents: prompt,
+          config: {
+            systemInstruction: systemPrompt,
+            temperature: 0.7,
+          },
+        });
+
+        if (response.text) {
+          return response.text;
+        }
+      } catch (innerErr: any) {
+        // Continue to next candidate if model is busy, deprecated, or not found
+        console.warn(`Gemini candidate '${candidate}' failed (${innerErr?.message?.slice(0, 80) || innerErr}), trying next candidate...`);
+        // Brief 250ms backoff before trying next candidate
+        await new Promise((r) => setTimeout(r, 250));
+      }
+    }
+
+    return null;
   } catch (err) {
     console.warn("Gemini API call failed, falling back to local engine:", err);
     return null;
