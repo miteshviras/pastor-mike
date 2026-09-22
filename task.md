@@ -20,10 +20,11 @@ Each task is committed and pushed upon completion.
   - Add automated test verification (`scripts/test-db.ts`).
   - *Commit: `feat: implement SQLite persistence layer and data model`*
 
-- [ ] **Task 3: Scripture Knowledge Base & Topical Search (`lib/scripture/`)**
+- [x] **Task 3: Scripture Knowledge Base & Topical Search (`lib/scripture/`)**
   - Build curated offline Bible dataset (WEB & KJV public domain) organized by pastoral topics (anxiety, peace, grief, forgiveness, strength, hope, purpose, work, healing, etc.).
   - Implement verse reference retrieval and keyword/topical search algorithms.
-  - Add automated test verification.
+  - Add automated test verification (`scripts/test-scripture.ts`).
+  - *Commit: `feat: implement scripture knowledge base and topical search engine`*
 
 - [ ] **Task 4: MCP Tool Layer (`lib/mcp/`)**
   - Define tool contracts: `search_scripture`, `get_verse`, `save_prayer_request`, `get_recent_context`, `save_memory`, `load_memory`, `summarize_session`.
