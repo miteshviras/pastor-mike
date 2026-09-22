@@ -12,7 +12,9 @@
     "test:mcp": "tsx scripts/test-mcp.ts",
     "test:ai": "tsx scripts/test-ai.ts",
     "test:api": "tsx scripts/test-api.ts",
-    "test:tts": "tsx scripts/test-tts.ts"
+    "test:tts": "tsx scripts/test-tts.ts",
+    "test:e2e": "tsx scripts/test-e2e-demo.ts",
+    "test": "tsx scripts/test-e2e-demo.ts"
   },
   "dependencies": {
     "clsx": "^2.1.1",

@@ -62,7 +62,9 @@ Each task is committed and pushed upon completion.
   - Main unified pastoral experience (`app/page.tsx`).
   - *Commit: `feat: implement serene pastoral UI shell, components, and prayer journal`*
 
-- [ ] **Task 9: End-to-End Testing & Demo Flow Verification**
-  - Verify complete demo script from Notion (anxiety prompt -> scripture -> prayer -> voice -> journal save).
+- [x] **Task 9: End-to-End Testing & Demo Flow Verification**
+  - Verify complete demo script from Notion (anxiety prompt -> scripture -> prayer -> voice -> journal save) (`scripts/test-e2e-demo.ts`).
   - Verify offline capability without external cloud keys.
-  - Final build and documentation.
+  - Complete test runner in `package.json` (`npm test`).
+  - Final Next.js production build verification.
+  - *Commit: `test: add e2e demo script and complete roadmap tasks`*
