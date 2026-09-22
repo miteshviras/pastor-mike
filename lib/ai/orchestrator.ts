@@ -86,7 +86,16 @@ export async function processPastoralTurn(
     };
   }
 
-  // 3. Determine Emotional Topic & Intent
+  // 3. Pull what we already know about this believer via MCP (memories, active prayers, past summaries)
+  const contextResult = await executeMcpTool("get_recent_context", {}, { userId });
+  const recentContext = (contextResult.data as {
+    recentSummaries: string[];
+    activePrayers: string[];
+    memories: Record<string, string>;
+  }) || { recentSummaries: [], activePrayers: [], memories: {} };
+  const preferredName = recentContext.memories["preferred_name"];
+
+  // 4. Determine Emotional Topic & Intent
   const lowerMsg = userMessage.toLowerCase();
   let matchedTopic: keyof typeof OFFLINE_TOPIC_TEMPLATES = "general";
 
@@ -102,15 +111,15 @@ export async function processPastoralTurn(
 
   const template = OFFLINE_TOPIC_TEMPLATES[matchedTopic];
 
-  // 4. Execute MCP Scripture Search
+  // 5. Execute MCP Scripture Search — enriched with the believer's own words, not just the topic bucket
   const scriptureToolResult = await executeMcpTool("search_scripture", {
-    topic_or_keyword: template.scriptureQuery,
+    topic_or_keyword: `${template.scriptureQuery} ${userMessage}`,
   });
 
   const scriptures: ScriptureVerse[] = (scriptureToolResult.data as { verses: ScriptureVerse[] })?.verses || [];
   const primaryVerse = scriptures[0];
 
-  // 5. Check if user explicitly asked for prayer or mentioned a prayer request
+  // 6. Check if user explicitly asked for prayer or mentioned a prayer request
   let savedPrayerId: string | undefined;
   if (/pray|prayer|interced|please pray|hold in prayer/.test(lowerMsg)) {
     const prayerRes = await executeMcpTool("save_prayer_request", {
@@ -123,8 +132,20 @@ export async function processPastoralTurn(
     }
   }
 
-  // 6. Try Local Ollama LLM first
-  const ollamaReply = await tryOllamaChat(userMessage, "You are Pastor Mike. Respond with compassion, quote a scripture, and offer a short prayer.");
+  // 7. Try Local Ollama LLM first, grounded in what MCP already knows about this believer
+  const contextLines: string[] = [];
+  if (preferredName) contextLines.push(`They prefer to be called ${preferredName}.`);
+  if (recentContext.activePrayers.length > 0) {
+    contextLines.push(`Active prayer requests you are already holding for them: ${recentContext.activePrayers.slice(0, 3).join("; ")}.`);
+  }
+  if (recentContext.recentSummaries.length > 0) {
+    contextLines.push(`Summary of your last visit together: ${recentContext.recentSummaries[0]}.`);
+  }
+  const ollamaSystemPrompt = contextLines.length > 0
+    ? `You are Pastor Mike. Respond with compassion, quote a scripture, and offer a short prayer. ${contextLines.join(" ")}`
+    : "You are Pastor Mike. Respond with compassion, quote a scripture, and offer a short prayer.";
+
+  const ollamaReply = await tryOllamaChat(userMessage, ollamaSystemPrompt);
 
   let replyText = "";
   let usedModel: "ollama" | "local-offline-engine" = "local-offline-engine";
@@ -133,16 +154,21 @@ export async function processPastoralTurn(
     replyText = ollamaReply;
     usedModel = "ollama";
   } else {
-    // 7. Robust Offline Pastoral Engine (zero external dependencies)
+    // 8. Robust Offline Pastoral Engine (zero external dependencies), personalized from MCP-stored context
     usedModel = "local-offline-engine";
     const scriptureExcerpt = primaryVerse
       ? `As it is written in **${primaryVerse.reference}** (${primaryVerse.translation}):\n> *"${primaryVerse.text}"*`
       : "";
 
-    replyText = `${template.empathy}\n\n${template.counsel}\n\n${scriptureExcerpt}\n\nI have prepared a prayer for you below. Would you like to pause and pray this with me now?`;
+    const nameAddress = preferredName ? `, ${preferredName}` : "";
+    const continuityNote = recentContext.activePrayers.length > 0
+      ? `\n\nI am still holding this in prayer with you: *"${recentContext.activePrayers[0]}"*.`
+      : "";
+
+    replyText = `${template.empathy}${nameAddress ? ` Thank you for trusting me with this${nameAddress}.` : ""}\n\n${template.counsel}${continuityNote}\n\n${scriptureExcerpt}\n\nI have prepared a prayer for you below. Would you like to pause and pray this with me now?`;
   }
 
-  // 8. Persist Assistant Response in SQLite
+  // 9. Persist Assistant Response in SQLite
   saveMessage(sessionId, "assistant", replyText, {
     scriptures,
     prayer: template.prayer,

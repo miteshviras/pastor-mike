@@ -9,7 +9,7 @@ import { McpModal } from "@/components/McpModal";
 import { OnboardingModal } from "@/components/OnboardingModal";
 import { VoiceBar } from "@/components/VoiceBar";
 import { CrisisBanner } from "@/components/CrisisBanner";
-import { PastoralSpeechClient } from "@/lib/voice/speech-client";
+import { PastoralSpeechClient, KITTEN_VOICES } from "@/lib/voice/speech-client";
 import type { PrayerRequest } from "@/lib/db";
 import { SafetyCheckResult } from "@/lib/ai/safety";
 import { Sparkles, HeartHandshake } from "lucide-react";
@@ -22,6 +22,11 @@ export default function Home() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [speechSpeed, setSpeechSpeed] = useState(0.88);
+  const [voicePreset, setVoicePreset] = useState<string>(() => {
+    if (typeof window === "undefined") return "Jasper";
+    const saved = localStorage.getItem("pastor_mike_voice");
+    return saved && (KITTEN_VOICES as readonly string[]).includes(saved) ? saved : "Jasper";
+  });
   const [prayers, setPrayers] = useState<PrayerRequest[]>([]);
   const [isJournalOpen, setIsJournalOpen] = useState(false);
   const [isMcpOpen, setIsMcpOpen] = useState(false);
@@ -36,6 +41,7 @@ export default function Home() {
   useEffect(() => {
     const client = new PastoralSpeechClient({
       speed: speechSpeed,
+      voicePreset,
       onListeningStateChange: (listening) => {
         setIsListening(listening);
         if (listening) setMicError(null);
@@ -60,6 +66,14 @@ export default function Home() {
   useEffect(() => {
     speechClientRef.current?.updateOptions({ speed: speechSpeed });
   }, [speechSpeed]);
+
+  // Update voice preset in speech client, and remember the choice
+  useEffect(() => {
+    speechClientRef.current?.updateOptions({ voicePreset });
+    if (typeof window !== "undefined") {
+      localStorage.setItem("pastor_mike_voice", voicePreset);
+    }
+  }, [voicePreset]);
 
   // Load or create initial session and prayers
   useEffect(() => {
@@ -420,6 +434,8 @@ export default function Home() {
         isSpeaking={isSpeaking}
         speed={speechSpeed}
         onSpeedChange={setSpeechSpeed}
+        voice={voicePreset}
+        onVoiceChange={setVoicePreset}
         onClose={() => setIsVoiceMode(false)}
       />
 

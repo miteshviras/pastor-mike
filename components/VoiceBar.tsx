@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { Mic, Volume2, X, Sliders } from "lucide-react";
+import { Mic, Volume2, X, Sliders, User } from "lucide-react";
+import { KITTEN_VOICES } from "@/lib/voice/speech-client";
 
 interface VoiceBarProps {
   isVoiceMode: boolean;
@@ -9,6 +10,8 @@ interface VoiceBarProps {
   isSpeaking: boolean;
   speed: number;
   onSpeedChange: (newSpeed: number) => void;
+  voice: string;
+  onVoiceChange: (newVoice: string) => void;
   onClose: () => void;
 }
 
@@ -18,6 +21,8 @@ export const VoiceBar: React.FC<VoiceBarProps> = ({
   isSpeaking,
   speed,
   onSpeedChange,
+  voice,
+  onVoiceChange,
   onClose,
 }) => {
   if (!isVoiceMode) return null;
@@ -62,8 +67,23 @@ export const VoiceBar: React.FC<VoiceBarProps> = ({
           </div>
         </div>
 
-        {/* Speed Controls & Exit */}
+        {/* Voice, Speed Controls & Exit */}
         <div className="flex items-center gap-2">
+          {/* Voice Selector */}
+          <div className="flex items-center gap-1 rounded-lg border border-stone-200 bg-stone-50 px-2 py-1 dark:border-stone-700 dark:bg-stone-800">
+            <User className="h-3 w-3 text-stone-400" />
+            <select
+              value={voice}
+              onChange={(e) => onVoiceChange(e.target.value)}
+              aria-label="Voice"
+              className="bg-transparent text-[11px] font-medium text-stone-700 focus:outline-hidden dark:text-stone-300"
+            >
+              {KITTEN_VOICES.map((v) => (
+                <option key={v} value={v}>{v}</option>
+              ))}
+            </select>
+          </div>
+
           {/* Speed Selector */}
           <div className="flex items-center gap-1 rounded-lg border border-stone-200 bg-stone-50 px-2 py-1 dark:border-stone-700 dark:bg-stone-800">
             <Sliders className="h-3 w-3 text-stone-400" />

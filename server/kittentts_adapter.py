@@ -20,6 +20,21 @@ KITTEN_MODEL_ID = "KittenML/kitten-tts-mini-0.8"
 DEFAULT_VOICE = "Jasper"
 KITTEN_VOICES = ["Bella", "Jasper", "Luna", "Bruno", "Rosie", "Hugo", "Kiki", "Leo"]
 
+# ponytail: SAPI/Windows fallback has no Jasper/Luna/etc. voices, only whatever the OS ships.
+# Map each preset onto a gender + pitch shift of an installed SAPI voice so presets are at
+# least audibly distinct. Upgrade path: real per-voice timbre once synthesize_kittentts()
+# can actually install (see the KittenTTS neural model path above).
+KITTEN_VOICE_PROFILES = {
+    "Bella": {"gender": "Female", "pitch": 2},
+    "Jasper": {"gender": "Male", "pitch": 0},
+    "Luna": {"gender": "Female", "pitch": -2},
+    "Bruno": {"gender": "Male", "pitch": -4},
+    "Rosie": {"gender": "Female", "pitch": 4},
+    "Hugo": {"gender": "Male", "pitch": 3},
+    "Kiki": {"gender": "Female", "pitch": 6},
+    "Leo": {"gender": "Male", "pitch": -1},
+}
+
 _kitten_model = None
 
 def _get_kitten_model():
@@ -37,12 +52,17 @@ def clean_speech_text(text: str) -> str:
     cleaned = re.sub(r'\s+', ' ', cleaned).strip()
     return cleaned
 
-def synthesize_windows_speech(text: str, speed: float = 0.9, output_path: str = "output.wav") -> bool:
-    """Synthesizes speech to WAV using Windows System.Speech.Synthesis."""
+def xml_escape(s: str) -> str:
+    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+def synthesize_windows_speech(text: str, voice: str = DEFAULT_VOICE, speed: float = 0.9, output_path: str = "output.wav") -> bool:
+    """Synthesizes speech to WAV using Windows System.Speech.Synthesis, picking a voice/pitch
+    per KITTEN_VOICE_PROFILES so the preset dropdown has an audible effect on this fallback."""
     try:
-        clean_text = clean_speech_text(text).replace("'", "''")
+        clean_text = clean_speech_text(text)
         if not clean_text:
             return False
+        safe_text = xml_escape(clean_text).replace("'", "''")
 
         # Map speed float (0.8 - 1.2) to SAPI Rate (-3 to +2)
         if speed <= 0.82:
@@ -54,6 +74,10 @@ def synthesize_windows_speech(text: str, speed: float = 0.9, output_path: str = 
         else:
             ps_rate = 1
 
+        profile = KITTEN_VOICE_PROFILES.get(voice, {"gender": "Male", "pitch": 0})
+        gender = profile["gender"]
+        pitch_str = f"+{profile['pitch']}st" if profile["pitch"] >= 0 else f"{profile['pitch']}st"
+
         abs_out = os.path.abspath(output_path).replace("'", "''")
 
         ps_script = f"""
@@ -62,17 +86,15 @@ Add-Type -AssemblyName System.Speech
 $synth = New-Object System.Speech.Synthesis.SpeechSynthesizer
 $synth.Rate = {ps_rate}
 
-# Prefer a warm/calm English voice if installed
+# Pick an installed voice matching this preset's gender; fall back to any enabled voice
 $voices = $synth.GetInstalledVoices()
-foreach ($v in $voices) {{
-    if ($v.Enabled -and ($v.VoiceInfo.Name -match 'David' -or $v.VoiceInfo.Name -match 'Mark' -or $v.VoiceInfo.Name -match 'George')) {{
-        $synth.SelectVoice($v.VoiceInfo.Name)
-        break
-    }}
-}}
+$picked = $voices | Where-Object {{ $_.Enabled -and $_.VoiceInfo.Gender -eq [System.Speech.Synthesis.VoiceGender]::{gender} }} | Select-Object -First 1
+if (-not $picked) {{ $picked = $voices | Where-Object {{ $_.Enabled }} | Select-Object -First 1 }}
+if ($picked) {{ $synth.SelectVoice($picked.VoiceInfo.Name) }}
 
+$ssml = '<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US"><prosody pitch="{pitch_str}">{safe_text}</prosody></speak>'
 $synth.SetOutputToWaveFile('{abs_out}')
-$synth.Speak('{clean_text}')
+$synth.SpeakSsml($ssml)
 $synth.Dispose()
 """
 
@@ -138,7 +160,7 @@ def synthesize_speech(text: str, voice: str = DEFAULT_VOICE, speed: float = 0.9,
 
     # 2. Try Windows SpeechSynthesizer if on Windows
     if sys.platform == "win32":
-        if synthesize_windows_speech(text, speed=speed, output_path=output_path):
+        if synthesize_windows_speech(text, voice=voice, speed=speed, output_path=output_path):
             return output_path
 
     # 3. Try macOS 'say' command if on Darwin

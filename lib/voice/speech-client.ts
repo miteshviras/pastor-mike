@@ -1,6 +1,9 @@
 // Client-side voice controller supporting KittenTTS playback, browser TTS fallback,
 // Web Speech STT, and turn-taking logic.
 
+// Mirrors KITTEN_VOICES in server/kittentts_adapter.py
+export const KITTEN_VOICES = ["Bella", "Jasper", "Luna", "Bruno", "Rosie", "Hugo", "Kiki", "Leo"] as const;
+
 export interface SpeechClientOptions {
   speed?: number; // 0.8 to 1.2
   voicePreset?: string;
