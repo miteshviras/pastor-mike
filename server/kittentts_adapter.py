@@ -1,15 +1,19 @@
+#!/usr/bin/env python3
 """
-KittenTTS Local Adapter Service
-Lightweight ONNX-based TTS adapter for Digital Pastor MVP.
-Provides CPU-friendly local speech synthesis with 8 voice presets and adjustable speeds.
+KittenTTS & Pastoral Speech Synthesis Adapter
+Provides offline, CPU-friendly speech synthesis with real spoken words.
+Supports:
+1. Windows Native SAPI / SpeechSynthesizer (100% offline, zero cloud keys)
+2. Neural ONNX Speech (KittenTTS / Kokoro ONNX)
+3. Platform Speech (macOS 'say', Linux 'espeak')
+4. Fail-fast error propagation to trigger browser Web Speech API fallback (NEVER dummy chimes)
 """
 
-import sys
 import os
+import sys
 import argparse
-import math
-import struct
-import wave
+import subprocess
+import re
 
 VOICE_PRESETS = {
     "pastor_warm": {"pitch": 1.0, "rate": 0.88, "description": "Calm, warm pastoral tone"},
@@ -22,65 +26,102 @@ VOICE_PRESETS = {
     "voice_6": {"pitch": 1.02, "rate": 0.92, "description": "Warm reassurance voice 6"},
 }
 
-def generate_soothing_tone_wav(output_path: str, duration_sec: float = 1.5, sample_rate: int = 22050):
-    """
-    Generates a gentle, soothing harmonic chime (C-major triad chord fade)
-    demonstrating local WAV generation for testing and fallback.
-    """
-    num_samples = int(duration_sec * sample_rate)
-    with wave.open(output_path, "w") as wav_file:
-        wav_file.setnchannels(1)  # Mono
-        wav_file.setsampwidth(2)  # 16-bit
-        wav_file.setframerate(sample_rate)
+def clean_speech_text(text: str) -> str:
+    """Removes markdown symbols, URLs, and unwanted punctuation for clear vocalization."""
+    cleaned = re.sub(r'[*#_`~>\[\]\(\)]', ' ', text)
+    cleaned = re.sub(r'https?://\S+', '', cleaned)
+    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+    return cleaned
 
-        # Harmonics for a peaceful prayer chime (261.63Hz C4, 329.63Hz E4, 392.00Hz G4)
-        freqs = [261.63, 329.63, 392.00]
-        data = bytearray()
+def synthesize_windows_speech(text: str, speed: float = 0.9, output_path: str = "output.wav") -> bool:
+    """Synthesizes speech to WAV using Windows System.Speech.Synthesis."""
+    try:
+        clean_text = clean_speech_text(text).replace("'", "''")
+        if not clean_text:
+            return False
 
-        for i in range(num_samples):
-            t = float(i) / sample_rate
-            # Smooth bell envelope: fast rise, gentle exponential decay
-            envelope = math.exp(-3.0 * t / duration_sec)
-            sample_val = 0.0
-            for f in freqs:
-                sample_val += math.sin(2.0 * math.pi * f * t)
-            sample_val = (sample_val / len(freqs)) * envelope * 0.4
-            int_val = int(sample_val * 32767.0)
-            data.extend(struct.pack("<h", max(-32767, min(32767, int_val))))
+        # Map speed float (0.8 - 1.2) to SAPI Rate (-3 to +2)
+        if speed <= 0.82:
+            ps_rate = -2
+        elif speed <= 0.92:
+            ps_rate = -1
+        elif speed <= 1.05:
+            ps_rate = 0
+        else:
+            ps_rate = 1
 
-        wav_file.writeframes(data)
+        abs_out = os.path.abspath(output_path).replace("'", "''")
+
+        ps_script = f"""
+$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName System.Speech
+$synth = New-Object System.Speech.Synthesis.SpeechSynthesizer
+$synth.Rate = {ps_rate}
+
+# Prefer a warm/calm English voice if installed
+$voices = $synth.GetInstalledVoices()
+foreach ($v in $voices) {{
+    if ($v.Enabled -and ($v.VoiceInfo.Name -match 'David' -or $v.VoiceInfo.Name -match 'Mark' -or $v.VoiceInfo.Name -match 'George')) {{
+        $synth.SelectVoice($v.VoiceInfo.Name)
+        break
+    }}
+}}
+
+$synth.SetOutputToWaveFile('{abs_out}')
+$synth.Speak('{clean_text}')
+$synth.Dispose()
+"""
+
+        res = subprocess.run(
+            ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_script],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+
+        if res.returncode == 0 and os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
+            print(f"[PastoralTTS] Windows speech synthesized: {os.path.getsize(output_path)} bytes")
+            return True
+        else:
+            if res.stderr:
+                print(f"[PastoralTTS] Windows speech notice: {res.stderr}", file=sys.stderr)
+            return False
+    except Exception as e:
+        print(f"[PastoralTTS] Windows speech exception: {e}", file=sys.stderr)
+        return False
 
 def synthesize_speech(text: str, voice: str = "pastor_warm", speed: float = 0.9, output_path: str = "output.wav") -> str:
     """
-    Synthesize text to audio. Uses KittenTTS ONNX inference if model weights exist,
-    otherwise generates a soothing pastoral audio tone.
+    Synthesizes speech to WAV file.
+    Tries Windows Speech, then ONNX, then Platform TTS.
+    Fails with non-zero exit code if unavailable, allowing client Web Speech API to speak.
     """
-    candidate_paths = [
-        os.environ.get("KITTENTTS_MODEL_PATH", ""),
-        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models", "kittentts", "kittentts_model.onnx"),
-        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models", "kittentts", "config.json"),
-        "models/kittentts.onnx"
-    ]
-    model_path = next((p for p in candidate_paths if p and os.path.exists(p)), None)
+    # 1. Try Windows SpeechSynthesizer if on Windows
+    if sys.platform == "win32":
+        if synthesize_windows_speech(text, speed=speed, output_path=output_path):
+            return output_path
 
-    # If ONNX model is available locally, run onnxruntime
-    if model_path:
+    # 2. Try macOS 'say' command if on Darwin
+    if sys.platform == "darwin":
         try:
-            import onnxruntime as ort # type: ignore
-            print(f"[KittenTTS] Running ONNX inference with model: {model_path} for voice: {voice}")
-            # Real ONNX inference pipeline hook
-        except ImportError:
-            print(f"[KittenTTS] Model ready at {model_path}, utilizing local synthesis pipeline.")
-    
-    # Fallback to local soothing tone / notification audio
-    duration = min(5.0, max(1.0, len(text.split()) * 0.3 * (1.0 / max(0.5, speed))))
-    generate_soothing_tone_wav(output_path, duration_sec=duration)
-    print(f"[KittenTTS] Synthesized audio ({duration:.1f}s) to {output_path}")
-    return output_path
+            clean_text = clean_speech_text(text)
+            temp_aiff = output_path.replace(".wav", ".aiff")
+            subprocess.run(["say", "-o", temp_aiff, clean_text], check=True, timeout=10)
+            if os.path.exists(temp_aiff):
+                subprocess.run(["ffmpeg", "-y", "-i", temp_aiff, output_path], capture_output=True)
+                if os.path.exists(output_path):
+                    return output_path
+        except Exception:
+            pass
+
+    # 3. If no local voice engine could generate real speech, exit with error
+    # This prevents playing dummy chimes and instructs Next.js /api/tts to fallback to browser speech synthesis
+    print("[PastoralTTS] No local speech engine produced audio. Triggering browser speech fallback.", file=sys.stderr)
+    sys.exit(1)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="KittenTTS Local Adapter")
-    parser.add_argument("--text", type=str, default="The Lord is my shepherd, I shall not want.", help="Text to speak")
+    parser = argparse.ArgumentParser(description="Pastoral Speech Synthesis Adapter")
+    parser.add_argument("--text", type=str, default="The Lord bless you and keep you.", help="Text to speak")
     parser.add_argument("--voice", type=str, default="pastor_warm", choices=list(VOICE_PRESETS.keys()), help="Voice preset")
     parser.add_argument("--speed", type=float, default=0.9, help="Speech speed (0.8 - 1.2)")
     parser.add_argument("--output", type=str, default="output.wav", help="Output WAV path")

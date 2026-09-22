@@ -102,5 +102,12 @@ Each task is committed and pushed upon completion.
   - Fix dark mode card background styling: Replaced invalid `dark:bg-stone-850` with `dark:bg-stone-800` across all cards, eliminating white backgrounds and invisible white-on-white text in dark mode.
   - *Commit: `fix: resolve MCP connection config for Windows/Cursor and dark mode card contrast`*
 
+- [x] **Task 14: Fix TTS Voice Synthesis & Remove Dummy Chime Tone**
+  - Fix `server/kittentts_adapter.py`: Replace dummy 1.5s musical chime generator (`generate_soothing_tone_wav`) with real spoken audio synthesis using Windows SAPI / System.Speech (supporting speed rates and natural voices).
+  - Implement fail-fast fallback: If local speech synthesis fails, exit with error instead of creating a dummy chime WAV, cleanly delegating vocalization to the browser's Web Speech API.
+  - Expand `/api/tts` text length limit from 250 to 800 characters and increase timeout from 6s to 15s to allow complete pastoral counsel and prayers to be vocalized in full.
+  - *Commit: `fix: replace dummy chime with real speech synthesis and expand TTS length`*
+
+
 
 

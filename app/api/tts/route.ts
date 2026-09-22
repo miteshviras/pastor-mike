@@ -71,14 +71,14 @@ export async function POST(req: NextRequest) {
       await execFileAsync("python", [
         scriptPath,
         "--text",
-        text.substring(0, 250), // keep sample concise for fast latency
+        text.substring(0, 800),
         "--voice",
         voice,
         "--speed",
         String(speed),
         "--output",
         tempAudioFile,
-      ], { timeout: 6000 });
+      ], { timeout: 15000 });
 
       if (fs.existsSync(tempAudioFile)) {
         const audioBuffer = fs.readFileSync(tempAudioFile);
