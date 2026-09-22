@@ -5,6 +5,7 @@ import { Header } from "@/components/Header";
 import { ChatMessage, ChatMessageProps } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
 import { PrayerJournalModal } from "@/components/PrayerJournalModal";
+import { VisitHistoryModal } from "@/components/VisitHistoryModal";
 import { McpModal } from "@/components/McpModal";
 import { OnboardingModal } from "@/components/OnboardingModal";
 import { VoiceBar } from "@/components/VoiceBar";
@@ -28,7 +29,9 @@ export default function Home() {
     return saved && (KITTEN_VOICES as readonly string[]).includes(saved) ? saved : "Jasper";
   });
   const [prayers, setPrayers] = useState<PrayerRequest[]>([]);
+  const [prayerScope, setPrayerScope] = useState<"session" | "all">("session");
   const [isJournalOpen, setIsJournalOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isMcpOpen, setIsMcpOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [latestSafety, setLatestSafety] = useState<SafetyCheckResult | null>(null);
@@ -44,6 +47,7 @@ export default function Home() {
     transport: "stdio",
     toolsCount: 7,
   });
+  const [providerLabel, setProviderLabel] = useState<string>("Gemini");
 
   const speechClientRef = useRef<PastoralSpeechClient | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -86,18 +90,29 @@ export default function Home() {
     }
   }, [voicePreset]);
 
+  const loadPrayers = async (sid?: string | null, scope: "session" | "all" = prayerScope) => {
+    try {
+      const url =
+        scope === "all"
+          ? "/api/prayers?sessionId=all"
+          : sid
+          ? `/api/prayers?sessionId=${encodeURIComponent(sid)}`
+          : "/api/prayers";
+      const pRes = await fetch(url);
+      if (pRes.ok) {
+        const pData = await pRes.json();
+        setPrayers(pData.prayers || []);
+      }
+    } catch (err) {
+      console.error("Error loading prayers:", err);
+    }
+  };
+
   // Load or create initial session and prayers
   useEffect(() => {
     async function init() {
       try {
-        // 1. Fetch prayers
-        const pRes = await fetch("/api/prayers");
-        if (pRes.ok) {
-          const pData = await pRes.json();
-          if (pData.prayers) setPrayers(pData.prayers);
-        }
-
-        // 2. Fetch active MCP client status
+        // 1. Fetch active MCP client status
         try {
           const mcpRes = await fetch("/api/mcp");
           if (mcpRes.ok) {
@@ -108,14 +123,28 @@ export default function Home() {
           }
         } catch {}
 
-        // 3. Check localStorage for existing active session
+        // 1b. Fetch the active AI provider (shown as a header badge)
+        try {
+          const settingsRes = await fetch("/api/settings");
+          if (settingsRes.ok) {
+            const settingsData = await settingsRes.json();
+            if (settingsData.settings?.provider) {
+              const labels: Record<string, string> = { gemini: "Gemini", ollama: "Ollama", offline: "Offline" };
+              setProviderLabel(labels[settingsData.settings.provider] || settingsData.settings.provider);
+            }
+          }
+        } catch {}
+
+        // 2. Check localStorage for existing active session
+        let activeSessionId: string | null = null;
         const savedSessionId = typeof window !== "undefined" ? localStorage.getItem("pastor_mike_session_id") : null;
 
         if (savedSessionId) {
-          const msgRes = await fetch(`/api/sessions?sessionId=${savedSessionId}`);
+          const msgRes = await fetch(`/api/sessions?sessionId=${encodeURIComponent(savedSessionId)}`);
           if (msgRes.ok) {
             const msgData = await msgRes.json();
             if (msgData.session) {
+              activeSessionId = msgData.session.id;
               setSessionId(msgData.session.id);
               if (msgData.messages && msgData.messages.length > 0) {
                 setMessages(
@@ -128,61 +157,73 @@ export default function Home() {
                   }))
                 );
               }
-              return;
             }
           }
         }
 
-        // 3. If no saved session, look for the most recent session
-        const sRes = await fetch("/api/sessions");
-        if (sRes.ok) {
-          const sData = await sRes.json();
-          if (sData.sessions && sData.sessions.length > 0) {
-            // Find the most recent session with messages, or fallback to the latest
-            for (const s of sData.sessions) {
-              const msgRes = await fetch(`/api/sessions?sessionId=${s.id}`);
-              if (msgRes.ok) {
-                const msgData = await msgRes.json();
-                if (msgData.messages && msgData.messages.length > 0) {
-                  setSessionId(s.id);
-                  if (typeof window !== "undefined") {
-                    localStorage.setItem("pastor_mike_session_id", s.id);
+        // 3. If no saved session, look for the most recent session with content or fallback
+        if (!activeSessionId) {
+          const sRes = await fetch("/api/sessions");
+          if (sRes.ok) {
+            const sData = await sRes.json();
+            if (sData.sessions && sData.sessions.length > 0) {
+              for (const s of sData.sessions) {
+                const msgRes = await fetch(`/api/sessions?sessionId=${encodeURIComponent(s.id)}`);
+                if (msgRes.ok) {
+                  const msgData = await msgRes.json();
+                  if (msgData.messages && msgData.messages.length > 0) {
+                    activeSessionId = s.id;
+                    setSessionId(s.id);
+                    if (typeof window !== "undefined") {
+                      localStorage.setItem("pastor_mike_session_id", s.id);
+                    }
+                    setMessages(
+                      msgData.messages.map((m: { id: string; role: "user" | "assistant" | "system"; content: string; metadata: string | null; created_at: string }) => ({
+                        id: m.id,
+                        role: m.role,
+                        content: m.content,
+                        metadata: m.metadata ? JSON.parse(m.metadata) : null,
+                        createdAt: m.created_at,
+                      }))
+                    );
+                    break;
                   }
-                  setMessages(
-                    msgData.messages.map((m: { id: string; role: "user" | "assistant" | "system"; content: string; metadata: string | null; created_at: string }) => ({
-                      id: m.id,
-                      role: m.role,
-                      content: m.content,
-                      metadata: m.metadata ? JSON.parse(m.metadata) : null,
-                      createdAt: m.created_at,
-                    }))
-                  );
-                  return;
+                }
+              }
+
+              if (!activeSessionId) {
+                const latest = sData.sessions[0];
+                activeSessionId = latest.id;
+                setSessionId(latest.id);
+                if (typeof window !== "undefined") {
+                  localStorage.setItem("pastor_mike_session_id", latest.id);
                 }
               }
             }
-
-            // Fallback to the latest session if all are empty
-            const latest = sData.sessions[0];
-            setSessionId(latest.id);
-            if (typeof window !== "undefined") {
-              localStorage.setItem("pastor_mike_session_id", latest.id);
-            }
-            return;
           }
         }
 
         // 4. Create new session only if no sessions exist at all
-        const createRes = await fetch("/api/sessions", { method: "POST" });
-        if (createRes.ok) {
-          const createData = await createRes.json();
-          setSessionId(createData.session.id);
-          if (typeof window !== "undefined") {
-            localStorage.setItem("pastor_mike_session_id", createData.session.id);
+        if (!activeSessionId) {
+          const createRes = await fetch("/api/sessions", { method: "POST" });
+          if (createRes.ok) {
+            const createData = await createRes.json();
+            activeSessionId = createData.session.id;
+            setSessionId(createData.session.id);
+            if (typeof window !== "undefined") {
+              localStorage.setItem("pastor_mike_session_id", createData.session.id);
+            }
           }
         }
 
-        // 5. Check if first-time onboarding should be displayed
+        // 5. Load visit-scoped prayers strictly for the active session (empty for brand new session)
+        if (activeSessionId) {
+          await loadPrayers(activeSessionId, "session");
+        } else {
+          setPrayers([]);
+        }
+
+        // 6. Check if first-time onboarding should be displayed
         const hasOnboarded = typeof window !== "undefined" ? localStorage.getItem("pastor_mike_onboarded") === "true" : true;
         if (!hasOnboarded) {
           setIsOnboardingOpen(true);
@@ -262,11 +303,7 @@ export default function Home() {
 
       // Refresh prayers if one was saved
       if (data.savedPrayerId) {
-        const pRes = await fetch("/api/prayers");
-        if (pRes.ok) {
-          const pData = await pRes.json();
-          if (pData.prayers) setPrayers(pData.prayers);
-        }
+        await loadPrayers(data.sessionId || sessionId, prayerScope);
       }
 
       // If Voice Mode is active, speak the assistant's reply automatically
@@ -318,16 +355,23 @@ export default function Home() {
         body: JSON.stringify({ text, sessionId }),
       });
       if (res.ok) {
-        const pRes = await fetch("/api/prayers");
-        if (pRes.ok) {
-          const pData = await pRes.json();
-          if (pData.prayers) setPrayers(pData.prayers);
-        }
+        await loadPrayers(sessionId, prayerScope);
         return true;
       }
       return false;
     } catch {
       return false;
+    }
+  };
+
+  const handleDeletePrayer = async (prayerId: string) => {
+    try {
+      const res = await fetch(`/api/prayers?id=${encodeURIComponent(prayerId)}`, { method: "DELETE" });
+      if (res.ok) {
+        setPrayers((prev) => prev.filter((p) => p.id !== prayerId));
+      }
+    } catch (err) {
+      console.error("Error deleting prayer:", err);
     }
   };
 
@@ -361,10 +405,52 @@ export default function Home() {
           localStorage.setItem("pastor_mike_session_id", data.session.id);
         }
         setMessages([]);
+        setPrayers([]);
+        setPrayerScope("session");
         setLatestSafety(null);
       }
     } catch (err) {
       console.error("Error creating new session:", err);
+    }
+  };
+
+  const handleSwitchSession = async (targetSessionId: string) => {
+    if (targetSessionId === sessionId) {
+      setIsHistoryOpen(false);
+      return;
+    }
+    try {
+      speechClientRef.current?.stopSpeaking();
+      speechClientRef.current?.stopListening();
+      setIsLoading(true);
+
+      const msgRes = await fetch(`/api/sessions?sessionId=${encodeURIComponent(targetSessionId)}`);
+      if (msgRes.ok) {
+        const msgData = await msgRes.json();
+        setSessionId(targetSessionId);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("pastor_mike_session_id", targetSessionId);
+        }
+        setMessages(
+          (msgData.messages || []).map((m: { id: string; role: "user" | "assistant" | "system"; content: string; metadata: string | null; created_at: string }) => ({
+            id: m.id,
+            role: m.role,
+            content: m.content,
+            metadata: m.metadata ? (typeof m.metadata === "string" ? JSON.parse(m.metadata) : m.metadata) : null,
+            createdAt: m.created_at,
+          }))
+        );
+        setLatestSafety(null);
+
+        // Load prayers strictly for the switched visit
+        await loadPrayers(targetSessionId, "session");
+        setPrayerScope("session");
+      }
+    } catch (err) {
+      console.error("Error switching session:", err);
+    } finally {
+      setIsLoading(false);
+      setIsHistoryOpen(false);
     }
   };
 
@@ -398,12 +484,14 @@ export default function Home() {
         isVoiceMode={isVoiceMode}
         onToggleVoiceMode={() => setIsVoiceMode(!isVoiceMode)}
         onOpenJournal={() => setIsJournalOpen(true)}
+        onOpenHistory={() => setIsHistoryOpen(true)}
         onOpenMcp={() => setIsMcpOpen(true)}
         onOpenOnboarding={() => setIsOnboardingOpen(true)}
         onNewSession={handleNewSession}
         prayerCount={prayers.filter((p) => p.status === "active").length}
         isMcpConnected={mcpInfo.isConnected}
         mcpClientName={mcpInfo.clientName}
+        providerLabel={providerLabel}
       />
 
       {/* Main Conversation Canvas */}
@@ -504,12 +592,34 @@ export default function Home() {
         onAddPrayer={async (text) => {
           await handleSavePrayer(text);
         }}
+        onDeletePrayer={handleDeletePrayer}
+        scope={prayerScope}
+        onToggleScope={(newScope) => {
+          setPrayerScope(newScope);
+          loadPrayers(sessionId, newScope);
+        }}
+      />
+
+      {/* Visit History Modal */}
+      <VisitHistoryModal
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        currentSessionId={sessionId}
+        onSelectSession={handleSwitchSession}
+        onNewSession={() => {
+          setIsHistoryOpen(false);
+          handleNewSession();
+        }}
       />
 
       {/* MCP & Tools Settings Modal */}
       <McpModal
         isOpen={isMcpOpen}
         onClose={() => setIsMcpOpen(false)}
+        onProviderChange={(provider) => {
+          const labels: Record<string, string> = { gemini: "Gemini", ollama: "Ollama", offline: "Offline" };
+          setProviderLabel(labels[provider] || provider);
+        }}
       />
 
       {/* First-Time User Onboarding & Voice Check Modal */}

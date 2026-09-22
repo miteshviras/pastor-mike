@@ -132,6 +132,17 @@ Each task is committed and pushed upon completion.
   - Update `README.md` Quickstart Guide explaining Gemini cloud vs Ollama local vs offline choices.
   - *Commit: `feat: add Google Gemini API support and Google API key configuration`*
 
+- [x] **Task 18: Visit History & Visit-Scoped Prayer Journal Isolation**
+  - Implement Visit History switcher modal (`components/VisitHistoryModal.tsx`) with relative timestamps, message previews, message/prayer counts, active visit badge, and visit deletion.
+  - Add "Visit History" action button in `components/Header.tsx` next to New Visit.
+  - Implement visit-scoped prayer journal in `lib/db.ts` (`listPrayerRequests(userId, sessionId)`), isolating petitions strictly to each visit.
+  - Eliminate prefilled/dummy test prayers: new visits start completely clean with 0 prayers.
+  - Add scope switcher (`[This Visit]` vs `[All Visits]`) and individual petition deletion in `components/PrayerJournalModal.tsx`.
+  - Add `deleteSession` with cascading message and prayer cleanup, and `listSessionsWithStats` in `lib/db.ts`.
+  - Add `DELETE` endpoints to `/api/sessions` and `/api/prayers`.
+  - Add comprehensive test suite (`scripts/test-visit-history.ts`) verifying cross-session isolation, clean new visits, and stats calculations.
+  - *Commit: `feat: add visit history switcher and visit-scoped prayer journal isolation`*
+
 
 
 

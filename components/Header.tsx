@@ -1,29 +1,33 @@
 "use client";
 
-import { BookOpen, Compass, Mic, MicOff, PlusCircle, Sparkles, Wrench } from "lucide-react";
+import { BookOpen, Compass, History, Mic, MicOff, PlusCircle, Sparkles, Wrench } from "lucide-react";
 
 interface HeaderProps {
   isVoiceMode: boolean;
   onToggleVoiceMode: () => void;
   onOpenJournal: () => void;
+  onOpenHistory: () => void;
   onOpenMcp: () => void;
   onOpenOnboarding: () => void;
   onNewSession: () => void;
   prayerCount: number;
   isMcpConnected?: boolean;
   mcpClientName?: string;
+  providerLabel?: string;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   isVoiceMode,
   onToggleVoiceMode,
   onOpenJournal,
+  onOpenHistory,
   onOpenMcp,
   onOpenOnboarding,
   onNewSession,
   prayerCount,
   isMcpConnected = true,
   mcpClientName = "Antigravity 2.0",
+  providerLabel,
 }) => {
   return (
     <header className="sticky top-0 z-20 border-b border-stone-200/80 bg-[#faf8f5]/85 px-4 py-3 backdrop-blur-md dark:border-stone-800/80 dark:bg-[#141312]/85">
@@ -43,6 +47,16 @@ export const Header: React.FC<HeaderProps> = ({
                 <Sparkles className="h-2.5 w-2.5 text-amber-600" />
                 AI Companion
               </span>
+              {providerLabel && (
+                <button
+                  onClick={onOpenMcp}
+                  title="Active AI provider — click to change in Settings"
+                  className="inline-flex items-center gap-1 rounded-full border border-[#445942]/30 bg-[#445942]/10 px-2 py-0.5 text-[10px] font-medium text-[#445942] transition hover:bg-[#445942]/15 dark:border-[#7ba277]/30 dark:bg-[#7ba277]/10 dark:text-[#7ba277]"
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  {providerLabel}
+                </button>
+              )}
             </div>
             <p className="text-xs text-stone-500 dark:text-stone-400">
               Calm, scripture-aware spiritual care
@@ -60,6 +74,16 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <PlusCircle className="h-3.5 w-3.5 text-stone-500" />
             New Visit
+          </button>
+
+          {/* Visit History */}
+          <button
+            onClick={onOpenHistory}
+            title="View past visits and switch between conversations"
+            className="flex items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-stone-700 shadow-xs transition hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700"
+          >
+            <History className="h-3.5 w-3.5 text-[#445942] dark:text-[#7ba277]" />
+            <span className="hidden sm:inline">Visit History</span>
           </button>
 
           {/* Voice Mode Toggle */}

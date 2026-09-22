@@ -158,6 +158,15 @@ export function getDb(): DatabaseSync {
       CREATE INDEX IF NOT EXISTS idx_prayers_user ON prayer_requests(user_id, created_at);
       CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id, started_at);
     `);
+
+    // Purge orphaned prayer records with no associated active session
+    try {
+      dbInstance.prepare(`
+        DELETE FROM prayer_requests 
+        WHERE session_id IS NULL 
+           OR session_id NOT IN (SELECT id FROM sessions)
+      `).run();
+    } catch {}
   }
   return dbInstance;
 }
@@ -200,6 +209,13 @@ export function createSession(userId: string, id?: string): Session {
   };
 }
 
+export interface SessionWithStats extends Session {
+  messageCount: number;
+  prayerCount: number;
+  firstMessagePreview?: string | null;
+  lastMessageAt?: string | null;
+}
+
 export function getSession(sessionId: string): Session | undefined {
   const db = getDb();
   return db.prepare("SELECT * FROM sessions WHERE id = ?").get(sessionId) as Session | undefined;
@@ -208,6 +224,34 @@ export function getSession(sessionId: string): Session | undefined {
 export function listSessions(userId: string): Session[] {
   const db = getDb();
   return db.prepare("SELECT * FROM sessions WHERE user_id = ? ORDER BY started_at DESC").all(userId) as unknown as Session[];
+}
+
+export function listSessionsWithStats(userId: string): SessionWithStats[] {
+  const db = getDb();
+  return db.prepare(`
+    SELECT 
+      s.id,
+      s.user_id,
+      s.started_at,
+      s.ended_at,
+      s.summary,
+      (SELECT COUNT(*) FROM messages WHERE session_id = s.id) as messageCount,
+      (SELECT COUNT(*) FROM prayer_requests WHERE session_id = s.id) as prayerCount,
+      (SELECT content FROM messages WHERE session_id = s.id AND role = 'user' ORDER BY created_at ASC LIMIT 1) as firstMessagePreview,
+      (SELECT created_at FROM messages WHERE session_id = s.id ORDER BY created_at DESC LIMIT 1) as lastMessageAt
+    FROM sessions s
+    WHERE s.user_id = ?
+    ORDER BY COALESCE((SELECT created_at FROM messages WHERE session_id = s.id ORDER BY created_at DESC LIMIT 1), s.started_at) DESC
+  `).all(userId) as unknown as SessionWithStats[];
+}
+
+export function deleteSession(sessionId: string): boolean {
+  const db = getDb();
+  db.prepare("DELETE FROM messages WHERE session_id = ?").run(sessionId);
+  db.prepare("DELETE FROM prayer_requests WHERE session_id = ?").run(sessionId);
+  db.prepare("DELETE FROM conversation_summaries WHERE session_id = ?").run(sessionId);
+  const res = db.prepare("DELETE FROM sessions WHERE id = ?").run(sessionId);
+  return Number(res.changes) > 0;
 }
 
 export function updateSessionSummary(sessionId: string, summary: string): void {
@@ -272,8 +316,13 @@ export function savePrayerRequest(
   };
 }
 
-export function listPrayerRequests(userId: string): PrayerRequest[] {
+export function listPrayerRequests(userId: string, sessionId?: string | null): PrayerRequest[] {
   const db = getDb();
+  if (sessionId && sessionId !== "all") {
+    return db.prepare(
+      "SELECT * FROM prayer_requests WHERE user_id = ? AND session_id = ? ORDER BY created_at DESC"
+    ).all(userId, sessionId) as unknown as PrayerRequest[];
+  }
   return db.prepare(
     "SELECT * FROM prayer_requests WHERE user_id = ? ORDER BY created_at DESC"
   ).all(userId) as unknown as PrayerRequest[];
@@ -282,6 +331,11 @@ export function listPrayerRequests(userId: string): PrayerRequest[] {
 export function updatePrayerStatus(prayerId: string, status: "active" | "answered"): void {
   const db = getDb();
   db.prepare("UPDATE prayer_requests SET status = ? WHERE id = ?").run(status, prayerId);
+}
+
+export function deletePrayerRequest(prayerId: string): void {
+  const db = getDb();
+  db.prepare("DELETE FROM prayer_requests WHERE id = ?").run(prayerId);
 }
 
 // Memory & Preference Helpers
@@ -388,6 +442,37 @@ export function listMcpConnections(): McpConnection[] {
   return db.prepare(
     "SELECT * FROM mcp_connections ORDER BY last_seen_at DESC LIMIT 20"
   ).all() as unknown as McpConnection[];
+}
+
+// AI Provider Settings (which model backend to use, and which model) — stored as a
+// reserved key in the preferences table so no schema change is needed.
+export interface AiProviderSettings {
+  provider: "gemini" | "ollama" | "offline";
+  geminiModel: string;
+  ollamaModel: string;
+}
+
+const PROVIDER_SETTINGS_KEY = "__ai_provider_settings";
+const DEFAULT_PROVIDER_SETTINGS: AiProviderSettings = {
+  provider: "gemini",
+  geminiModel: "gemini-2.5-flash",
+  ollamaModel: "llama3.2",
+};
+
+export function getProviderSettings(userId: string): AiProviderSettings {
+  const raw = loadMemory(userId, PROVIDER_SETTINGS_KEY);
+  if (!raw) return DEFAULT_PROVIDER_SETTINGS;
+  try {
+    return { ...DEFAULT_PROVIDER_SETTINGS, ...JSON.parse(raw) };
+  } catch {
+    return DEFAULT_PROVIDER_SETTINGS;
+  }
+}
+
+export function saveProviderSettings(userId: string, settings: Partial<AiProviderSettings>): AiProviderSettings {
+  const merged = { ...getProviderSettings(userId), ...settings };
+  saveMemory(userId, PROVIDER_SETTINGS_KEY, JSON.stringify(merged));
+  return merged;
 }
 
 export function getActiveMcpClient(): {

@@ -2,18 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   getOrCreateDefaultUser,
   createSession,
-  listSessions,
+  listSessionsWithStats,
   getSessionMessages,
   getSession,
+  deleteSession,
 } from "@/lib/db";
 
 import { getVerseByReference, ScriptureVerse } from "@/lib/scripture/bible-data";
 
-export async function GET(req: NextRequest) {
+export async function GET(req?: NextRequest) {
   try {
     const user = getOrCreateDefaultUser();
-    const { searchParams } = new URL(req.url);
-    const sessionId = searchParams.get("sessionId");
+    const sessionId = req?.url ? new URL(req.url).searchParams.get("sessionId") : null;
 
     if (sessionId) {
       const session = getSession(sessionId);
@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ session, messages });
     }
 
-    const sessions = listSessions(user.id);
+    const sessions = listSessionsWithStats(user.id);
     return NextResponse.json({ sessions });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : "Internal server error";
@@ -64,6 +64,23 @@ export async function POST() {
     const user = getOrCreateDefaultUser();
     const session = createSession(user.id);
     return NextResponse.json({ session });
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : "Internal server error";
+    return NextResponse.json({ error: errorMsg }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const sessionId = searchParams.get("sessionId");
+
+    if (!sessionId) {
+      return NextResponse.json({ error: "Session id required" }, { status: 400 });
+    }
+
+    deleteSession(sessionId);
+    return NextResponse.json({ success: true, sessionId });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : "Internal server error";
     return NextResponse.json({ error: errorMsg }, { status: 500 });

@@ -18,11 +18,14 @@ import {
   Bot,
 } from "lucide-react";
 import { MCP_TOOLS } from "@/lib/mcp/definitions";
-import type { McpConnection } from "@/lib/db";
+import type { McpConnection, AiProviderSettings } from "@/lib/db";
+
+const GEMINI_MODEL_OPTIONS = ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"];
 
 interface McpModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onProviderChange?: (provider: string) => void;
 }
 
 type ClientId = "claude" | "cursor" | "antigravity" | "codex";
@@ -96,7 +99,7 @@ async function fetchMcpInfo(): Promise<{
   }
 }
 
-export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose }) => {
+export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose, onProviderChange }) => {
   const [activeTab, setActiveTab] = useState<"tools" | "connect" | "runtime">("connect");
   const [targetOs, setTargetOs] = useState<"windows" | "posix">("windows");
   const [projectRoot, setProjectRoot] = useState<string>("c:\\Users\\mitesh\\PersonalProjects\\pastor-mike");
@@ -106,6 +109,18 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose }) => {
   const [selectedClient, setSelectedClient] = useState<ClientId>("claude");
   const [connections, setConnections] = useState<McpConnection[]>([]);
   const [lastPolledAt, setLastPolledAt] = useState(0);
+  const [providerSettings, setProviderSettings] = useState<AiProviderSettings>({
+    provider: "gemini",
+    geminiModel: "gemini-2.5-flash",
+    ollamaModel: "llama3.2",
+  });
+  const [providerAvailability, setProviderAvailability] = useState<{ gemini: boolean; ollama: boolean; offline: boolean }>({
+    gemini: false,
+    ollama: false,
+    offline: true,
+  });
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [settingsSaved, setSettingsSaved] = useState(false);
 
   // Fetch project root, platform, and currently-connected MCP clients, then poll while open
   // so newly-connected clients (stdio or HTTP) show up live.
@@ -131,7 +146,54 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose }) => {
     };
   }, [isOpen]);
 
+  // Fetch the current AI provider settings when the Model Runtime tab is opened
+  useEffect(() => {
+    if (!isOpen || activeTab !== "runtime") return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch("/api/settings");
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        if (data.settings) setProviderSettings(data.settings);
+        if (data.availability) setProviderAvailability(data.availability);
+      } catch {
+        // Keep defaults
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, activeTab]);
+
   if (!isOpen) return null;
+
+  const handleSaveProviderSettings = async (update: Partial<AiProviderSettings>) => {
+    const next = { ...providerSettings, ...update };
+    setProviderSettings(next);
+    setIsSavingSettings(true);
+    setSettingsSaved(false);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(next),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.settings) {
+          setProviderSettings(data.settings);
+          if (update.provider) onProviderChange?.(data.settings.provider);
+        }
+        setSettingsSaved(true);
+        setTimeout(() => setSettingsSaved(false), 2000);
+      }
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
 
   const handleCopy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -519,36 +581,132 @@ export const McpModal: React.FC<McpModalProps> = ({ isOpen, onClose }) => {
           {activeTab === "runtime" && (
             <div className="space-y-4">
               <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-2xs dark:border-stone-700 dark:bg-stone-800">
-                <div className="flex items-center gap-2 mb-2">
-                  <Cpu className="h-4 w-4 text-[#445942] dark:text-[#7ba277]" />
-                  <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100">
-                    Current AI Reasoning Engine
-                  </h3>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Cpu className="h-4 w-4 text-[#445942] dark:text-[#7ba277]" />
+                    <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100">
+                      AI Reasoning Engine
+                    </h3>
+                  </div>
+                  {settingsSaved && (
+                    <span className="flex items-center gap-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+                      <Check className="h-3 w-3" /> Saved
+                    </span>
+                  )}
                 </div>
-                <p className="text-xs text-stone-600 leading-relaxed dark:text-stone-300">
-                  The application is configured to run <strong>100% locally and privately</strong> without any external cloud API keys:
+                <p className="text-xs text-stone-600 leading-relaxed dark:text-stone-300 mb-3">
+                  Choose which engine generates Pastor Mike&apos;s replies. Falls back to the offline engine automatically if the selected one is unavailable for a given message.
                 </p>
 
-                <div className="mt-3 space-y-2">
-                  <div className="flex items-start gap-2 rounded-lg bg-emerald-50/60 p-3 text-xs text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
-                    <div>
-                      <span className="font-semibold">Built-in Offline Pastoral Engine (Active)</span>
-                      <p className="text-stone-600 dark:text-stone-400 mt-0.5">
-                        Immediately responds to grief, anxiety, guidance, and prayers using the embedded scripture database and crisis detection.
-                      </p>
+                <div className="space-y-2">
+                  {/* Gemini */}
+                  <button
+                    onClick={() => handleSaveProviderSettings({ provider: "gemini" })}
+                    disabled={isSavingSettings}
+                    className={`w-full rounded-lg border p-3 text-left text-xs transition ${
+                      providerSettings.provider === "gemini"
+                        ? "border-emerald-400/80 bg-emerald-50/60 dark:border-emerald-700/60 dark:bg-emerald-950/30"
+                        : "border-stone-200 bg-stone-50 hover:border-stone-300 dark:border-stone-700 dark:bg-stone-900/60"
+                    }`}
+                  >
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className={`h-4 w-4 shrink-0 mt-0.5 ${providerSettings.provider === "gemini" ? "text-emerald-600 dark:text-emerald-400" : "text-stone-300 dark:text-stone-600"}`} />
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-stone-900 dark:text-stone-100">Google Gemini (Default)</span>
+                          <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${providerAvailability.gemini ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"}`}>
+                            {providerAvailability.gemini ? "Configured" : "No API key set"}
+                          </span>
+                        </div>
+                        <p className="text-stone-500 dark:text-stone-400 mt-0.5">
+                          Cloud model. Requires <code>GEMINI_API_KEY</code> in <code>.env</code>.
+                        </p>
+                      </div>
                     </div>
-                  </div>
+                  </button>
 
-                  <div className="flex items-start gap-2 rounded-lg bg-stone-50 p-3 text-xs text-stone-700 dark:bg-stone-900/60 dark:text-stone-300">
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-stone-400 mt-0.5" />
-                    <div>
-                      <span className="font-semibold">Local Ollama Runtime Support</span>
-                      <p className="text-stone-500 dark:text-stone-400 mt-0.5">
-                        If Ollama is running at <code>http://127.0.0.1:11434</code> with models like <code>llama3.2</code>, <code>mistral</code>, or <code>qwen2.5</code>, the orchestrator will automatically route requests through it.
-                      </p>
+                  {providerSettings.provider === "gemini" && (
+                    <div className="ml-6 flex items-center gap-2">
+                      <span className="text-[11px] text-stone-500 dark:text-stone-400">Model:</span>
+                      <select
+                        value={providerSettings.geminiModel}
+                        onChange={(e) => handleSaveProviderSettings({ geminiModel: e.target.value })}
+                        disabled={isSavingSettings}
+                        className="rounded-lg border border-stone-200 bg-white px-2 py-1 text-[11px] text-stone-700 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300"
+                      >
+                        {GEMINI_MODEL_OPTIONS.map((m) => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
                     </div>
-                  </div>
+                  )}
+
+                  {/* Ollama */}
+                  <button
+                    onClick={() => handleSaveProviderSettings({ provider: "ollama" })}
+                    disabled={isSavingSettings}
+                    className={`w-full rounded-lg border p-3 text-left text-xs transition ${
+                      providerSettings.provider === "ollama"
+                        ? "border-emerald-400/80 bg-emerald-50/60 dark:border-emerald-700/60 dark:bg-emerald-950/30"
+                        : "border-stone-200 bg-stone-50 hover:border-stone-300 dark:border-stone-700 dark:bg-stone-900/60"
+                    }`}
+                  >
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className={`h-4 w-4 shrink-0 mt-0.5 ${providerSettings.provider === "ollama" ? "text-emerald-600 dark:text-emerald-400" : "text-stone-300 dark:text-stone-600"}`} />
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-stone-900 dark:text-stone-100">Local Ollama</span>
+                          <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${providerAvailability.ollama ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"}`}>
+                            {providerAvailability.ollama ? "Reachable" : "Not running"}
+                          </span>
+                        </div>
+                        <p className="text-stone-500 dark:text-stone-400 mt-0.5">
+                          Free, fully local. Requires <code>ollama run &lt;model&gt;</code> at <code>http://127.0.0.1:11434</code>.
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+
+                  {providerSettings.provider === "ollama" && (
+                    <div className="ml-6 flex items-center gap-2">
+                      <span className="text-[11px] text-stone-500 dark:text-stone-400">Model:</span>
+                      <input
+                        type="text"
+                        value={providerSettings.ollamaModel}
+                        onChange={(e) => setProviderSettings((p) => ({ ...p, ollamaModel: e.target.value }))}
+                        onBlur={(e) => handleSaveProviderSettings({ ollamaModel: e.target.value })}
+                        placeholder="llama3.2"
+                        disabled={isSavingSettings}
+                        className="rounded-lg border border-stone-200 bg-white px-2 py-1 text-[11px] text-stone-700 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300"
+                      />
+                    </div>
+                  )}
+
+                  {/* Offline */}
+                  <button
+                    onClick={() => handleSaveProviderSettings({ provider: "offline" })}
+                    disabled={isSavingSettings}
+                    className={`w-full rounded-lg border p-3 text-left text-xs transition ${
+                      providerSettings.provider === "offline"
+                        ? "border-emerald-400/80 bg-emerald-50/60 dark:border-emerald-700/60 dark:bg-emerald-950/30"
+                        : "border-stone-200 bg-stone-50 hover:border-stone-300 dark:border-stone-700 dark:bg-stone-900/60"
+                    }`}
+                  >
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className={`h-4 w-4 shrink-0 mt-0.5 ${providerSettings.provider === "offline" ? "text-emerald-600 dark:text-emerald-400" : "text-stone-300 dark:text-stone-600"}`} />
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-stone-900 dark:text-stone-100">Offline Pastoral Engine</span>
+                          <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                            Always ready
+                          </span>
+                        </div>
+                        <p className="text-stone-500 dark:text-stone-400 mt-0.5">
+                          Zero external calls, zero cost. Tailored empathy + prayer generated locally from your message.
+                        </p>
+                      </div>
+                    </div>
+                  </button>
                 </div>
               </div>
             </div>
