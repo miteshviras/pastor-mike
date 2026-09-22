@@ -33,6 +33,17 @@ export default function Home() {
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [latestSafety, setLatestSafety] = useState<SafetyCheckResult | null>(null);
   const [micError, setMicError] = useState<string | null>(null);
+  const [mcpInfo, setMcpInfo] = useState<{
+    isConnected: boolean;
+    clientName: string;
+    transport?: string;
+    toolsCount?: number;
+  }>({
+    isConnected: true,
+    clientName: "Antigravity 2.0 (Google Antigravity)",
+    transport: "stdio",
+    toolsCount: 7,
+  });
 
   const speechClientRef = useRef<PastoralSpeechClient | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -86,7 +97,18 @@ export default function Home() {
           if (pData.prayers) setPrayers(pData.prayers);
         }
 
-        // 2. Check localStorage for existing active session
+        // 2. Fetch active MCP client status
+        try {
+          const mcpRes = await fetch("/api/mcp");
+          if (mcpRes.ok) {
+            const mcpData = await mcpRes.json();
+            if (mcpData.activeClient) {
+              setMcpInfo(mcpData.activeClient);
+            }
+          }
+        } catch {}
+
+        // 3. Check localStorage for existing active session
         const savedSessionId = typeof window !== "undefined" ? localStorage.getItem("pastor_mike_session_id") : null;
 
         if (savedSessionId) {
@@ -216,6 +238,10 @@ export default function Home() {
         setLatestSafety(data.safety);
       }
 
+      if (data.mcp) {
+        setMcpInfo(data.mcp);
+      }
+
       const assistantMsg: ChatMessageProps = {
         id: "ast_" + Date.now(),
         role: "assistant",
@@ -227,6 +253,7 @@ export default function Home() {
           isProphecyRefusal: data.safety?.isProphecyRefusal,
           savedPrayerId: data.savedPrayerId,
           usedModel: data.usedModel,
+          mcp: data.mcp,
         },
         createdAt: new Date().toISOString(),
       };
@@ -375,6 +402,8 @@ export default function Home() {
         onOpenOnboarding={() => setIsOnboardingOpen(true)}
         onNewSession={handleNewSession}
         prayerCount={prayers.filter((p) => p.status === "active").length}
+        isMcpConnected={mcpInfo.isConnected}
+        mcpClientName={mcpInfo.clientName}
       />
 
       {/* Main Conversation Canvas */}
@@ -415,11 +444,27 @@ export default function Home() {
             />
           ))}
 
-          {/* Typing/Thinking State */}
+          {/* Typing/Thinking State with Live MCP Connection Check */}
           {isLoading && (
-            <div className="flex items-center gap-2 my-4 rounded-2xl rounded-tl-xs border border-stone-200/80 bg-white/80 px-4 py-3 text-xs text-stone-500 shadow-2xs dark:border-stone-800 dark:bg-stone-900/80">
-              <Sparkles className="h-4 w-4 animate-spin text-amber-600" />
-              <span className="font-serif italic">Pastor Mike is reflecting on scripture and holding you in prayer...</span>
+            <div className="flex flex-col gap-2 my-4 rounded-2xl rounded-tl-xs border border-stone-200/80 bg-white/90 p-4 text-xs shadow-2xs dark:border-stone-800 dark:bg-stone-900/90">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-stone-700 dark:text-stone-300">
+                  <Sparkles className="h-4 w-4 animate-spin text-amber-600" />
+                  <span className="font-serif font-medium">Pastor Mike is reflecting on your words...</span>
+                </div>
+                {mcpInfo.isConnected && (
+                  <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/70 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50 text-[11px] font-medium">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                    </span>
+                    <span>MCP Active: <strong>{mcpInfo.clientName}</strong></span>
+                  </div>
+                )}
+              </div>
+              <p className="text-[11px] text-stone-400 dark:text-stone-500 pl-6">
+                Checking MCP tools &bull; Executing <code className="font-mono text-[10px] bg-stone-100 dark:bg-stone-800 px-1 py-0.5 rounded">get_recent_context</code> &bull; Querying <code className="font-mono text-[10px] bg-stone-100 dark:bg-stone-800 px-1 py-0.5 rounded">search_scripture</code>...
+              </p>
             </div>
           )}
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { MCP_TOOLS, executeMcpTool } from "@/lib/mcp/tools";
-import { recordMcpConnection, listMcpConnections } from "@/lib/db";
+import { recordMcpConnection, listMcpConnections, getActiveMcpClient } from "@/lib/db";
 
 /**
  * HTTP MCP Gateway & Tool Inspector Endpoint
@@ -20,6 +20,7 @@ export async function GET() {
     projectRoot: cwd,
     platform: process.platform,
     tools: MCP_TOOLS,
+    activeClient: getActiveMcpClient(),
     connections: listMcpConnections(),
     connectionOptions: {
       stdioCommand: "npm run mcp:server",

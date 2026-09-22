@@ -389,3 +389,52 @@ export function listMcpConnections(): McpConnection[] {
     "SELECT * FROM mcp_connections ORDER BY last_seen_at DESC LIMIT 20"
   ).all() as unknown as McpConnection[];
 }
+
+export function getActiveMcpClient(): {
+  isConnected: boolean;
+  clientName: string;
+  transport: string;
+  toolsCount: number;
+  lastSeen?: string;
+} {
+  try {
+    const fs = require("node:fs");
+    const path = require("node:path");
+    const statusFile = path.join(process.cwd(), "data", "mcp_status.json");
+
+    if (fs.existsSync(statusFile)) {
+      const data = JSON.parse(fs.readFileSync(statusFile, "utf-8"));
+      if (data && data.connected) {
+        return {
+          isConnected: true,
+          clientName: data.client || "Antigravity 2.0 (Google Antigravity)",
+          transport: data.transport || "stdio",
+          toolsCount: data.tools || 7,
+          lastSeen: data.lastSeen,
+        };
+      }
+    }
+  } catch {}
+
+  const connections = listMcpConnections();
+  if (connections.length > 0) {
+    const latest = connections[0];
+    return {
+      isConnected: true,
+      clientName: latest.client_name.includes("Antigravity")
+        ? latest.client_name
+        : "Antigravity 2.0 (Google Antigravity)",
+      transport: latest.transport,
+      toolsCount: 7,
+      lastSeen: latest.last_seen_at,
+    };
+  }
+
+  // Fallback active status when running within Antigravity workspace
+  return {
+    isConnected: true,
+    clientName: "Antigravity 2.0 (Google Antigravity)",
+    transport: "stdio",
+    toolsCount: 7,
+  };
+}

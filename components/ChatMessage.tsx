@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Volume2, VolumeX, BookMarked, BookmarkCheck, Heart, Copy, Check } from "lucide-react";
+import { Volume2, VolumeX, BookMarked, BookmarkCheck, Heart, Copy, Check, Zap } from "lucide-react";
 import { getVerseByReference, ScriptureVerse } from "@/lib/scripture/bible-data";
 
 export interface MessageMetadata {
@@ -15,6 +15,12 @@ export interface MessageMetadata {
   isProphecyRefusal?: boolean;
   savedPrayerId?: string;
   usedModel?: string;
+  mcp?: {
+    isConnected: boolean;
+    clientName: string;
+    transport?: string;
+    toolsCalled?: string[];
+  };
 }
 
 export interface ChatMessageProps {
@@ -112,6 +118,28 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             </button>
           )}
         </div>
+
+        {/* Connected MCP Indicator Badge */}
+        {metadata?.mcp && metadata.mcp.isConnected && (
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-emerald-200/70 bg-emerald-50/70 px-3 py-1.5 text-xs dark:border-emerald-800/40 dark:bg-emerald-950/30">
+            <div className="flex items-center gap-1.5 font-medium text-emerald-800 dark:text-emerald-300">
+              <Zap className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 fill-emerald-500/20" />
+              <span>Connected MCP:</span>
+              <span className="font-semibold text-emerald-900 dark:text-emerald-200">
+                {metadata.mcp.clientName}
+              </span>
+            </div>
+
+            {metadata.mcp.toolsCalled && metadata.mcp.toolsCalled.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1 text-[11px] text-emerald-700/80 dark:text-emerald-400/80">
+                <span className="hidden sm:inline">•</span>
+                <span className="font-mono text-[10px] bg-emerald-100/80 dark:bg-emerald-900/50 px-1.5 py-0.5 rounded text-emerald-800 dark:text-emerald-200">
+                  {metadata.mcp.toolsCalled.join(" • ")}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Message Content */}
         <div className="prose prose-stone text-sm leading-relaxed text-stone-800 dark:text-stone-200 whitespace-pre-wrap">

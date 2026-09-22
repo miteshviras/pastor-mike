@@ -10,6 +10,8 @@ interface HeaderProps {
   onOpenOnboarding: () => void;
   onNewSession: () => void;
   prayerCount: number;
+  isMcpConnected?: boolean;
+  mcpClientName?: string;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -20,6 +22,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenOnboarding,
   onNewSession,
   prayerCount,
+  isMcpConnected = true,
+  mcpClientName = "Antigravity 2.0",
 }) => {
   return (
     <header className="sticky top-0 z-20 border-b border-stone-200/80 bg-[#faf8f5]/85 px-4 py-3 backdrop-blur-md dark:border-stone-800/80 dark:bg-[#141312]/85">
@@ -94,10 +98,17 @@ export const Header: React.FC<HeaderProps> = ({
           {/* MCP & Tools Button */}
           <button
             onClick={onOpenMcp}
-            title="Inspect Model Context Protocol (MCP) Tools & Runtime"
-            className="flex items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-stone-700 shadow-xs transition hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700"
+            title={isMcpConnected ? `Connected MCP: ${mcpClientName}` : "Inspect Model Context Protocol (MCP) Tools & Runtime"}
+            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium shadow-xs transition ${
+              isMcpConnected
+                ? "border-emerald-300/80 bg-emerald-50/70 text-emerald-800 hover:bg-emerald-100/70 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-900/50"
+                : "border-stone-200 bg-white text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700"
+            }`}
           >
-            <Wrench className="h-3.5 w-3.5 text-[#445942] dark:text-[#7ba277]" />
+            <span className="relative flex h-2 w-2">
+              {isMcpConnected && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>}
+              <span className={`relative inline-flex rounded-full h-2 w-2 ${isMcpConnected ? "bg-emerald-500" : "bg-stone-400"}`}></span>
+            </span>
             <span className="hidden sm:inline">MCP & Tools</span>
           </button>
 

@@ -108,6 +108,16 @@ Each task is committed and pushed upon completion.
   - Expand `/api/tts` text length limit from 250 to 800 characters and increase timeout from 6s to 15s to allow complete pastoral counsel and prayers to be vocalized in full.
   - *Commit: `fix: replace dummy chime with real speech synthesis and expand TTS length`*
 
+- [x] **Task 15: Connected MCP Detection & Dynamic Non-Generic Pastoral Engine**
+  - Implement active MCP connection detection (`getActiveMcpClient`, `recordMcpConnection`) tracking client name (Antigravity 2.0 / Claude Desktop / Cursor), transport (`stdio` / `http`), and real-time tool executions.
+  - Implement Dynamic Pastoral Reasoning Engine (`lib/ai/dynamic-pastoral-engine.ts`) replacing static canned boilerplate templates with situation-specific, nuanced empathy reflections and tailored prayer compositions.
+  - Show connected MCP badge and tool execution tags (`⚡ Connected MCP: Antigravity 2.0 • Tools: get_recent_context, search_scripture`) directly in assistant message bubbles (`components/ChatMessage.tsx`).
+  - Add live MCP connection check in conversation typing/reflection state (`app/page.tsx`) and pulsing connection status dot in header (`components/Header.tsx`).
+  - Persist MCP metadata in SQLite messages so connected client badges remain across reloads and visits.
+  - Add dynamic pastoral testing suite (`scripts/test-dynamic-pastoral.ts`) and verify end-to-end demo flow.
+  - *Commit: `feat: add connected MCP detection, UI badges, and dynamic pastoral content engine`*
+
+
 
 
 

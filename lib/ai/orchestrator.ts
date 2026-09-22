@@ -2,7 +2,8 @@ import { evaluateSafety, SafetyCheckResult } from "./safety";
 import { OFFLINE_TOPIC_TEMPLATES } from "./pastoral-prompt";
 import { executeMcpTool } from "../mcp/tools";
 import { ScriptureVerse } from "../scripture/bible-data";
-import { saveMessage, getOrCreateDefaultUser } from "../db";
+import { saveMessage, getOrCreateDefaultUser, getActiveMcpClient } from "../db";
+import { generateDynamicPastoralResponse } from "./dynamic-pastoral-engine";
 
 export interface PastoralResponse {
   reply: string;
@@ -14,6 +15,12 @@ export interface PastoralResponse {
   safety: SafetyCheckResult;
   savedPrayerId?: string;
   usedModel: "ollama" | "local-offline-engine";
+  mcp?: {
+    isConnected: boolean;
+    clientName: string;
+    transport: string;
+    toolsCalled: string[];
+  };
 }
 
 // Helper to query local Ollama if running
@@ -86,7 +93,11 @@ export async function processPastoralTurn(
     };
   }
 
+  // Tools tracking for MCP status and execution logs
+  const toolsExecuted: string[] = [];
+
   // 3. Pull what we already know about this believer via MCP (memories, active prayers, past summaries)
+  toolsExecuted.push("get_recent_context");
   const contextResult = await executeMcpTool("get_recent_context", {}, { userId });
   const recentContext = (contextResult.data as {
     recentSummaries: string[];
@@ -112,6 +123,7 @@ export async function processPastoralTurn(
   const template = OFFLINE_TOPIC_TEMPLATES[matchedTopic];
 
   // 5. Execute MCP Scripture Search — enriched with the believer's own words, not just the topic bucket
+  toolsExecuted.push("search_scripture");
   const scriptureToolResult = await executeMcpTool("search_scripture", {
     topic_or_keyword: `${template.scriptureQuery} ${userMessage}`,
   });
@@ -122,6 +134,7 @@ export async function processPastoralTurn(
   // 6. Check if user explicitly asked for prayer or mentioned a prayer request
   let savedPrayerId: string | undefined;
   if (/pray|prayer|interced|please pray|hold in prayer/.test(lowerMsg)) {
+    toolsExecuted.push("save_prayer_request");
     const prayerRes = await executeMcpTool("save_prayer_request", {
       text: userMessage,
       session_id: sessionId,
@@ -132,7 +145,16 @@ export async function processPastoralTurn(
     }
   }
 
-  // 7. Try Local Ollama LLM first, grounded in what MCP already knows about this believer
+  // 7. Check Active MCP Client Connection
+  const mcpStatus = getActiveMcpClient();
+  const mcpInfo = {
+    isConnected: mcpStatus.isConnected,
+    clientName: mcpStatus.clientName,
+    transport: mcpStatus.transport,
+    toolsCalled: toolsExecuted,
+  };
+
+  // 8. Try Local Ollama LLM first, grounded in what MCP already knows about this believer
   const contextLines: string[] = [];
   if (preferredName) contextLines.push(`They prefer to be called ${preferredName}.`);
   if (recentContext.activePrayers.length > 0) {
@@ -149,39 +171,40 @@ export async function processPastoralTurn(
 
   let replyText = "";
   let usedModel: "ollama" | "local-offline-engine" = "local-offline-engine";
+  let activePrayer = template.prayer;
 
   if (ollamaReply) {
     replyText = ollamaReply;
     usedModel = "ollama";
   } else {
-    // 8. Robust Offline Pastoral Engine (zero external dependencies), personalized from MCP-stored context
+    // 9. Robust Dynamic Pastoral Reasoning Engine (zero external dependencies)
+    // Generates deeply contextual, non-generic, empathetic responses tailored directly to the user's burden
     usedModel = "local-offline-engine";
-    const scriptureExcerpt = primaryVerse
-      ? `As it is written in **${primaryVerse.reference}** (${primaryVerse.translation}):\n> *"${primaryVerse.text}"*`
-      : "";
-
-    const nameAddress = preferredName ? `, ${preferredName}` : "";
-    const continuityNote = recentContext.activePrayers.length > 0
-      ? `\n\nI am still holding this in prayer with you: *"${recentContext.activePrayers[0]}"*.`
-      : "";
-
-    replyText = `${template.empathy}${nameAddress ? ` Thank you for trusting me with this${nameAddress}.` : ""}\n\n${template.counsel}${continuityNote}\n\n${scriptureExcerpt}\n\nI have prepared a prayer for you below. Would you like to pause and pray this with me now?`;
+    const dynamicTurn = generateDynamicPastoralResponse(userMessage, scriptures, {
+      preferredName,
+      activePrayers: recentContext.activePrayers,
+      recentSummaries: recentContext.recentSummaries,
+    });
+    replyText = dynamicTurn.reply;
+    activePrayer = dynamicTurn.prayer;
   }
 
-  // 9. Persist Assistant Response in SQLite
+  // 10. Persist Assistant Response in SQLite with MCP Metadata
   saveMessage(sessionId, "assistant", replyText, {
     scriptures,
-    prayer: template.prayer,
+    prayer: activePrayer,
     usedModel,
     savedPrayerId,
+    mcp: mcpInfo,
   });
 
   return {
     reply: replyText,
     scriptures,
-    prayer: template.prayer,
+    prayer: activePrayer,
     safety,
     savedPrayerId,
     usedModel,
+    mcp: mcpInfo,
   };
 }
