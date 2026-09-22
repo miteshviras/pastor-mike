@@ -7,28 +7,46 @@ import { MCP_TOOLS, executeMcpTool } from "@/lib/mcp/tools";
  */
 
 export async function GET() {
+  const cwd = process.cwd();
+  const isWindows = process.platform === "win32";
+
   return NextResponse.json({
     status: "online",
     name: "pastor-mike-mcp",
     version: "1.0.0",
     protocolVersion: "2024-11-05",
     description: "Digital Pastor MCP Server providing scripture search, prayer journaling, memory, and session recall.",
+    projectRoot: cwd,
+    platform: process.platform,
     tools: MCP_TOOLS,
     connectionOptions: {
       stdioCommand: "npm run mcp:server",
-      claudeDesktopConfig: {
+      claudeDesktopConfigWindows: {
         mcpServers: {
           "pastor-mike": {
-            command: "npx",
-            args: ["-y", "tsx", `${process.cwd()}/server/mcp_server.ts`],
+            command: "cmd.exe",
+            args: ["/c", "npx", "-y", "tsx", "server/mcp_server.ts"],
+            cwd: cwd,
           },
         },
       },
-      cursorMcpConfig: {
+      claudeDesktopConfigPosix: {
         mcpServers: {
           "pastor-mike": {
             command: "npx",
-            args: ["-y", "tsx", `${process.cwd()}/server/mcp_server.ts`],
+            args: ["-y", "tsx", "server/mcp_server.ts"],
+            cwd: cwd,
+          },
+        },
+      },
+      cursorConfig: {
+        mcpServers: {
+          "pastor-mike": {
+            command: isWindows ? "cmd.exe" : "npx",
+            args: isWindows
+              ? ["/c", "npx", "-y", "tsx", "server/mcp_server.ts"]
+              : ["-y", "tsx", "server/mcp_server.ts"],
+            cwd: cwd,
           },
         },
       },

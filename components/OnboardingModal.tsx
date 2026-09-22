@@ -533,8 +533,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                         {
                           mcpServers: {
                             "pastor-mike": {
-                              command: "npx",
-                              args: ["-y", "tsx", "server/mcp_server.ts"],
+                              command: "cmd.exe",
+                              args: ["/c", "npx", "-y", "tsx", "server/mcp_server.ts"],
+                              cwd: "c:\\Users\\mitesh\\PersonalProjects\\pastor-mike",
                             },
                           },
                         },
@@ -562,8 +563,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 </div>
                 <pre className="mt-1.5 overflow-x-auto rounded-lg bg-stone-900 p-2.5 font-mono text-[10px] text-stone-200 dark:bg-stone-950">
 {`"pastor-mike": {
-  "command": "npx",
-  "args": ["-y", "tsx", "server/mcp_server.ts"]
+  "command": "cmd.exe",
+  "args": ["/c", "npx", "-y", "tsx", "server/mcp_server.ts"],
+  "cwd": "c:\\\\Users\\\\mitesh\\\\PersonalProjects\\\\pastor-mike"
 }`}
                 </pre>
               </div>

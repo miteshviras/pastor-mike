@@ -95,4 +95,12 @@ Each task is committed and pushed upon completion.
   - Add automated test verification (`scripts/test-onboarding.ts`).
   - *Commit: `feat: implement first-time onboarding flow, MCP connection, and KittenTTS auto-downloader`*
 
+- [x] **Task 13: Fix MCP Client Configuration & Dark Mode Contrast in McpModal**
+  - Fix Windows MCP client configuration: Claude Desktop and Cursor require `cmd.exe /c npx -y tsx server/mcp_server.ts` and explicit working directory (`cwd`) pointing to the project directory, resolving `ERR_MODULE_NOT_FOUND` when launched outside the repository.
+  - Add OS toggle (Windows vs macOS/Linux) in `components/McpModal.tsx` and dynamically fetch real `projectRoot` from `GET /api/mcp`.
+  - Add dedicated Cursor configuration guidelines for both GUI settings and `~/.cursor/mcp.json`.
+  - Fix dark mode card background styling: Replaced invalid `dark:bg-stone-850` with `dark:bg-stone-800` across all cards, eliminating white backgrounds and invisible white-on-white text in dark mode.
+  - *Commit: `fix: resolve MCP connection config for Windows/Cursor and dark mode card contrast`*
+
+
 
