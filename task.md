@@ -68,3 +68,10 @@ Each task is committed and pushed upon completion.
   - Complete test runner in `package.json` (`npm test`).
   - Final Next.js production build verification.
   - *Commit: `test: add e2e demo script and complete roadmap tasks`*
+
+- [x] **Task 10: Official MCP Server & Comprehensive Setup Guide**
+  - Implement official Model Context Protocol (MCP) stdio server using `@modelcontextprotocol/sdk` (`server/mcp_server.ts`).
+  - Implement `/api/mcp` JSON-RPC and REST tool calling gateway (`app/api/mcp/route.ts`).
+  - Add interactive in-app MCP & Tools modal with live test execution and copyable Claude Desktop/Cursor configuration (`components/McpModal.tsx`).
+  - Rewrite `README.md` with complete setup guide, MCP connection instructions, voice pipeline guide, and test suite commands.
+  - *Commit: `feat: add official MCP server, in-app tool inspector, and setup guide in README`*

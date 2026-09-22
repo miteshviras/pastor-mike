@@ -5,10 +5,11 @@ import { Header } from "@/components/Header";
 import { ChatMessage, ChatMessageProps } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
 import { PrayerJournalModal } from "@/components/PrayerJournalModal";
+import { McpModal } from "@/components/McpModal";
 import { VoiceBar } from "@/components/VoiceBar";
 import { CrisisBanner } from "@/components/CrisisBanner";
 import { PastoralSpeechClient } from "@/lib/voice/speech-client";
-import { PrayerRequest } from "@/lib/db";
+import type { PrayerRequest } from "@/lib/db";
 import { SafetyCheckResult } from "@/lib/ai/safety";
 import { Sparkles, HeartHandshake } from "lucide-react";
 
@@ -22,6 +23,7 @@ export default function Home() {
   const [speechSpeed, setSpeechSpeed] = useState(0.88);
   const [prayers, setPrayers] = useState<PrayerRequest[]>([]);
   const [isJournalOpen, setIsJournalOpen] = useState(false);
+  const [isMcpOpen, setIsMcpOpen] = useState(false);
   const [latestSafety, setLatestSafety] = useState<SafetyCheckResult | null>(null);
 
   const speechClientRef = useRef<PastoralSpeechClient | null>(null);
@@ -273,6 +275,7 @@ export default function Home() {
         isVoiceMode={isVoiceMode}
         onToggleVoiceMode={() => setIsVoiceMode(!isVoiceMode)}
         onOpenJournal={() => setIsJournalOpen(true)}
+        onOpenMcp={() => setIsMcpOpen(true)}
         onNewSession={handleNewSession}
         prayerCount={prayers.filter((p) => p.status === "active").length}
       />
@@ -356,6 +359,12 @@ export default function Home() {
         onAddPrayer={async (text) => {
           await handleSavePrayer(text);
         }}
+      />
+
+      {/* MCP & Tools Settings Modal */}
+      <McpModal
+        isOpen={isMcpOpen}
+        onClose={() => setIsMcpOpen(false)}
       />
     </div>
   );

@@ -10,13 +10,16 @@
     "test:db": "tsx scripts/test-db.ts",
     "test:scripture": "tsx scripts/test-scripture.ts",
     "test:mcp": "tsx scripts/test-mcp.ts",
+    "test:mcp-http": "tsx scripts/test-mcp-http.ts",
     "test:ai": "tsx scripts/test-ai.ts",
     "test:api": "tsx scripts/test-api.ts",
     "test:tts": "tsx scripts/test-tts.ts",
     "test:e2e": "tsx scripts/test-e2e-demo.ts",
-    "test": "tsx scripts/test-e2e-demo.ts"
+    "test": "tsx scripts/test-e2e-demo.ts",
+    "mcp:server": "tsx server/mcp_server.ts"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "clsx": "^2.1.1",
     "lucide-react": "^1.47.0",
     "next": "16.3.5",
