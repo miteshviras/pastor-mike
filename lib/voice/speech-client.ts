@@ -867,8 +867,6 @@ export class PastoralSpeechClient {
     this.currentChunkIndex = 0;
 
     const generation = ++this.speakGeneration;
-    this.isSpeaking = true;
-    this.options.onSpeakingStateChange?.(true, false);
 
     let nextAudioPromise = this.fetchChunkAudio(chunks[0]);
 
@@ -888,6 +886,14 @@ export class PastoralSpeechClient {
       if (this.isPaused) {
         await this.waitForResume();
         if (generation !== this.speakGeneration) return;
+      }
+
+      // Only flip to "speaking" once the first chunk's audio is actually ready to play —
+      // doing this earlier (e.g. right when fetching starts) left a window where the avatar's
+      // isSpeaking-driven lip sync had no audio to read yet and fell back to a fake mouth wave.
+      if (i === 0) {
+        this.isSpeaking = true;
+        this.options.onSpeakingStateChange?.(true, false);
       }
 
       this.currentChunkIndex = i;
