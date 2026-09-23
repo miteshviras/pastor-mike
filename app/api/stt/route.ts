@@ -3,6 +3,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import fs from "node:fs";
 import path from "node:path";
+import { transcribeViaWorker } from "@/lib/server/sttWorker";
 
 const execFileAsync = promisify(execFile);
 
@@ -98,15 +99,10 @@ function getAudioExtension(buffer: Buffer, contentType?: string): string {
     tempAudioFile = path.join(dataDir, `stt_${Date.now()}_${Math.random().toString(36).substring(2, 6)}${ext}`);
     fs.writeFileSync(tempAudioFile, audioBuffer);
 
-    const scriptPath = path.join(process.cwd(), "server", "stt_adapter.py");
-    const { stdout } = await execFileAsync("python", [scriptPath, "--input", tempAudioFile], {
-      timeout: 45000,
-    });
-
-    const parsed = parseJsonOutput(stdout);
+    const result = await transcribeViaWorker(tempAudioFile);
     return NextResponse.json({
-      text: parsed.text || "",
-      engine: parsed.engine || "moonshine",
+      text: result.text || "",
+      engine: result.engine || "moonshine",
     });
   } catch (err) {
     const detail = err && typeof err === "object" && "stderr" in err ? (err as { stderr?: string }).stderr : err;

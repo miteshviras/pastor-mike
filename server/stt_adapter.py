@@ -65,6 +65,16 @@ async def transcribe(pcm16: bytes, model_name: str = DEFAULT_MODEL) -> str:
     return " ".join(text_parts).strip()
 
 
+def transcribe_file(input_path: str, model_name: str = DEFAULT_MODEL) -> dict:
+    """Converts and transcribes one audio file, reusing the cached model (see
+    _get_stt_service) when called repeatedly within the same process — the warm-process
+    worker (stt_worker.py) is what actually keeps the process alive across calls; a fresh
+    CLI invocation of this module still pays the model-load cost once, as before."""
+    pcm16 = convert_to_pcm16(input_path)
+    text = asyncio.run(transcribe(pcm16, model_name))
+    return {"text": text, "engine": "moonshine", "model": model_name}
+
+
 def main():
     parser = argparse.ArgumentParser(description="Moonshine STT adapter")
     parser.add_argument("--input", required=True, help="Path to the recorded audio file")
@@ -72,13 +82,8 @@ def main():
     args = parser.parse_args()
 
     try:
-        pcm16 = convert_to_pcm16(args.input)
-        text = asyncio.run(transcribe(pcm16, args.model))
-        print(json.dumps({
-            "text": text,
-            "engine": "moonshine",
-            "model": args.model
-        }))
+        result = transcribe_file(args.input, args.model)
+        print(json.dumps(result))
     except Exception as e:
         print(json.dumps({"error": str(e)}), file=sys.stderr)
         sys.exit(1)
