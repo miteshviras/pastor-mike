@@ -1,7 +1,7 @@
 import { evaluateSafety, SafetyCheckResult } from "./safety";
 import { OFFLINE_TOPIC_TEMPLATES } from "./pastoral-prompt";
 import { searchScripture, ScriptureVerse } from "../scripture/bible-data";
-import { saveMessage, getOrCreateDefaultUser, getProviderSettings, getRecentContext, savePrayerRequest } from "../db";
+import { saveMessage, getOrCreateDefaultUser, getProviderSettings, getRecentContext, savePrayerRequest, countUserMessages } from "../db";
 import { generateDynamicPastoralResponse } from "./dynamic-pastoral-engine";
 
 export interface PastoralResponse {
@@ -120,6 +120,10 @@ export async function processPastoralTurn(
   // 1. Persist User Message
   saveMessage(sessionId, "user", userMessage);
 
+  // Each LLM call below is stateless (no prior turns sent), so the model can't tell this
+  // apart from a first message on its own — decide it deterministically here instead.
+  const isFirstMessageInVisit = countUserMessages(sessionId) === 1;
+
   // 2. Safety & Boundary Check
   const safety = evaluateSafety(userMessage);
 
@@ -167,7 +171,6 @@ export async function processPastoralTurn(
 
   // 5. Scripture search — enriched with the believer's own words, not just the topic bucket
   const scriptures: ScriptureVerse[] = searchScripture(`${template.scriptureQuery} ${userMessage}`);
-  const primaryVerse = scriptures[0];
 
   // 6. Check if user explicitly asked for prayer or mentioned a prayer request
   let savedPrayerId: string | undefined;
@@ -188,13 +191,21 @@ export async function processPastoralTurn(
   if (recentContext.recentSummaries.length > 0) {
     contextLines.push(`Summary of your last visit together: ${recentContext.recentSummaries[0]}.`);
   }
-  if (primaryVerse) {
-    contextLines.push(`Relevant Scripture anchor from Bible database: ${primaryVerse.reference} ("${primaryVerse.text}").`);
+  if (scriptures.length > 0) {
+    const anchors = scriptures.slice(0, 2)
+      .map((v) => `${v.reference} ("${v.text}")`)
+      .join("; ");
+    contextLines.push(`Scripture anchors matched to what they just said — quote from one of these rather than choosing your own verse: ${anchors}.`);
   }
 
+  const disclosureLine = isFirstMessageInVisit
+    ? "Briefly mention once, naturally, that you are an AI companion offering spiritual encouragement, not an ordained human minister."
+    : "Do not repeat the AI-companion disclosure — you already gave it earlier in this visit.";
+
   const pastoralSystemPrompt = `You are Pastor Mike, a warm, compassionate, non-judgmental AI pastoral companion.
-You speak gently, offer empathetic reflection, cite Holy Scripture thoughtfully, and prepare a sincere, heartfelt prayer.
-Always maintain transparent disclosure that you are an AI companion providing spiritual encouragement, not an ordained human minister.
+You speak gently and cite Holy Scripture thoughtfully.
+${disclosureLine}
+Keep the reply short and meaningful: 2 short paragraphs at most, no padding or repeated reassurance, then a brief prayer.
 Every reply is read aloud, so write in short plain sentences with no markdown, emojis, bullet points, or decorative formatting, and let scripture references read naturally in a sentence rather than as a heading or citation.
 ${contextLines.join(" ")}`;
 

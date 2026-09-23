@@ -275,6 +275,14 @@ export function getSessionMessages(sessionId: string): Message[] {
   ).all(sessionId) as unknown as Message[];
 }
 
+export function countUserMessages(sessionId: string): number {
+  const db = getDb();
+  const row = db.prepare(
+    "SELECT COUNT(*) as count FROM messages WHERE session_id = ? AND role = 'user'"
+  ).get(sessionId) as { count: number };
+  return row.count;
+}
+
 // Prayer Request Helpers
 export function savePrayerRequest(
   userId: string,
