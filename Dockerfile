@@ -19,8 +19,12 @@ WORKDIR /app
 # app/api/tts/route.ts's execFile("python", ...) calls need — python3 alone does not.
 # espeak-ng is a native binary dependency of `phonemizer` (pulled in by kittentts) — pip
 # installing the Python wrapper isn't enough, the actual espeak-ng library has to be present.
+# ffmpeg converts the browser's recorded audio (webm/opus from MediaRecorder) to the raw
+# 16kHz PCM Moonshine expects. (moonshine-voice also depends on `sounddevice`, which needs
+# libportaudio2 — but confirmed empirically that MoonshineSTTService's import path never
+# actually imports sounddevice, so that's not needed here.)
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends python3 python3-pip python-is-python3 espeak-ng \
+  && apt-get install -y --no-install-recommends python3 python3-pip python-is-python3 espeak-ng ffmpeg \
   && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt ./

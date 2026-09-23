@@ -1,5 +1,6 @@
 // Client-side voice controller supporting KittenTTS playback, browser TTS fallback,
-// Web Speech STT, and turn-taking logic.
+// Web Speech STT (with a server-side Moonshine fallback for browsers that lack it), and
+// turn-taking logic.
 
 // Mirrors KITTEN_VOICES in server/kittentts_adapter.py
 export const KITTEN_VOICES = ["Bella", "Jasper", "Luna", "Bruno", "Rosie", "Hugo", "Kiki", "Leo"] as const;
@@ -77,6 +78,10 @@ export class PastoralSpeechClient {
   // Incremented on every stopSpeaking()/new speakText() call so an in-flight chunk loop
   // notices it's been superseded and stops fetching/playing further chunks.
   private speakGeneration = 0;
+  // Moonshine STT fallback state — only used when the browser has no native SpeechRecognition.
+  private mediaRecorder: MediaRecorder | null = null;
+  private mediaStream: MediaStream | null = null;
+  private audioChunks: Blob[] = [];
 
   constructor(options: SpeechClientOptions = {}) {
     this.options = {
@@ -156,18 +161,29 @@ export class PastoralSpeechClient {
     if (this.isSpeaking) {
       return; // Do not listen over assistant speech
     }
-    if (!this.recognition) {
-      this.options.onError?.("Speech recognition is not available over plain HTTP on mobile. Chrome requires HTTPS or localhost for microphone access.");
+
+    if (this.recognition) {
+      if (!this.isListening) {
+        try {
+          this.recognition.start();
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          this.options.onError?.(`Microphone error: ${msg}`);
+        }
+      }
       return;
     }
-    if (!this.isListening) {
-      try {
-        this.recognition.start();
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
-        this.options.onError?.(`Microphone error: ${msg}`);
-      }
+
+    // Fallback: no native SpeechRecognition (e.g. Firefox, or non-HTTPS mobile origins where
+    // Chrome disables it) — record the microphone ourselves and transcribe server-side via
+    // Moonshine (see server/stt_adapter.py). Unlike native recognition this has no live
+    // partial transcript; the text arrives once after recording stops.
+    if (!this.isListening && typeof navigator !== "undefined" && navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== "undefined") {
+      void this.startListeningViaMoonshine();
+      return;
     }
+
+    this.options.onError?.("Speech recognition is not available in this browser.");
   }
 
   public stopListening() {
@@ -175,6 +191,55 @@ export class PastoralSpeechClient {
       try {
         this.recognition.stop();
       } catch {}
+      return;
+    }
+    if (this.mediaRecorder && this.mediaRecorder.state !== "inactive") {
+      this.mediaRecorder.stop(); // triggers its onstop handler, which uploads for transcription
+    }
+  }
+
+  private async startListeningViaMoonshine() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.mediaStream = stream;
+      this.audioChunks = [];
+
+      const recorder = new MediaRecorder(stream);
+      this.mediaRecorder = recorder;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) this.audioChunks.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        this.isListening = false;
+        this.options.onListeningStateChange?.(false);
+        stream.getTracks().forEach((t) => t.stop());
+        this.mediaStream = null;
+
+        const blob = new Blob(this.audioChunks, { type: recorder.mimeType || "audio/webm" });
+        this.audioChunks = [];
+        if (blob.size === 0) return;
+
+        try {
+          const res = await fetch("/api/stt", { method: "POST", body: blob });
+          if (!res.ok) throw new Error(`Server returned ${res.status}`);
+          const { text } = await res.json();
+          if (text && text.trim()) {
+            this.options.onTranscriptionResult?.(text.trim(), true);
+          }
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          this.options.onError?.(`Transcription failed: ${msg}`);
+        }
+      };
+
+      recorder.start();
+      this.isListening = true;
+      this.options.onListeningStateChange?.(true);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.options.onError?.(`Microphone error: ${msg}`);
     }
   }
 

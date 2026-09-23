@@ -6,3 +6,9 @@
 kittentts
 soundfile
 numpy
+
+# Moonshine STT (server-side fallback for browsers without native SpeechRecognition — see
+# lib/voice/speech-client.ts). Used standalone via MoonshineSTTService.run_stt(), not
+# Pipecat's full pipeline/transport framework, which this app has no other use for.
+# Confirmed compatible alongside kittentts above despite both depending on onnxruntime.
+pipecat-ai[moonshine]
