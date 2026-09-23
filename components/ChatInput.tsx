@@ -71,7 +71,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 140)}px`;
     }
   }, [input]);
 
@@ -104,45 +104,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         )}
 
         {/* Input box */}
-        <div className="flex items-end gap-1.5 sm:gap-2 rounded-input border border-border bg-card p-1.5 sm:p-2 focus-within:border-[#5266eb] focus-within:ring-2 focus-within:ring-[#5266eb]/15">
-          {/* Microphone Voice Button */}
-          <button
-            type="button"
-            onClick={onToggleListening}
-            disabled={isSpeaking || (!isListening && isTranscribing)}
-            title={
-              isSpeaking
-                ? "Turn-taking active: Pastor Mike is speaking"
-                : isListening
-                  ? isTranscribing
-                    ? "Listening... (Transcribing in background) Click to stop"
-                    : "Listening... Click to stop"
-                  : isTranscribing
-                    ? "Transcribing your speech..."
-                    : "Speak your message"
-            }
-            className={`flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full transition cursor-pointer touch-manipulation active:scale-95 ${
-              isListening
-                ? "bg-rose-500 text-white animate-pulse"
-                : isTranscribing
-                  ? "bg-amber-500/20 text-amber-500"
-                  : isSpeaking
-                    ? "bg-muted text-muted-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-card-foreground"
-            }`}
-          >
-            {isListening ? (
-              <Mic className="h-4 w-4 sm:h-5 sm:w-5" />
-            ) : isTranscribing ? (
-              <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
-            ) : isSpeaking ? (
-              <MicOff className="h-4 w-4" />
-            ) : (
-              <Mic className="h-4 w-4 sm:h-5 sm:w-5" />
-            )}
-          </button>
-
-          {/* Text Area */}
+        <div className="rounded-2xl border border-border bg-card p-2 sm:p-2.5 transition-all duration-200 focus-within:border-[#5266eb] focus-within:ring-2 focus-within:ring-[#5266eb]/15 shadow-sm">
+          {/* Text Area - full width so multiline text flows naturally without awkward indentation */}
           <textarea
             ref={textareaRef}
             rows={1}
@@ -159,19 +122,85 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   : "Share your thoughts or prayer request..."
             }
             disabled={isLoading}
-            className="flex-1 resize-none bg-transparent px-2 py-1.5 text-base sm:text-sm text-card-foreground placeholder:text-muted-foreground focus:outline-hidden max-h-32"
+            className="w-full resize-none bg-transparent px-2.5 pt-1 pb-1 text-base sm:text-sm text-card-foreground placeholder:text-muted-foreground focus:outline-none min-h-[36px] max-h-36 leading-relaxed"
           />
 
-          {/* Send Button */}
-          <button
-            type="button"
-            onClick={handleSend}
-            disabled={!input.trim() || isLoading}
-            title="Send message"
-            className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full bg-[#5266eb] text-white transition hover:bg-[#3f52c9] disabled:opacity-30 disabled:hover:bg-[#5266eb] cursor-pointer touch-manipulation active:scale-95"
-          >
-            <Send className="h-4 w-4" />
-          </button>
+          {/* Bottom Action Bar */}
+          <div className="flex items-center justify-between pt-1 gap-2">
+            {/* Left: Microphone Voice Button & Speech Status */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onToggleListening}
+                disabled={isSpeaking || (!isListening && isTranscribing)}
+                title={
+                  isSpeaking
+                    ? "Turn-taking active: Pastor Mike is speaking"
+                    : isListening
+                      ? isTranscribing
+                        ? "Listening... (Transcribing in background) Click to stop"
+                        : "Listening... Click to stop"
+                      : isTranscribing
+                        ? "Transcribing your speech..."
+                        : "Speak your message"
+                }
+                className={`flex items-center gap-1.5 rounded-full px-2.5 py-1.5 sm:px-3 text-xs font-medium transition cursor-pointer touch-manipulation active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5266eb] ${
+                  isListening
+                    ? "bg-rose-500 text-white shadow-sm shadow-rose-500/30 animate-pulse"
+                    : isTranscribing
+                      ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                      : isSpeaking
+                        ? "bg-muted text-muted-foreground opacity-60 cursor-not-allowed"
+                        : "text-muted-foreground hover:bg-accent hover:text-card-foreground border border-border/40"
+                }`}
+              >
+                {isListening ? (
+                  <>
+                    <Mic className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-white" />
+                    <span className="text-[11px] sm:text-xs font-medium">
+                      {isTranscribing ? "Transcribing..." : "Listening..."}
+                    </span>
+                  </>
+                ) : isTranscribing ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 animate-spin text-amber-400" />
+                    <span className="text-[11px] sm:text-xs">Transcribing...</span>
+                  </>
+                ) : isSpeaking ? (
+                  <>
+                    <MicOff className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                    <span className="hidden sm:inline text-[11px] sm:text-xs">Pastor speaking</span>
+                  </>
+                ) : (
+                  <>
+                    <Mic className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                    <span className="hidden sm:inline text-[11px] sm:text-xs">Speak</span>
+                  </>
+                )}
+              </button>
+
+              {isListening && (
+                <span className="hidden sm:inline text-[11px] text-muted-foreground">
+                  Click mic when done
+                </span>
+              )}
+            </div>
+
+            {/* Right: Send Button */}
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={!input.trim() || isLoading}
+              title="Send message"
+              className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full bg-[#5266eb] text-white shadow-sm shadow-[#5266eb]/30 transition hover:bg-[#3f52c9] disabled:opacity-30 disabled:hover:bg-[#5266eb] disabled:cursor-not-allowed cursor-pointer touch-manipulation active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5266eb]"
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              )}
+            </button>
+          </div>
         </div>
 
         {micError && (
