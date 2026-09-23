@@ -1,9 +1,34 @@
 "use client";
 
 import React, { Suspense, useEffect, useRef } from "react";
+import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import { Play, Pause, RotateCcw, Square } from "lucide-react";
 import { Avatar, AvatarHandle } from "./Avatar";
+
+// Silence Three.js r183+ deprecation warning for THREE.Clock used internally by @react-three/fiber
+if (typeof window !== "undefined") {
+  if (typeof (THREE as unknown as { setConsoleFunction?: unknown }).setConsoleFunction === "function") {
+    (THREE as unknown as { setConsoleFunction: (fn: (type: string, message: string, ...params: unknown[]) => void) => void }).setConsoleFunction(
+      (type, message, ...params) => {
+        if (typeof message === "string" && message.includes("Clock: This module has been deprecated")) {
+          return;
+        }
+        const method = (console as unknown as Record<string, (...args: unknown[]) => void>)[type] || console.log;
+        method.call(console, message, ...params);
+      },
+    );
+  }
+
+  const originalWarn = console.warn;
+  console.warn = (...args: unknown[]) => {
+    const first = typeof args[0] === "string" ? args[0] : "";
+    if (first.includes("Clock: This module has been deprecated")) {
+      return;
+    }
+    originalWarn.apply(console, args);
+  };
+}
 
 interface PastorStageProps {
   assistantText: string;

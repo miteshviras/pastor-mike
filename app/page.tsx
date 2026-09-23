@@ -47,6 +47,7 @@ export default function Home() {
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [speechSpeed, setSpeechSpeed] = useState(0.88);
   const [voicePreset, setVoicePreset] = useState<string>(() => {
     const saved = safeGetStorage("pastor_mike_voice");
@@ -95,6 +96,9 @@ export default function Home() {
             setMicError(null);
             baseInputRef.current = inputTextRef.current.trim();
           }
+        },
+        onTranscribingChange: (transcribing) => {
+          setIsTranscribing(transcribing);
         },
         onSpeakingStateChange: (speaking, paused) => {
           setIsSpeaking(speaking);
@@ -742,6 +746,7 @@ export default function Home() {
             <VoiceBar
               isVoiceMode={isVoiceMode}
               isListening={isListening}
+              isTranscribing={isTranscribing}
               isSpeaking={isSpeaking}
               isPaused={isSpeakingPaused}
               onTogglePlayPause={() => {
@@ -762,6 +767,7 @@ export default function Home() {
               onSendMessage={handleSendMessage}
               isLoading={isLoading}
               isListening={isListening}
+              isTranscribing={isTranscribing}
               onToggleListening={handleToggleListening}
               isSpeaking={isSpeaking}
               showStarterPills={messages.length === 0}

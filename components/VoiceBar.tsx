@@ -1,12 +1,13 @@
 "use client";
 
 import React from "react";
-import { Mic, Volume2, X, Sliders, User, Play, Pause } from "lucide-react";
+import { Mic, Volume2, X, Sliders, User, Play, Pause, Loader2 } from "lucide-react";
 import { KITTEN_VOICES } from "@/lib/voice/speech-client";
 
 interface VoiceBarProps {
   isVoiceMode: boolean;
   isListening: boolean;
+  isTranscribing?: boolean;
   isSpeaking: boolean;
   isPaused?: boolean;
   onTogglePlayPause?: () => void;
@@ -20,6 +21,7 @@ interface VoiceBarProps {
 export const VoiceBar: React.FC<VoiceBarProps> = ({
   isVoiceMode,
   isListening,
+  isTranscribing = false,
   isSpeaking,
   isPaused = false,
   onTogglePlayPause,
@@ -55,6 +57,10 @@ export const VoiceBar: React.FC<VoiceBarProps> = ({
                 <Pause className="h-4 w-4 fill-current" />
               )}
             </button>
+          ) : isTranscribing ? (
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-amber-500">
+              <Loader2 className="h-4 w-4 animate-spin" />
+            </div>
           ) : isListening ? (
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rose-500 text-white animate-pulse">
               <Mic className="h-4 w-4" />
@@ -71,18 +77,22 @@ export const VoiceBar: React.FC<VoiceBarProps> = ({
                 ? isPaused
                   ? "Pastor Mike is paused"
                   : "Pastor Mike is speaking..."
-                : isListening
-                  ? "Listening... speak now"
-                  : "Voice Mode Active"}
+                : isTranscribing
+                  ? "Transcribing your words..."
+                  : isListening
+                    ? "Listening... speak now"
+                    : "Voice Mode Active"}
             </p>
             <p className="truncate text-[11px] text-muted-foreground">
               {isSpeaking
                 ? isPaused
                   ? "Tap to resume audio playback"
                   : "Tap to pause audio playback"
-                : isListening
-                  ? "Your audio is processed locally"
-                  : "Tap microphone below to speak"}
+                : isTranscribing
+                  ? "Converting speech to text"
+                  : isListening
+                    ? "Pause speaking when finished"
+                    : "Tap microphone below to speak"}
             </p>
           </div>
         </div>

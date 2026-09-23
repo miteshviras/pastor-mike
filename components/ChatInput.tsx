@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Send, Mic, MicOff, Sparkles } from "lucide-react";
+import { Send, Mic, MicOff, Sparkles, Loader2 } from "lucide-react";
 
 interface ChatInputProps {
   value?: string;
@@ -9,6 +9,7 @@ interface ChatInputProps {
   onSendMessage: (message: string) => void;
   isLoading: boolean;
   isListening: boolean;
+  isTranscribing?: boolean;
   onToggleListening: () => void;
   isSpeaking: boolean;
   showStarterPills?: boolean;
@@ -28,6 +29,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onSendMessage,
   isLoading,
   isListening,
+  isTranscribing = false,
   onToggleListening,
   isSpeaking,
   showStarterPills = false,
@@ -107,23 +109,29 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           <button
             type="button"
             onClick={onToggleListening}
-            disabled={isSpeaking}
+            disabled={isSpeaking || isTranscribing}
             title={
               isSpeaking
                 ? "Turn-taking active: Pastor Mike is speaking"
-                : isListening
-                  ? "Listening... Click to stop"
-                  : "Speak your message"
+                : isTranscribing
+                  ? "Transcribing your speech..."
+                  : isListening
+                    ? "Listening... Click to finish"
+                    : "Speak your message"
             }
             className={`flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full transition cursor-pointer touch-manipulation active:scale-95 ${
-              isListening
-                ? "bg-rose-500 text-white animate-pulse"
-                : isSpeaking
-                  ? "bg-muted text-muted-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-card-foreground"
+              isTranscribing
+                ? "bg-amber-500/20 text-amber-500"
+                : isListening
+                  ? "bg-rose-500 text-white animate-pulse"
+                  : isSpeaking
+                    ? "bg-muted text-muted-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-card-foreground"
             }`}
           >
-            {isListening ? (
+            {isTranscribing ? (
+              <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
+            ) : isListening ? (
               <Mic className="h-4 w-4 sm:h-5 sm:w-5" />
             ) : isSpeaking ? (
               <MicOff className="h-4 w-4" />
@@ -140,9 +148,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={
-              isListening
-                ? "Listening... speak, pause to transcribe..."
-                : "Share your thoughts or prayer request..."
+              isTranscribing
+                ? "Transcribing your words..."
+                : isListening
+                  ? "Listening... speak now, pause when finished..."
+                  : "Share your thoughts or prayer request..."
             }
             disabled={isLoading}
             className="flex-1 resize-none bg-transparent px-2 py-1.5 text-base sm:text-sm text-card-foreground placeholder:text-muted-foreground focus:outline-hidden max-h-32"
