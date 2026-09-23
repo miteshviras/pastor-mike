@@ -14,7 +14,7 @@ import { CrisisBanner } from "@/components/CrisisBanner";
 import { PastoralSpeechClient, KITTEN_VOICES } from "@/lib/voice/speech-client";
 import { useSentenceSync } from "@/lib/voice/useSentenceSync";
 import { attachAudioLevelAnalyser } from "@/lib/voice/audioLevel";
-import type { PrayerRequest } from "@/lib/db";
+import type { PrayerRequest, SavedVerse } from "@/lib/db";
 import { SafetyCheckResult } from "@/lib/ai/safety";
 import { Sparkles, HeartHandshake } from "lucide-react";
 
@@ -56,6 +56,7 @@ export default function Home() {
       : "Jasper";
   });
   const [prayers, setPrayers] = useState<PrayerRequest[]>([]);
+  const [savedVerses, setSavedVerses] = useState<SavedVerse[]>([]);
   const [isJournalOpen, setIsJournalOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   // Bumped whenever this visit's data changes (message sent, prayer saved) so the always-visible
@@ -185,6 +186,18 @@ export default function Home() {
     }
   };
 
+  const loadSavedVerses = async () => {
+    try {
+      const vRes = await fetch("/api/verses");
+      if (vRes.ok) {
+        const vData = await vRes.json();
+        setSavedVerses(vData.verses || []);
+      }
+    } catch (err) {
+      console.error("Error loading saved verses:", err);
+    }
+  };
+
   // Load or create initial session and prayers
   useEffect(() => {
     async function init() {
@@ -299,8 +312,9 @@ export default function Home() {
           }
         }
 
-        // 4. Load the Prayer Journal — global across every visit, not scoped to a session.
+        // 4. Load the Prayer Journal and saved verses — both global across every visit.
         await loadPrayers();
+        await loadSavedVerses();
 
         // 5. Check if first-time onboarding should be displayed
         const hasOnboarded =
@@ -566,6 +580,42 @@ export default function Home() {
   const handleMarkPrayerAnswered = (prayerId: string) =>
     handleTogglePrayerStatus(prayerId, "active");
 
+  const handleSaveVerse = async (
+    reference: string,
+    text: string,
+    translation?: string,
+  ): Promise<string | null> => {
+    try {
+      const res = await fetch("/api/verses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reference, text, translation, sessionId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSavedVerses((prev) => [data.verse, ...prev]);
+        return data.verse?.id ?? null;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  const handleDeleteVerse = async (verseId: string) => {
+    try {
+      const res = await fetch(
+        `/api/verses?id=${encodeURIComponent(verseId)}`,
+        { method: "DELETE" },
+      );
+      if (res.ok) {
+        setSavedVerses((prev) => prev.filter((v) => v.id !== verseId));
+      }
+    } catch (err) {
+      console.error("Error deleting saved verse:", err);
+    }
+  };
+
   const handleNewSession = () => {
     speechClientRef.current?.stopSpeaking();
     speechClientRef.current?.stopListening();
@@ -766,9 +816,9 @@ export default function Home() {
                         onSpeak={handleTogglePlayPause}
                         onRestart={handleRestartSpeaking}
                         onStop={handleStopSpeaking}
-                        onSavePrayer={handleSavePrayer}
                         onMarkAnswered={handleMarkPrayerAnswered}
                         onDownload={handleDownloadAudio}
+                        onSaveVerse={handleSaveVerse}
                         isSpeakingNow={isThisMsgActive}
                         isPausedNow={isThisMsgPaused}
                       />
@@ -837,6 +887,8 @@ export default function Home() {
           await handleSavePrayer(text);
         }}
         onDeletePrayer={handleDeletePrayer}
+        verses={savedVerses}
+        onDeleteVerse={handleDeleteVerse}
       />
 
       {/* Setup Guide & AI Settings Modal — full wizard for "guide", a single

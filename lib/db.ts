@@ -35,6 +35,16 @@ export interface PrayerRequest {
   created_at: string;
 }
 
+export interface SavedVerse {
+  id: string;
+  user_id: string;
+  session_id: string | null;
+  reference: string;
+  verse_text: string;
+  translation: string | null;
+  created_at: string;
+}
+
 export interface Preference {
   id: string;
   user_id: string;
@@ -108,6 +118,17 @@ export function getDb(): DatabaseSync {
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       );
 
+      CREATE TABLE IF NOT EXISTS saved_verses (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        session_id TEXT,
+        reference TEXT NOT NULL,
+        verse_text TEXT NOT NULL,
+        translation TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
       CREATE TABLE IF NOT EXISTS preferences (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
@@ -135,6 +156,7 @@ export function getDb(): DatabaseSync {
 
       CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id, created_at);
       CREATE INDEX IF NOT EXISTS idx_prayers_user ON prayer_requests(user_id, created_at);
+      CREATE INDEX IF NOT EXISTS idx_verses_user ON saved_verses(user_id, created_at);
       CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id, started_at);
     `);
 
@@ -232,6 +254,9 @@ export function deleteSession(sessionId: string): boolean {
   const db = getDb();
   db.prepare("DELETE FROM messages WHERE session_id = ?").run(sessionId);
   db.prepare("DELETE FROM prayer_requests WHERE session_id = ?").run(sessionId);
+  // Saved verses are a persistent personal collection, like the Prayer Journal — deleting a
+  // visit shouldn't remove verses the user saved for keeps during it.
+  db.prepare("UPDATE saved_verses SET session_id = NULL WHERE session_id = ?").run(sessionId);
   db.prepare("DELETE FROM conversation_summaries WHERE session_id = ?").run(sessionId);
   const res = db.prepare("DELETE FROM sessions WHERE id = ?").run(sessionId);
   return Number(res.changes) > 0;
@@ -327,6 +352,46 @@ export function updatePrayerStatus(prayerId: string, status: "active" | "answere
 export function deletePrayerRequest(prayerId: string): void {
   const db = getDb();
   db.prepare("DELETE FROM prayer_requests WHERE id = ?").run(prayerId);
+}
+
+// Saved Verse Helpers — a personal collection of scripture the user chose to keep,
+// global across every visit like the Prayer Journal (not session-scoped).
+export function saveVerse(
+  userId: string,
+  reference: string,
+  verseText: string,
+  translation?: string | null,
+  sessionId?: string | null,
+): SavedVerse {
+  const db = getDb();
+  const verseId = "verse_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7);
+  const now = new Date().toISOString();
+
+  db.prepare(
+    "INSERT INTO saved_verses (id, user_id, session_id, reference, verse_text, translation, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
+  ).run(verseId, userId, sessionId || null, reference, verseText, translation || null, now);
+
+  return {
+    id: verseId,
+    user_id: userId,
+    session_id: sessionId || null,
+    reference,
+    verse_text: verseText,
+    translation: translation || null,
+    created_at: now,
+  };
+}
+
+export function listSavedVerses(userId: string): SavedVerse[] {
+  const db = getDb();
+  return db.prepare(
+    "SELECT * FROM saved_verses WHERE user_id = ? ORDER BY created_at DESC"
+  ).all(userId) as unknown as SavedVerse[];
+}
+
+export function deleteSavedVerse(verseId: string): void {
+  const db = getDb();
+  db.prepare("DELETE FROM saved_verses WHERE id = ?").run(verseId);
 }
 
 // Memory & Preference Helpers

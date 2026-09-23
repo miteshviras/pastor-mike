@@ -8,13 +8,13 @@ import {
   Pause,
   RotateCcw,
   Square,
-  BookMarked,
-  BookmarkCheck,
   Heart,
   Copy,
   Check,
   Download,
   CheckCheck,
+  BookMarked,
+  BookmarkCheck,
 } from "lucide-react";
 import {
   getVerseByReference,
@@ -44,9 +44,13 @@ export interface ChatMessageProps {
   onSpeak?: (text: string) => void;
   onRestart?: (text: string) => void;
   onStop?: () => void;
-  onSavePrayer?: (text: string) => Promise<string | null>;
   onMarkAnswered?: (prayerId: string) => Promise<void>;
   onDownload?: (text: string) => Promise<void>;
+  onSaveVerse?: (
+    reference: string,
+    text: string,
+    translation?: string,
+  ) => Promise<string | null>;
   isSpeakingNow?: boolean;
   isPausedNow?: boolean;
 }
@@ -58,21 +62,23 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   onSpeak,
   onRestart,
   onStop,
-  onSavePrayer,
   onMarkAnswered,
   onDownload,
+  onSaveVerse,
   isSpeakingNow = false,
   isPausedNow = false,
 }) => {
   const isUser = role === "user";
   const [copiedVerse, setCopiedVerse] = useState<string | null>(null);
-  const [prayerSaved, setPrayerSaved] = useState<boolean>(
-    Boolean(metadata?.savedPrayerId),
+  const [savedVerseRefs, setSavedVerseRefs] = useState<Set<string>>(
+    new Set(),
   );
-  const [savedPrayerId, setSavedPrayerId] = useState<string | undefined>(
-    metadata?.savedPrayerId,
-  );
-  const [savingPrayer, setSavingPrayer] = useState<boolean>(false);
+  const [savingVerseRef, setSavingVerseRef] = useState<string | null>(null);
+  // Only ever comes from metadata — populated when the orchestrator auto-saves this prayer
+  // to the journal (i.e. an existing active petition really exists to mark answered). There's
+  // no manual "Save to Journal" here anymore: it used to save the AI's composed prayer text as
+  // a brand-new entry, which just duplicated the real petition instead of resolving it.
+  const savedPrayerId = metadata?.savedPrayerId;
   // A freshly-generated prayer is never pre-answered — this only flips true once the user
   // confirms it's been answered from this chat card.
   const [prayerAnswered, setPrayerAnswered] = useState<boolean>(false);
@@ -105,15 +111,19 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     setTimeout(() => setCopiedVerse(null), 2000);
   };
 
-  const handleSavePrayer = async () => {
-    if (!activePrayer || prayerSaved || savingPrayer || !onSavePrayer) return;
-    setSavingPrayer(true);
-    const newPrayerId = await onSavePrayer(activePrayer.text);
-    if (newPrayerId) {
-      setPrayerSaved(true);
-      setSavedPrayerId(newPrayerId);
+  const handleSaveVerse = async (
+    reference: string,
+    text: string,
+    translation?: string,
+  ) => {
+    if (!onSaveVerse || savedVerseRefs.has(reference) || savingVerseRef)
+      return;
+    setSavingVerseRef(reference);
+    const newVerseId = await onSaveVerse(reference, text, translation);
+    if (newVerseId) {
+      setSavedVerseRefs((prev) => new Set(prev).add(reference));
     }
-    setSavingPrayer(false);
+    setSavingVerseRef(null);
   };
 
   const handleMarkAnswered = async () => {
@@ -277,23 +287,56 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       </span>
                     </div>
 
-                    <button
-                      onClick={() => handleCopyVerse(verse.reference, bodyText)}
-                      title="Copy Scripture"
-                      className="flex items-center gap-1 text-[11px] text-muted-foreground transition hover:text-card-foreground"
-                    >
-                      {copiedVerse === verse.reference ? (
-                        <>
-                          <Check className="h-3 w-3 text-emerald-600" />
-                          <span>Copied</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-3 w-3" />
-                          <span>Copy</span>
-                        </>
+                    <div className="flex items-center gap-2.5">
+                      {onSaveVerse && (
+                        <button
+                          onClick={() =>
+                            handleSaveVerse(
+                              verse.reference,
+                              bodyText,
+                              verse.translation,
+                            )
+                          }
+                          disabled={savingVerseRef === verse.reference}
+                          title="Save this verse to your journal"
+                          className="flex items-center gap-1 text-[11px] text-muted-foreground transition hover:text-card-foreground"
+                        >
+                          {savedVerseRefs.has(verse.reference) ? (
+                            <>
+                              <BookmarkCheck className="h-3 w-3 text-emerald-600" />
+                              <span>Saved</span>
+                            </>
+                          ) : (
+                            <>
+                              <BookMarked className="h-3 w-3" />
+                              <span>
+                                {savingVerseRef === verse.reference
+                                  ? "Saving..."
+                                  : "Save"}
+                              </span>
+                            </>
+                          )}
+                        </button>
                       )}
-                    </button>
+
+                      <button
+                        onClick={() => handleCopyVerse(verse.reference, bodyText)}
+                        title="Copy Scripture"
+                        className="flex items-center gap-1 text-[11px] text-muted-foreground transition hover:text-card-foreground"
+                      >
+                        {copiedVerse === verse.reference ? (
+                          <>
+                            <Check className="h-3 w-3 text-emerald-600" />
+                            <span>Copied</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3 w-3" />
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
 
                   <blockquote className="mt-2 text-sm italic leading-relaxed text-card-foreground/80">
@@ -323,32 +366,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
               </div>
 
               <div className="flex items-center gap-1.5">
-                {onSavePrayer && (
-                  <button
-                    onClick={handleSavePrayer}
-                    disabled={prayerSaved || savingPrayer}
-                    className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition ${
-                      prayerSaved
-                        ? "border-emerald-500/50 bg-emerald-100 text-emerald-800"
-                        : "border-border bg-card text-card-foreground hover:bg-accent"
-                    }`}
-                  >
-                    {prayerSaved ? (
-                      <>
-                        <BookmarkCheck className="h-3.5 w-3.5 text-emerald-600" />
-                        <span>In Prayer Journal</span>
-                      </>
-                    ) : (
-                      <>
-                        <BookMarked className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span>
-                          {savingPrayer ? "Saving..." : "Save to Journal"}
-                        </span>
-                      </>
-                    )}
-                  </button>
-                )}
-
                 {onMarkAnswered && savedPrayerId && (
                   <button
                     onClick={handleMarkAnswered}

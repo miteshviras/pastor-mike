@@ -4,13 +4,15 @@ import React, { useState } from "react";
 import {
   X,
   BookOpen,
+  BookMarked,
   CheckCircle,
   Clock,
   Send,
   Sparkles,
   Trash2,
+  Heart,
 } from "lucide-react";
-import { PrayerRequest } from "@/lib/db";
+import { PrayerRequest, SavedVerse } from "@/lib/db";
 
 interface PrayerJournalModalProps {
   isOpen: boolean;
@@ -22,6 +24,8 @@ interface PrayerJournalModalProps {
   ) => Promise<void>;
   onAddPrayer: (text: string) => Promise<void>;
   onDeletePrayer?: (prayerId: string) => Promise<void>;
+  verses: SavedVerse[];
+  onDeleteVerse?: (verseId: string) => Promise<void>;
 }
 
 const MAX_PRAYER_LENGTH = 150;
@@ -33,11 +37,15 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
   onToggleStatus,
   onAddPrayer,
   onDeletePrayer,
+  verses,
+  onDeleteVerse,
 }) => {
+  const [activeTab, setActiveTab] = useState<"prayers" | "verses">("prayers");
   const [filter, setFilter] = useState<"all" | "active" | "answered">("all");
   const [newPrayerText, setNewPrayerText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingVerseId, setDeletingVerseId] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -72,6 +80,17 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
     }
   };
 
+  const handleDeleteVerse = async (verseId: string) => {
+    if (!onDeleteVerse) return;
+    if (!window.confirm("Remove this verse from your journal?")) return;
+    setDeletingVerseId(verseId);
+    try {
+      await onDeleteVerse(verseId);
+    } finally {
+      setDeletingVerseId(null);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 backdrop-blur-xs">
       <div className="flex h-[92dvh] sm:h-[85vh] w-full max-w-xl flex-col rounded-t-3xl sm:rounded-none border border-border-subtle bg-card shadow-elevated">
@@ -83,10 +102,12 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100">
-                Personal Prayer Journal
+                My Journal
               </h2>
               <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
-                All petitions across your visits, stored in SQLite
+                {activeTab === "prayers"
+                  ? "All petitions across your visits, stored in SQLite"
+                  : "Scripture Pastor Mike has shared with you, saved for keeps"}
               </p>
             </div>
           </div>
@@ -99,6 +120,37 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
           </button>
         </div>
 
+        {/* Top-Level Tabs: Prayers vs Verses */}
+        <div className="grid grid-cols-2 border-b border-slate-200/80 bg-slate-100/50 text-xs font-medium dark:border-slate-800 dark:bg-slate-950/40">
+          <button
+            type="button"
+            onClick={() => setActiveTab("prayers")}
+            className={`flex items-center justify-center gap-1.5 py-3 border-b-2 transition ${
+              activeTab === "prayers"
+                ? "border-[#5266eb] text-[#5266eb] font-semibold dark:border-[#9cb4e8] dark:text-[#9cb4e8]"
+                : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400"
+            }`}
+          >
+            <Heart className="h-3.5 w-3.5" />
+            <span>Prayers ({prayers.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("verses")}
+            className={`flex items-center justify-center gap-1.5 py-3 border-b-2 transition ${
+              activeTab === "verses"
+                ? "border-[#5266eb] text-[#5266eb] font-semibold dark:border-[#9cb4e8] dark:text-[#9cb4e8]"
+                : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400"
+            }`}
+          >
+            <BookMarked className="h-3.5 w-3.5" />
+            <span>Verses ({verses.length})</span>
+          </button>
+        </div>
+
+        {activeTab === "prayers" ? (
+          <>
         {/* Filter Bar */}
         <div className="flex flex-wrap items-center justify-end gap-2 border-b border-slate-200/60 bg-slate-50/50 px-4 py-2 sm:px-5 sm:py-2.5 dark:border-slate-800/60 dark:bg-slate-950/30">
           {/* Status Filter Tabs */}
@@ -251,6 +303,70 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
             {newPrayerText.length}/{MAX_PRAYER_LENGTH}
           </div>
         </form>
+          </>
+        ) : (
+          /* Saved Verses List */
+          <div className="flex-1 overflow-y-auto p-5 space-y-3">
+            {verses.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center text-slate-400">
+                <BookMarked className="h-8 w-8 text-slate-300 dark:text-slate-600 mb-2" />
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                  No verses saved yet
+                </p>
+                <p className="text-xs mt-1 max-w-sm text-slate-500 dark:text-slate-400">
+                  When Pastor Mike shares a scripture with you in chat, tap
+                  &ldquo;Save&rdquo; on it to keep it here.
+                </p>
+              </div>
+            ) : (
+              verses.map((verse) => (
+                <div
+                  key={verse.id}
+                  className="group flex items-start gap-3 rounded-xl border border-slate-200/90 bg-card p-4 transition dark:border-slate-800 dark:bg-slate-800/90"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                        {verse.reference}
+                      </span>
+                      {verse.translation && (
+                        <span className="rounded bg-[#5266eb]/10 px-1.5 py-0.5 text-[10px] font-medium text-[#5266eb]">
+                          {verse.translation}
+                        </span>
+                      )}
+                    </div>
+
+                    <blockquote className="mt-1.5 text-sm italic leading-relaxed text-slate-700 dark:text-slate-300">
+                      &ldquo;{verse.verse_text}&rdquo;
+                    </blockquote>
+
+                    <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400">
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {new Date(verse.created_at).toLocaleDateString(
+                          undefined,
+                          { month: "short", day: "numeric", year: "numeric" },
+                        )}
+                      </span>
+
+                      {onDeleteVerse && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteVerse(verse.id)}
+                          disabled={deletingVerseId === verse.id}
+                          title="Remove verse from journal"
+                          className="opacity-70 sm:opacity-0 sm:group-hover:opacity-100 transition rounded-md p-1.5 sm:p-1 text-slate-400 hover:bg-slate-100 hover:text-rose-600 dark:hover:bg-slate-700 dark:hover:text-rose-400"
+                        >
+                          <Trash2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
