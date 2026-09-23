@@ -2,6 +2,8 @@
 // Web Speech STT (with a server-side Moonshine fallback for browsers that lack it), and
 // turn-taking logic.
 
+import { cleanTextForTTS } from "./ttsTextCleaner";
+
 // Mirrors KITTEN_VOICES in server/kittentts_adapter.py
 export const KITTEN_VOICES = ["Bella", "Jasper", "Luna", "Bruno", "Rosie", "Hugo", "Kiki", "Leo"] as const;
 
@@ -850,7 +852,14 @@ export class PastoralSpeechClient {
     this.stopListening();
     this.stopSpeaking();
 
-    const chunks = this.chunkText(text);
+    // Strip markdown/emoji/lists/etc. before chunking — chunking needs the cleaned text
+    // (list-item and table-row conversion need whole lines, which an arbitrary word-count
+    // chunk boundary could otherwise split mid-item), but this.currentText stays RAW: it's
+    // what togglePlayPause()/restartSpeaking() compare their `text` argument against to
+    // detect "same message" vs "new one" — cleaning it here would break that comparison for
+    // every caller still passing the original raw text.
+    const cleanedText = cleanTextForTTS(text);
+    const chunks = this.chunkText(cleanedText);
     if (chunks.length === 0) return;
 
     this.currentText = text;
@@ -907,10 +916,12 @@ export class PastoralSpeechClient {
     return new Promise((resolve) => {
       if (typeof window === "undefined" || !("speechSynthesis" in window)) {
         resolve();
+        return;
       }
 
-      // Clean markdown stars or brackets from speech text
-      const cleanText = text.replace(/[*#_>]/g, "").replace(/\n+/g, " ").trim();
+      // Chunks already pass through cleanTextForTTS() in speakText() before reaching here —
+      // just trim, no need to re-strip markdown.
+      const cleanText = text.trim();
       if (!cleanText) {
         resolve();
         return;

@@ -65,11 +65,124 @@ def _get_kitten_model():
         _kitten_model = KittenTTS()
     return _kitten_model
 
+# Mirrors lib/voice/ttsTextCleaner.ts — keep both in sync if you change the rules in either.
+# This is the defense-in-depth copy for this script's direct CLI usage (see README); the TS
+# client normally already sends pre-cleaned text, so this mostly matters when the script is
+# invoked on its own.
+_EMOJI_PATTERN = re.compile(
+    "["
+    "\U0001F300-\U0001FAFF"  # symbols & pictographs (incl. extended-A, supplemental)
+    "\U00002600-\U000027BF"  # misc symbols, dingbats
+    "\U00002190-\U000021FF"  # arrows
+    "\U00002B00-\U00002BFF"  # misc symbols and arrows
+    "\U0000FE0F"             # variation selector-16 (forces emoji presentation, e.g. on "❤")
+    "]"
+)
+_INVISIBLE_UNICODE_PATTERN = re.compile(r'[​‌‍‎‏﻿­]')
+
+# <Book Name> <chapter>:<verse>(-<verse>) -> spoken form, e.g. "Jeremiah 29:11" ->
+# "Jeremiah chapter 29, verse 11". A general pattern match, not an exhaustive 66-book parser.
+# The digit-prefix and its separating space are one optional unit rather than two independently
+# optional pieces, so a lone leading space isn't swallowed before a book name with no digit
+# prefix (e.g. "and Psalm 23:1" must not become "andPsalm chapter 23...").
+_BIBLE_REFERENCE_PATTERN = re.compile(
+    r'\b((?:[1-3]\s)?[A-Z][a-z]+(?:\s[A-Z][a-z]+)?)\s(\d{1,3}):(\d{1,3})(?:-(\d{1,3}))?'
+)
+
+
+def _convert_bible_references(text: str) -> str:
+    def repl(m):
+        book, chapter, verse, end_verse = m.group(1), m.group(2), m.group(3), m.group(4)
+        verse_part = f"verses {verse} through {end_verse}" if end_verse else f"verse {verse}"
+        return f"{book.strip()} chapter {chapter}, {verse_part}"
+    return _BIBLE_REFERENCE_PATTERN.sub(repl, text)
+
+
+def _convert_lines(text: str) -> str:
+    """Line-oriented rules: headers, blockquotes, bullet/numbered lists, tables, and
+    decorative separators all need to be read as whole lines, not caught mid-line."""
+    out = []
+    for raw_line in text.split("\n"):
+        line = raw_line.strip()
+        if not line:
+            out.append("")
+            continue
+
+        if re.match(r'^[-*_=•>]{3,}$', line):
+            continue
+        if "|" in line and re.match(r'^[\s|:-]+$', line):
+            continue
+
+        header_match = re.match(r'^#{1,6}\s+(.*)$', line)
+        if header_match:
+            out.append(header_match.group(1).strip())
+            continue
+
+        quote_match = re.match(r'^>\s*(.*)$', line)
+        if quote_match:
+            out.append(quote_match.group(1).strip())
+            continue
+
+        bullet_match = re.match(r'^[-*•]\s+(.*)$', line)
+        if bullet_match:
+            item = bullet_match.group(1).strip()
+            out.append(item if re.search(r'[.!?]$', item) else f"{item}.")
+            continue
+
+        numbered_match = re.match(r'^\d+[.)]\s+(.*)$', line)
+        if numbered_match:
+            item = numbered_match.group(1).strip()
+            out.append(item if re.search(r'[.!?]$', item) else f"{item}.")
+            continue
+
+        if "|" in line:
+            cells = [c.strip() for c in line.split("|") if c.strip()]
+            out.append(", ".join(cells))
+            continue
+
+        out.append(line)
+
+    return "\n".join(out)
+
+
 def clean_speech_text(text: str) -> str:
-    """Removes markdown symbols, URLs, and unwanted punctuation for clear vocalization."""
-    cleaned = re.sub(r'[*#_`~>\[\]\(\)]', ' ', text)
+    """Converts markdown/emoji/list/table-formatted text into plain speakable prose."""
+    cleaned = text
+
+    # Code fences and inline code — not speakable, drop entirely.
+    cleaned = re.sub(r'```[\s\S]*?```', ' ', cleaned)
+    cleaned = re.sub(r'`([^`]*)`', r'\1', cleaned)
+    cleaned = re.sub(r'<[^>]+>', ' ', cleaned)
+
+    cleaned = _convert_lines(cleaned)
+
+    # Markdown images/links -> link text only; bare URLs -> dropped.
+    cleaned = re.sub(r'!\[([^\]]*)\]\([^)]+\)', r'\1', cleaned)
+    cleaned = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', cleaned)
     cleaned = re.sub(r'https?://\S+', '', cleaned)
-    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+
+    # Bold/italic/underline emphasis markers.
+    cleaned = re.sub(r'\*\*\*(.+?)\*\*\*', r'\1', cleaned)
+    cleaned = re.sub(r'\*\*(.+?)\*\*', r'\1', cleaned)
+    cleaned = re.sub(r'\*(.+?)\*', r'\1', cleaned)
+    cleaned = re.sub(r'__(.+?)__', r'\1', cleaned)
+    cleaned = re.sub(r'_(.+?)_', r'\1', cleaned)
+
+    cleaned = _convert_bible_references(cleaned)
+
+    cleaned = _EMOJI_PATTERN.sub('', cleaned)
+    cleaned = _INVISIBLE_UNICODE_PATTERN.sub('', cleaned)
+
+    # Repeated punctuation collapse — also fixes trailing "trail off" ellipses.
+    cleaned = re.sub(r'\.{2,}', '.', cleaned)
+    cleaned = re.sub(r'!{2,}', '!', cleaned)
+    cleaned = re.sub(r'\?{2,}', '?', cleaned)
+    cleaned = re.sub(r',{2,}', ',', cleaned)
+
+    # Collapse to one continuous speakable stream — TTS reads it aloud, it doesn't see lines.
+    cleaned = " ".join(line.strip() for line in cleaned.split("\n") if line.strip())
+    cleaned = re.sub(r'[ \t]+', ' ', cleaned).strip()
+
     return cleaned
 
 def xml_escape(s: str) -> str:
