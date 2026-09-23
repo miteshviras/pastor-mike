@@ -59,6 +59,10 @@ export default function Home() {
   const [prayerScope, setPrayerScope] = useState<"session" | "all">("session");
   const [isJournalOpen, setIsJournalOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  // Bumped whenever this visit's data changes (message sent, prayer saved) so the always-visible
+  // desktop sidebar — which isn't remounted by isHistoryOpen toggling — knows to refetch instead
+  // of only updating on a hard refresh.
+  const [historyRefreshTick, setHistoryRefreshTick] = useState(0);
   const [guideModalTab, setGuideModalTab] = useState<
     "guide" | "settings" | null
   >(null);
@@ -376,6 +380,7 @@ export default function Home() {
       };
 
       setMessages((prev) => [...prev, assistantMsg]);
+      setHistoryRefreshTick((t) => t + 1);
 
       // Refresh prayers if one was saved
       if (data.savedPrayerId) {
@@ -459,6 +464,7 @@ export default function Home() {
           }
         }
         await loadPrayers(data.sessionId || sessionId, prayerScope);
+        setHistoryRefreshTick((t) => t + 1);
         return true;
       }
       return false;
@@ -624,6 +630,7 @@ export default function Home() {
           isOpen={isHistoryOpen}
           onClose={() => setIsHistoryOpen(false)}
           currentSessionId={sessionId}
+          refreshKey={historyRefreshTick}
           onSelectSession={handleSwitchSession}
           onNewSession={() => {
             setIsHistoryOpen(false);

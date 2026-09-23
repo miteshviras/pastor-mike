@@ -21,6 +21,9 @@ interface VisitHistorySidebarProps {
   isOpen: boolean;
   onClose: () => void;
   currentSessionId: string | null;
+  // Bumped by the parent whenever this visit's data changes (message sent, prayer saved) —
+  // see the effect below for why isOpen alone isn't enough to keep this list fresh.
+  refreshKey?: number;
   onSelectSession: (sessionId: string) => void;
   onNewSession: () => void;
 }
@@ -58,6 +61,7 @@ export const VisitHistorySidebar: React.FC<VisitHistorySidebarProps> = ({
   isOpen,
   onClose,
   currentSessionId,
+  refreshKey,
   onSelectSession,
   onNewSession,
 }) => {
@@ -68,8 +72,11 @@ export const VisitHistorySidebar: React.FC<VisitHistorySidebarProps> = ({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
-  // The sidebar is always mounted on desktop, so fetch on mount, then refetch whenever
-  // the mobile drawer opens (covers new/deleted visits made while it was closed).
+  // The sidebar is always mounted on desktop (isOpen only controls the separate mobile drawer,
+  // via `hidden md:flex` — it doesn't gate whether this component itself is in the DOM), so
+  // isOpen alone doesn't fire a refetch when new messages/visits show up during normal use.
+  // currentSessionId covers new/switched visits; refreshKey (bumped by the parent on every
+  // sent message and saved prayer) covers this visit's own stats/summary changing in place.
   useEffect(() => {
     let cancelled = false;
 
@@ -91,7 +98,7 @@ export const VisitHistorySidebar: React.FC<VisitHistorySidebarProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [isOpen]);
+  }, [isOpen, currentSessionId, refreshKey]);
 
   const handleDelete = async (e: React.MouseEvent, sessionId: string) => {
     e.stopPropagation();
