@@ -56,7 +56,6 @@ export default function Home() {
       : "Jasper";
   });
   const [prayers, setPrayers] = useState<PrayerRequest[]>([]);
-  const [prayerScope, setPrayerScope] = useState<"session" | "all">("session");
   const [isJournalOpen, setIsJournalOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   // Bumped whenever this visit's data changes (message sent, prayer saved) so the always-visible
@@ -172,18 +171,11 @@ export default function Home() {
     }
   }, [voicePreset]);
 
-  const loadPrayers = async (
-    sid?: string | null,
-    scope: "session" | "all" = prayerScope,
-  ) => {
+  // The Prayer Journal is global across every visit, not scoped to one session —
+  // always fetch the full list for the user.
+  const loadPrayers = async () => {
     try {
-      const url =
-        scope === "all"
-          ? "/api/prayers?sessionId=all"
-          : sid
-            ? `/api/prayers?sessionId=${encodeURIComponent(sid)}`
-            : "/api/prayers";
-      const pRes = await fetch(url);
+      const pRes = await fetch("/api/prayers");
       if (pRes.ok) {
         const pData = await pRes.json();
         setPrayers(pData.prayers || []);
@@ -307,14 +299,8 @@ export default function Home() {
           }
         }
 
-        // 4. Load visit-scoped prayers strictly for the active session (empty for brand new session).
-        // No session is created here — a real session row is only written once the user sends a
-        // message or saves a prayer (see handleSendMessage / handleSavePrayer's lazy-create).
-        if (activeSessionId) {
-          await loadPrayers(activeSessionId, "session");
-        } else {
-          setPrayers([]);
-        }
+        // 4. Load the Prayer Journal — global across every visit, not scoped to a session.
+        await loadPrayers();
 
         // 5. Check if first-time onboarding should be displayed
         const hasOnboarded =
@@ -405,7 +391,7 @@ export default function Home() {
 
       // Refresh prayers if one was saved
       if (data.savedPrayerId) {
-        await loadPrayers(data.sessionId || sessionId, prayerScope);
+        await loadPrayers();
       }
 
       // If Voice Mode is active, speak the assistant's reply automatically
@@ -484,7 +470,7 @@ export default function Home() {
     }
   };
 
-  const handleSavePrayer = async (text: string): Promise<boolean> => {
+  const handleSavePrayer = async (text: string): Promise<string | null> => {
     try {
       const res = await fetch("/api/prayers", {
         method: "POST",
@@ -499,13 +485,13 @@ export default function Home() {
             localStorage.setItem("pastor_mike_session_id", data.sessionId);
           }
         }
-        await loadPrayers(data.sessionId || sessionId, prayerScope);
+        await loadPrayers();
         setHistoryRefreshTick((t) => t + 1);
-        return true;
+        return data.prayer?.id ?? null;
       }
-      return false;
+      return null;
     } catch {
-      return false;
+      return null;
     }
   };
 
@@ -575,6 +561,11 @@ export default function Home() {
     }
   };
 
+  // Lets a prayer be marked answered directly from its chat card, once the user confirms
+  // in conversation that it's been resolved, without opening the Prayer Journal modal.
+  const handleMarkPrayerAnswered = (prayerId: string) =>
+    handleTogglePrayerStatus(prayerId, "active");
+
   const handleNewSession = () => {
     speechClientRef.current?.stopSpeaking();
     speechClientRef.current?.stopListening();
@@ -584,8 +575,6 @@ export default function Home() {
       localStorage.removeItem("pastor_mike_session_id");
     }
     setMessages([]);
-    setPrayers([]);
-    setPrayerScope("session");
     setLatestSafety(null);
   };
 
@@ -630,10 +619,6 @@ export default function Home() {
           ),
         );
         setLatestSafety(null);
-
-        // Load prayers strictly for the switched visit
-        await loadPrayers(targetSessionId, "session");
-        setPrayerScope("session");
       }
     } catch (err) {
       console.error("Error switching session:", err);
@@ -782,6 +767,7 @@ export default function Home() {
                         onRestart={handleRestartSpeaking}
                         onStop={handleStopSpeaking}
                         onSavePrayer={handleSavePrayer}
+                        onMarkAnswered={handleMarkPrayerAnswered}
                         onDownload={handleDownloadAudio}
                         isSpeakingNow={isThisMsgActive}
                         isPausedNow={isThisMsgPaused}
@@ -851,11 +837,6 @@ export default function Home() {
           await handleSavePrayer(text);
         }}
         onDeletePrayer={handleDeletePrayer}
-        scope={prayerScope}
-        onToggleScope={(newScope) => {
-          setPrayerScope(newScope);
-          loadPrayers(sessionId, newScope);
-        }}
       />
 
       {/* Setup Guide & AI Settings Modal — full wizard for "guide", a single

@@ -6,10 +6,9 @@ import {
   BookOpen,
   CheckCircle,
   Clock,
-  Plus,
+  Send,
   Sparkles,
   Trash2,
-  Calendar,
 } from "lucide-react";
 import { PrayerRequest } from "@/lib/db";
 
@@ -23,9 +22,9 @@ interface PrayerJournalModalProps {
   ) => Promise<void>;
   onAddPrayer: (text: string) => Promise<void>;
   onDeletePrayer?: (prayerId: string) => Promise<void>;
-  scope?: "session" | "all";
-  onToggleScope?: (scope: "session" | "all") => void;
 }
+
+const MAX_PRAYER_LENGTH = 150;
 
 export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
   isOpen,
@@ -34,8 +33,6 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
   onToggleStatus,
   onAddPrayer,
   onDeletePrayer,
-  scope = "session",
-  onToggleScope,
 }) => {
   const [filter, setFilter] = useState<"all" | "active" | "answered">("all");
   const [newPrayerText, setNewPrayerText] = useState("");
@@ -50,7 +47,9 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
     return true;
   });
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleCreate = async (
+    e: React.FormEvent | React.KeyboardEvent,
+  ) => {
     e.preventDefault();
     if (!newPrayerText.trim() || isSubmitting) return;
     setIsSubmitting(true);
@@ -87,9 +86,7 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
                 Personal Prayer Journal
               </h2>
               <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
-                {scope === "session"
-                  ? "Petitions and answered prayers for this visit"
-                  : "All petitions across your visits, stored in SQLite"}
+                All petitions across your visits, stored in SQLite
               </p>
             </div>
           </div>
@@ -102,36 +99,8 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
           </button>
         </div>
 
-        {/* Scope and Filter Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/60 bg-slate-50/50 px-4 py-2 sm:px-5 sm:py-2.5 dark:border-slate-800/60 dark:bg-slate-950/30">
-          {/* Scope Selector: This Visit vs All Visits */}
-          {onToggleScope && (
-            <div className="flex rounded-lg bg-slate-200/60 p-0.5 text-xs font-medium dark:bg-slate-800">
-              <button
-                type="button"
-                onClick={() => onToggleScope("session")}
-                className={`rounded-md px-2.5 py-1 transition ${
-                  scope === "session"
-                    ? "bg-card text-slate-900 dark:bg-slate-700 dark:text-white"
-                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-                }`}
-              >
-                This Visit
-              </button>
-              <button
-                type="button"
-                onClick={() => onToggleScope("all")}
-                className={`rounded-md px-2.5 py-1 transition ${
-                  scope === "all"
-                    ? "bg-card text-slate-900 dark:bg-slate-700 dark:text-white"
-                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-                }`}
-              >
-                All Visits
-              </button>
-            </div>
-          )}
-
+        {/* Filter Bar */}
+        <div className="flex flex-wrap items-center justify-end gap-2 border-b border-slate-200/60 bg-slate-50/50 px-4 py-2 sm:px-5 sm:py-2.5 dark:border-slate-800/60 dark:bg-slate-950/30">
           {/* Status Filter Tabs */}
           <div className="flex items-center gap-1.5">
             {(["all", "active", "answered"] as const).map((tab) => (
@@ -163,14 +132,11 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
             <div className="flex flex-col items-center justify-center py-16 text-center text-slate-400">
               <Sparkles className="h-8 w-8 text-slate-300 dark:text-slate-600 mb-2" />
               <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                {scope === "session"
-                  ? "No prayers recorded in this visit yet"
-                  : "No prayers recorded in your journal yet"}
+                No prayers recorded in your journal yet
               </p>
               <p className="text-xs mt-1 max-w-sm text-slate-500 dark:text-slate-400">
-                {scope === "session"
-                  ? "Prayers shared with Pastor Mike or entered below will be preserved specifically for this conversation."
-                  : "Start by writing a petition below or asking Pastor Mike for prayer during your visit."}
+                Start by writing a petition below or asking Pastor Mike for
+                prayer during your visit.
               </p>
             </div>
           ) : (
@@ -256,27 +222,33 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
           onSubmit={handleCreate}
           className="border-t border-slate-200/80 bg-card p-3 sm:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:pb-4 dark:border-slate-800 dark:bg-slate-900"
         >
-          <div className="flex gap-2">
-            <input
-              type="text"
+          <div className="flex items-end gap-1.5 sm:gap-2 rounded-input border border-border bg-card p-1.5 sm:p-2 focus-within:border-[#5266eb] focus-within:ring-2 focus-within:ring-[#5266eb]/15">
+            <textarea
               value={newPrayerText}
               onChange={(e) => setNewPrayerText(e.target.value)}
-              placeholder={
-                scope === "session"
-                  ? "Add a new prayer for this visit..."
-                  : "Add a new prayer to your journal..."
-              }
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleCreate(e);
+                }
+              }}
+              placeholder="Add a new prayer to your journal..."
+              maxLength={MAX_PRAYER_LENGTH}
+              rows={1}
               disabled={isSubmitting}
-              className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-hidden dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+              className="max-h-24 flex-1 resize-none bg-transparent px-2 py-1.5 text-base sm:text-sm text-card-foreground placeholder:text-muted-foreground focus:outline-hidden"
             />
             <button
               type="submit"
               disabled={!newPrayerText.trim() || isSubmitting}
-              className="flex items-center gap-1 rounded-xl bg-[#5266eb] px-3.5 sm:px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#3f52c9] disabled:opacity-50 dark:bg-[#5266eb]"
+              title="Add prayer"
+              className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full bg-[#5266eb] text-white transition hover:bg-[#3f52c9] disabled:opacity-30 disabled:hover:bg-[#5266eb] cursor-pointer touch-manipulation active:scale-95"
             >
-              <Plus className="h-4 w-4" />
-              <span>Add</span>
+              <Send className="h-4 w-4" />
             </button>
+          </div>
+          <div className="mt-1.5 text-right text-[10px] text-slate-400 dark:text-slate-500">
+            {newPrayerText.length}/{MAX_PRAYER_LENGTH}
           </div>
         </form>
       </div>
