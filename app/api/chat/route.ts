@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
       safety: pastoralTurn.safety,
       savedPrayerId: pastoralTurn.savedPrayerId,
       usedModel: pastoralTurn.usedModel,
+      modelName: pastoralTurn.modelName,
     });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : "Internal server error";

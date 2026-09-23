@@ -20,6 +20,7 @@
     "test:stt-flow": "tsx scripts/test-stt-input-flow.ts",
     "test:standard-listening": "tsx scripts/test-standard-listening.ts",
     "test:onboarding": "tsx scripts/test-onboarding.ts",
+    "test:gemini-models": "tsx scripts/test-gemini-models-settings.ts",
     "test:e2e": "tsx scripts/test-e2e-demo.ts",
     "test": "tsx scripts/test-e2e-demo.ts"
   },

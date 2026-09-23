@@ -53,10 +53,24 @@ const CARE_TOPICS = [
   { id: "gratitude", label: "Gratitude & Joy" },
 ];
 
-const GEMINI_MODEL_OPTIONS = [
+const DEFAULT_GEMINI_MODELS = [
   "gemini-2.5-flash",
   "gemini-2.5-pro",
+  "gemini-2.5-flash-lite",
+  "gemini-flash-latest",
+  "gemini-pro-latest",
+  "gemini-flash-lite-latest",
+  "gemini-3.5-flash",
+  "gemini-3.5-flash-lite",
+  "gemini-3.6-flash",
+  "gemini-3.7-flash",
+  "gemini-3.8-flash",
+  "gemini-3-flash-preview",
+  "gemini-3.1-pro-preview",
+  "gemini-3.1-flash-lite-preview",
   "gemini-2.0-flash",
+  "gemma-4-26b-a4b-it",
+  "gemma-4-31b-it",
 ];
 
 export const OnboardingModal: React.FC<OnboardingModalProps> = ({
@@ -126,6 +140,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
     geminiModel: "gemini-2.5-flash",
     ollamaModel: "llama3.2",
   });
+  const [geminiModels, setGeminiModels] = useState<string[]>(DEFAULT_GEMINI_MODELS);
   const [providerAvailability, setProviderAvailability] = useState<{
     gemini: boolean;
     ollama: boolean;
@@ -193,6 +208,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
         const data = await res.json();
         if (data.settings) setProviderSettings(data.settings);
         if (data.availability) setProviderAvailability(data.availability);
+        if (Array.isArray(data.geminiModels) && data.geminiModels.length > 0) {
+          setGeminiModels(data.geminiModels);
+        }
       } catch {
         // Keep defaults
       }
@@ -930,7 +948,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 </button>
 
                 {providerSettings.provider === "gemini" && (
-                  <div className="ml-6 flex items-center gap-2">
+                  <div className="ml-6 flex items-center gap-2 flex-wrap">
                     <span className="text-[11px] text-slate-500 dark:text-slate-400">
                       Model:
                     </span>
@@ -942,14 +960,27 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                         })
                       }
                       disabled={isSavingSettings}
-                      className="rounded-lg border border-slate-200 bg-card px-2 py-1 text-[11px] text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                      aria-label="Default Gemini Model"
+                      className="rounded-lg border border-slate-200 bg-card px-2 py-1 text-[11px] font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-[#5266eb]"
                     >
-                      {GEMINI_MODEL_OPTIONS.map((m) => (
+                      {Array.from(
+                        new Set([
+                          ...(providerSettings.geminiModel
+                            ? [providerSettings.geminiModel]
+                            : []),
+                          ...geminiModels,
+                        ])
+                      ).map((m) => (
                         <option key={m} value={m}>
                           {m}
                         </option>
                       ))}
                     </select>
+                    {settingsSaved && (
+                      <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                        Default updated
+                      </span>
+                    )}
                   </div>
                 )}
 

@@ -375,6 +375,7 @@ export default function Home() {
           isProphecyRefusal: data.safety?.isProphecyRefusal,
           savedPrayerId: data.savedPrayerId,
           usedModel: data.usedModel,
+          modelName: data.modelName,
         },
         createdAt: new Date().toISOString(),
       };

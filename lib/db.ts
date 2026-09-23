@@ -421,19 +421,22 @@ export interface AiProviderSettings {
 }
 
 const PROVIDER_SETTINGS_KEY = "__ai_provider_settings";
-const DEFAULT_PROVIDER_SETTINGS: AiProviderSettings = {
-  provider: "gemini",
-  geminiModel: "gemini-2.5-flash",
-  ollamaModel: "llama3.2",
-};
+export function getDefaultProviderSettings(): AiProviderSettings {
+  return {
+    provider: "gemini",
+    geminiModel: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+    ollamaModel: process.env.OLLAMA_MODEL || "llama3.2",
+  };
+}
 
 export function getProviderSettings(userId: string): AiProviderSettings {
+  const defaults = getDefaultProviderSettings();
   const raw = loadMemory(userId, PROVIDER_SETTINGS_KEY);
-  if (!raw) return DEFAULT_PROVIDER_SETTINGS;
+  if (!raw) return defaults;
   try {
-    return { ...DEFAULT_PROVIDER_SETTINGS, ...JSON.parse(raw) };
+    return { ...defaults, ...JSON.parse(raw) };
   } catch {
-    return DEFAULT_PROVIDER_SETTINGS;
+    return defaults;
   }
 }
 

@@ -30,6 +30,7 @@ export interface MessageMetadata {
   isProphecyRefusal?: boolean;
   savedPrayerId?: string;
   usedModel?: string;
+  modelName?: string;
 }
 
 export interface ChatMessageProps {
@@ -118,7 +119,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             {metadata?.usedModel && (
               <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium text-accent-foreground border border-border">
                 {metadata.usedModel === "gemini"
-                  ? "Google Gemini"
+                  ? metadata.modelName
+                    ? `Google Gemini (${metadata.modelName})`
+                    : "Google Gemini"
                   : metadata.usedModel === "ollama"
                     ? "Local Ollama"
                     : "Offline Engine"}

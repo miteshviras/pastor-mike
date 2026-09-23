@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOrCreateDefaultUser, getProviderSettings, saveProviderSettings, AiProviderSettings } from "@/lib/db";
+import { listAvailableGeminiModels } from "@/lib/ai/gemini-models";
 
 // Quick reachability check so the settings UI can show whether Ollama will actually work
 async function isOllamaReachable(): Promise<boolean> {
@@ -17,7 +18,10 @@ async function isOllamaReachable(): Promise<boolean> {
 
 export async function GET() {
   const user = getOrCreateDefaultUser();
-  const [ollamaReachable] = await Promise.all([isOllamaReachable()]);
+  const [ollamaReachable, geminiModels] = await Promise.all([
+    isOllamaReachable(),
+    listAvailableGeminiModels(),
+  ]);
 
   return NextResponse.json({
     settings: getProviderSettings(user.id),
@@ -26,6 +30,7 @@ export async function GET() {
       ollama: ollamaReachable,
       offline: true,
     },
+    geminiModels,
   });
 }
 

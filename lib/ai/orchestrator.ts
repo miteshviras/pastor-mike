@@ -39,13 +39,14 @@ export interface PastoralResponse {
   safety: SafetyCheckResult;
   savedPrayerId?: string;
   usedModel: "gemini" | "ollama" | "local-offline-engine";
+  modelName?: string;
 }
 
 // Helper to query Google Gemini API if API key is provided
 async function tryGeminiChat(
   history: ChatTurn[],
   systemPrompt: string,
-  model = process.env.GEMINI_MODEL || "gemma-4-26b-a4b-it"
+  model = process.env.GEMINI_MODEL || "gemini-2.5-flash"
 ): Promise<string | null> {
   const apiKey =
     process.env.GEMINI_API_KEY ||
@@ -67,14 +68,14 @@ async function tryGeminiChat(
     // Try requested model first, then fallback to current modern Google models
     const candidates = Array.from(new Set([
       model,
-      "gemma-4-26b-a4b-it",
       "gemini-3.5-flash",
       "gemini-3.6-flash",
       "gemini-3.7-flash",
-      "gemini-flash-latest",
       "gemini-3.8-flash",
-      "gemma-4-31b-it",
-    ]));
+      "gemini-flash-latest",
+      "gemini-2.5-flash",
+      "gemini-2.5-pro",
+    ].filter(Boolean)));
 
     for (const candidate of candidates) {
       try {
@@ -323,11 +324,14 @@ ${contextLines.join(" ")}`;
     usedModel = "local-offline-engine";
   }
 
+  const modelName = usedModel === "gemini" ? providerSettings.geminiModel : undefined;
+
   // 9. Persist Assistant Response in SQLite
   saveMessage(sessionId, "assistant", replyText, {
     scriptures,
     prayer: activePrayer,
     usedModel,
+    modelName,
     savedPrayerId,
   });
 
@@ -351,5 +355,6 @@ ${contextLines.join(" ")}`;
     safety,
     savedPrayerId,
     usedModel,
+    modelName,
   };
 }
