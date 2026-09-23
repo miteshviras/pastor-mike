@@ -83,6 +83,21 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   const [isDownloadingTts, setIsDownloadingTts] = useState<boolean>(false);
   const [downloadSuccess, setDownloadSuccess] = useState<boolean>(false);
 
+  // STT Status & Model Downloader
+  const [sttStatus, setSttStatus] = useState<{
+    installed: boolean;
+    engine?: string;
+    has_local_model?: boolean;
+    has_ffmpeg?: boolean;
+    loading: boolean;
+  }>({
+    installed: false,
+    loading: true,
+  });
+  const [isDownloadingStt, setIsDownloadingStt] = useState<boolean>(false);
+  const [downloadSttSuccess, setDownloadSttSuccess] = useState<boolean>(false);
+  const [activeSttEngine, setActiveSttEngine] = useState<string | null>(null);
+
   // Audio Testing States
   const [isPlayingBlessing, setIsPlayingBlessing] = useState<boolean>(false);
   const [isTestingMic, setIsTestingMic] = useState<boolean>(false);
@@ -111,15 +126,18 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
   const testSpeechClientRef = useRef<PastoralSpeechClient | null>(null);
 
-  // Check KittenTTS status on mount or when opening
+  // Check KittenTTS and Moonshine STT status on mount or when opening
   useEffect(() => {
     if (!isOpen) return;
 
     async function checkStatus() {
       try {
-        const res = await fetch("/api/tts");
-        if (res.ok) {
-          const data = await res.json();
+        const [ttsRes, sttRes] = await Promise.allSettled([
+          fetch("/api/tts"),
+          fetch("/api/stt"),
+        ]);
+        if (ttsRes.status === "fulfilled" && ttsRes.value.ok) {
+          const data = await ttsRes.value.json();
           setTtsStatus({
             installed: Boolean(data.installed || data.has_local_model),
             engine: data.engine || "Browser-WebSpeechFallback",
@@ -129,8 +147,21 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
         } else {
           setTtsStatus({ installed: false, loading: false });
         }
+        if (sttRes.status === "fulfilled" && sttRes.value.ok) {
+          const data = await sttRes.value.json();
+          setSttStatus({
+            installed: Boolean(data.installed),
+            engine: data.engine || "Browser-WebSpeechFallback",
+            has_local_model: data.has_local_model,
+            has_ffmpeg: data.has_ffmpeg,
+            loading: false,
+          });
+        } else {
+          setSttStatus({ installed: false, loading: false });
+        }
       } catch {
         setTtsStatus({ installed: false, loading: false });
+        setSttStatus({ installed: false, loading: false });
       }
     }
     checkStatus();
@@ -231,6 +262,37 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
     }
   };
 
+  // 1-Click Download Moonshine STT Model
+  const handleDownloadStt = async () => {
+    setIsDownloadingStt(true);
+    try {
+      const res = await fetch("/api/stt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "download" }),
+      });
+      const data = await res.json();
+      if (
+        data.installed ||
+        data.download_status === "success" ||
+        data.has_local_model
+      ) {
+        setSttStatus({
+          installed: true,
+          engine: "Moonshine-STT",
+          has_local_model: true,
+          has_ffmpeg: true,
+          loading: false,
+        });
+        setDownloadSttSuccess(true);
+      }
+    } catch (err) {
+      console.error("STT download error:", err);
+    } finally {
+      setIsDownloadingStt(false);
+    }
+  };
+
   // Play Pastoral Blessing Test Audio
   const handlePlayBlessing = async () => {
     if (isPlayingBlessing) {
@@ -272,6 +334,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
       testSpeechClientRef.current = new PastoralSpeechClient({
         speed: testSpeed,
         onListeningStateChange: (listening) => setIsTestingMic(listening),
+        onEngineChange: (engine) => {
+          setActiveSttEngine(engine === "browser" ? "Browser Web Speech" : "Moonshine Local STT");
+        },
         onTranscriptionResult: (transcript, isFinal) => {
           setMicTranscript(transcript);
           if (transcript.trim().length > 0) {
@@ -288,6 +353,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
     } else {
       testSpeechClientRef.current.updateOptions({
         onListeningStateChange: (listening) => setIsTestingMic(listening),
+        onEngineChange: (engine) => {
+          setActiveSttEngine(engine === "browser" ? "Browser Web Speech" : "Moonshine Local STT");
+        },
         onTranscriptionResult: (transcript, isFinal) => {
           setMicTranscript(transcript);
           if (transcript.trim().length > 0) {
@@ -601,59 +669,108 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
                   {/* STT Microphone Test */}
                   <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-800/40">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-start justify-between gap-3">
                       <div>
-                        <h4 className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-                          Test Speech-to-Text (STT / Microphone)
-                        </h4>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                          Speak into your microphone to verify speech
-                          recognition
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-xs font-semibold text-slate-900 dark:text-slate-100">
+                            Speech-to-Text (Browser STT + Moonshine Fallback)
+                          </h4>
+                          {sttStatus.has_local_model ? (
+                            <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                              Moonshine Ready
+                            </span>
+                          ) : (
+                            <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                              Browser Primary
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+                          Prioritizes browser voice recognition; falls back to Moonshine STT if offline or unsupported.
                         </p>
                       </div>
 
-                      <button
-                        onClick={handleTestMic}
-                        className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-medium transition ${
-                          isTestingMic
-                            ? "animate-pulse bg-emerald-600 text-white"
-                            : micVerified
-                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                              : "border border-slate-300 bg-card text-slate-800 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-                        }`}
-                      >
-                        {isTestingMic ? (
-                          <>
-                            <Mic className="h-3.5 w-3.5 animate-bounce" />
-                            <span>Listening...</span>
-                          </>
-                        ) : micVerified ? (
-                          <>
-                            <Check className="h-3.5 w-3.5" />
-                            <span>Mic Verified</span>
-                          </>
-                        ) : (
-                          <>
-                            <Mic className="h-3.5 w-3.5" />
-                            <span>Test Microphone</span>
-                          </>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {!sttStatus.has_local_model && (
+                          <button
+                            onClick={handleDownloadStt}
+                            disabled={isDownloadingStt}
+                            className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-card px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                            title="Pre-download Moonshine ONNX model for offline speech recognition"
+                          >
+                            {isDownloadingStt ? (
+                              <>
+                                <Loader2 className="h-3.5 w-3.5 animate-spin text-[#5266eb]" />
+                                <span>Warming STT...</span>
+                              </>
+                            ) : downloadSttSuccess ? (
+                              <>
+                                <Check className="h-3.5 w-3.5 text-emerald-600" />
+                                <span>Ready</span>
+                              </>
+                            ) : (
+                              <>
+                                <Download className="h-3.5 w-3.5 text-[#5266eb]" />
+                                <span>Pre-warm STT</span>
+                              </>
+                            )}
+                          </button>
                         )}
-                      </button>
+
+                        <button
+                          onClick={handleTestMic}
+                          className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-medium transition ${
+                            isTestingMic
+                              ? "animate-pulse bg-emerald-600 text-white"
+                              : micVerified
+                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                                : "border border-slate-300 bg-card text-slate-800 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                          }`}
+                        >
+                          {isTestingMic ? (
+                            <>
+                              <Mic className="h-3.5 w-3.5 animate-bounce" />
+                              <span>Listening...</span>
+                            </>
+                          ) : micVerified ? (
+                            <>
+                              <Check className="h-3.5 w-3.5" />
+                              <span>Mic Verified</span>
+                            </>
+                          ) : (
+                            <>
+                              <Mic className="h-3.5 w-3.5" />
+                              <span>Test Microphone</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </div>
 
                     {isTestingMic && (
                       <p className="mt-2 text-xs italic text-slate-600 dark:text-slate-400">
-                        Speak now, e.g.: &ldquo;Hello Pastor Mike, thank you
-                        for listening.&rdquo;
+                        Speak now, e.g.: &ldquo;Hello Pastor Mike, thank you for listening.&rdquo;
+                        {activeSttEngine && (
+                          <span className="ml-2 font-medium text-[#5266eb] dark:text-[#9cb4e8]">
+                            ({activeSttEngine})
+                          </span>
+                        )}
                       </p>
                     )}
 
                     {micTranscript && (
                       <div className="mt-2.5 rounded-lg bg-card p-2.5 text-xs text-slate-800 dark:bg-slate-900 dark:text-slate-200">
-                        <span className="font-semibold text-slate-500">
-                          Heard:
-                        </span>{" "}
-                        &ldquo;{micTranscript}&rdquo;
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-slate-500">
+                            Heard:
+                          </span>
+                          {activeSttEngine && (
+                            <span className="text-[10px] text-slate-400">
+                              via {activeSttEngine}
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-1 font-medium">&ldquo;{micTranscript}&rdquo;</p>
                       </div>
                     )}
                   </div>

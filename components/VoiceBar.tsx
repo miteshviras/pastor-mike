@@ -1,13 +1,15 @@
 "use client";
 
 import React from "react";
-import { Mic, Volume2, X, Sliders, User } from "lucide-react";
+import { Mic, Volume2, X, Sliders, User, Play, Pause } from "lucide-react";
 import { KITTEN_VOICES } from "@/lib/voice/speech-client";
 
 interface VoiceBarProps {
   isVoiceMode: boolean;
   isListening: boolean;
   isSpeaking: boolean;
+  isPaused?: boolean;
+  onTogglePlayPause?: () => void;
   speed: number;
   onSpeedChange: (newSpeed: number) => void;
   voice: string;
@@ -19,6 +21,8 @@ export const VoiceBar: React.FC<VoiceBarProps> = ({
   isVoiceMode,
   isListening,
   isSpeaking,
+  isPaused = false,
+  onTogglePlayPause,
   speed,
   onSpeedChange,
   voice,
@@ -36,9 +40,21 @@ export const VoiceBar: React.FC<VoiceBarProps> = ({
         {/* State Status */}
         <div className="flex min-w-0 items-center gap-2.5">
           {isSpeaking ? (
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-              <Volume2 className="h-4 w-4 animate-pulse" />
-            </div>
+            <button
+              onClick={onTogglePlayPause}
+              title={isPaused ? "Resume speech" : "Pause speech"}
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition ${
+                isPaused
+                  ? "bg-amber-100 text-amber-800 hover:bg-amber-200"
+                  : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+              }`}
+            >
+              {isPaused ? (
+                <Play className="h-4 w-4 fill-current ml-0.5" />
+              ) : (
+                <Pause className="h-4 w-4 fill-current" />
+              )}
+            </button>
           ) : isListening ? (
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rose-500 text-white animate-pulse">
               <Mic className="h-4 w-4" />
@@ -52,14 +68,18 @@ export const VoiceBar: React.FC<VoiceBarProps> = ({
           <div className="min-w-0">
             <p className="truncate text-xs font-semibold text-card-foreground">
               {isSpeaking
-                ? "Pastor Mike is speaking..."
+                ? isPaused
+                  ? "Pastor Mike is paused"
+                  : "Pastor Mike is speaking..."
                 : isListening
                   ? "Listening... speak now"
                   : "Voice Mode Active"}
             </p>
             <p className="truncate text-[11px] text-muted-foreground">
               {isSpeaking
-                ? "Turn-taking: mic paused during speech"
+                ? isPaused
+                  ? "Tap to resume audio playback"
+                  : "Tap to pause audio playback"
                 : isListening
                   ? "Your audio is processed locally"
                   : "Tap microphone below to speak"}

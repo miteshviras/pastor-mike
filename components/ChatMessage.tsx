@@ -4,6 +4,10 @@ import React, { useState } from "react";
 import {
   Volume2,
   VolumeX,
+  Play,
+  Pause,
+  RotateCcw,
+  Square,
   BookMarked,
   BookmarkCheck,
   Heart,
@@ -35,8 +39,11 @@ export interface ChatMessageProps {
   metadata?: MessageMetadata | null;
   createdAt: string;
   onSpeak?: (text: string) => void;
+  onRestart?: (text: string) => void;
+  onStop?: () => void;
   onSavePrayer?: (text: string) => Promise<boolean>;
   isSpeakingNow?: boolean;
+  isPausedNow?: boolean;
 }
 
 export const ChatMessage: React.FC<ChatMessageProps> = ({
@@ -44,8 +51,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   content,
   metadata,
   onSpeak,
+  onRestart,
+  onStop,
   onSavePrayer,
   isSpeakingNow = false,
+  isPausedNow = false,
 }) => {
   const isUser = role === "user";
   const [copiedVerse, setCopiedVerse] = useState<string | null>(null);
@@ -117,27 +127,62 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           </div>
 
           {onSpeak && (
-            <button
-              onClick={() => onSpeak(content)}
-              title={isSpeakingNow ? "Stop speaking" : "Listen to Pastor Mike"}
-              className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition ${
-                isSpeakingNow
-                  ? "bg-emerald-100 text-emerald-800"
-                  : "text-muted-foreground hover:bg-accent"
-              }`}
-            >
-              {isSpeakingNow ? (
-                <>
-                  <VolumeX className="h-3.5 w-3.5 text-emerald-600 animate-pulse" />
-                  <span>Speaking...</span>
-                </>
-              ) : (
-                <>
-                  <Volume2 className="h-3.5 w-3.5" />
-                  <span>Listen</span>
-                </>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => onSpeak(content)}
+                title={
+                  isSpeakingNow && !isPausedNow
+                    ? "Pause speaking"
+                    : isSpeakingNow && isPausedNow
+                      ? "Resume speaking"
+                      : "Listen to Pastor Mike"
+                }
+                className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition ${
+                  isSpeakingNow && !isPausedNow
+                    ? "bg-amber-100 text-amber-900 hover:bg-amber-200 dark:bg-amber-950/70 dark:text-amber-200"
+                    : isSpeakingNow && isPausedNow
+                      ? "bg-emerald-600 text-white hover:bg-emerald-700 animate-pulse"
+                      : "text-muted-foreground hover:bg-accent"
+                }`}
+              >
+                {isSpeakingNow && !isPausedNow ? (
+                  <>
+                    <Pause className="h-3.5 w-3.5 fill-current" />
+                    <span>Pause</span>
+                  </>
+                ) : isSpeakingNow && isPausedNow ? (
+                  <>
+                    <Play className="h-3.5 w-3.5 fill-current" />
+                    <span>Resume</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-3.5 w-3.5 fill-current" />
+                    <span>Listen</span>
+                  </>
+                )}
+              </button>
+
+              {isSpeakingNow && onRestart && (
+                <button
+                  onClick={() => onRestart(content)}
+                  title="Restart from beginning"
+                  className="rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                </button>
               )}
-            </button>
+
+              {isSpeakingNow && onStop && (
+                <button
+                  onClick={onStop}
+                  title="Stop speaking"
+                  className="rounded-full p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition"
+                >
+                  <Square className="h-3.5 w-3.5 fill-current" />
+                </button>
+              )}
+            </div>
           )}
         </div>
 

@@ -12,7 +12,11 @@ services:
       # models/kittentts/ above, and where the actual neural model weights land. Without
       # it, every container recreate re-downloads the model from Hugging Face Hub.
       - hf-cache:/root/.cache/huggingface
+      # Named volume for Moonshine ONNX speech-to-text models cache so models persist
+      # across container restarts without re-downloading.
+      - moonshine-cache:/root/.cache/moonshine_voice
     restart: unless-stopped
 
 volumes:
   hf-cache:
+  moonshine-cache:

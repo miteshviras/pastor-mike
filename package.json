@@ -13,6 +13,11 @@
     "test:ai": "tsx scripts/test-ai.ts",
     "test:api": "tsx scripts/test-api.ts",
     "test:tts": "tsx scripts/test-tts.ts",
+    "test:tts-chunking": "tsx scripts/test-tts-chunking.ts",
+    "test:lyrics": "tsx scripts/test-lyrics-sync.ts",
+    "test:play-pause": "tsx scripts/test-play-pause.ts",
+    "test:stt": "tsx scripts/test-stt.ts",
+    "test:stt-flow": "tsx scripts/test-stt-input-flow.ts",
     "test:onboarding": "tsx scripts/test-onboarding.ts",
     "test:e2e": "tsx scripts/test-e2e-demo.ts",
     "test": "tsx scripts/test-e2e-demo.ts"

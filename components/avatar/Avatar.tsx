@@ -20,10 +20,9 @@ const AVATAR_URL = "/models/pastor-mike-head/scene.gltf";
 // "Wolf3D_Outfit_Footwear_74"-style name lives on the mesh's parent node, not the
 // mesh itself (which is just "Object_21"), so this checks ancestors too.
 const HIDDEN_MESH_PATTERN = /outfit_bottom|footwear/i;
-const CAMERA_FOV_DEGREES = 32;
-// Extra breathing room beyond a tight bounding-sphere fit, so the portrait doesn't crop
-// right at the model's edges.
-const FIT_MARGIN = 1.35;
+const CAMERA_FOV_DEGREES = 28;
+// Tighter portrait fit so the head and face fill the frame with lifelike human presence
+const FIT_MARGIN = 0.98;
 
 function matchesSelfOrAncestor(node: THREE.Object3D, pattern: RegExp): boolean {
   let current: THREE.Object3D | null = node;

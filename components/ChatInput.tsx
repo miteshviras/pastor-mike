@@ -4,6 +4,8 @@ import React, { useState, useRef, useEffect } from "react";
 import { Send, Mic, MicOff, Sparkles } from "lucide-react";
 
 interface ChatInputProps {
+  value?: string;
+  onChange?: (val: string) => void;
   onSendMessage: (message: string) => void;
   isLoading: boolean;
   isListening: boolean;
@@ -21,6 +23,8 @@ const STARTER_PROMPTS = [
 ];
 
 export const ChatInput: React.FC<ChatInputProps> = ({
+  value,
+  onChange,
   onSendMessage,
   isLoading,
   isListening,
@@ -29,7 +33,16 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   showStarterPills = false,
   micError,
 }) => {
-  const [input, setInput] = useState("");
+  const [internalInput, setInternalInput] = useState("");
+  const isControlled = value !== undefined;
+  const input = isControlled ? value : internalInput;
+  const setInput = (val: string) => {
+    if (isControlled) {
+      onChange?.(val);
+    } else {
+      setInternalInput(val);
+    }
+  };
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSend = () => {
@@ -128,7 +141,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             onKeyDown={handleKeyDown}
             placeholder={
               isListening
-                ? "Listening... speak now..."
+                ? "Listening... speak, pause to transcribe..."
                 : "Share your thoughts or prayer request..."
             }
             disabled={isLoading}

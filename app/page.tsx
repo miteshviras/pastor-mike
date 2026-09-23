@@ -66,6 +66,12 @@ export default function Home() {
   );
   const [micError, setMicError] = useState<string | null>(null);
   const [providerLabel, setProviderLabel] = useState<string>("Gemini");
+  const [inputText, setInputText] = useState("");
+  const [isSpeakingPaused, setIsSpeakingPaused] = useState(false);
+  const [speakingText, setSpeakingText] = useState("");
+  const inputTextRef = useRef(inputText);
+  inputTextRef.current = inputText;
+  const baseInputRef = useRef("");
 
   const speechClientRef = useRef<PastoralSpeechClient | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -74,6 +80,8 @@ export default function Home() {
   // Pastor Stage's current-turn view (Live Pastor mode).
   const lastAssistantMessage = [...messages].reverse().find((m) => m.role === "assistant");
   const sentenceSync = useSentenceSync(lastAssistantMessage?.content ?? "", isSpeaking);
+  const sentenceSyncRef = useRef(sentenceSync);
+  sentenceSyncRef.current = sentenceSync;
 
   // Initialize Speech Client
   useEffect(() => {
@@ -83,17 +91,32 @@ export default function Home() {
         voicePreset,
         onListeningStateChange: (listening) => {
           setIsListening(listening);
-          if (listening) setMicError(null);
-        },
-        onSpeakingStateChange: (speaking) => setIsSpeaking(speaking),
-        onTranscriptionResult: (transcript, isFinal) => {
-          if (isFinal && transcript.trim()) {
-            handleSendMessage(transcript.trim());
+          if (listening) {
+            setMicError(null);
+            baseInputRef.current = inputTextRef.current.trim();
           }
+        },
+        onSpeakingStateChange: (speaking, paused) => {
+          setIsSpeaking(speaking);
+          setIsSpeakingPaused(Boolean(paused));
+          if (!speaking) {
+            setSpeakingText("");
+          }
+        },
+        onSpeakingChunkChange: (chunkIndex) => {
+          sentenceSyncRef.current.setCurrentChunkIndex(chunkIndex);
+        },
+        onTranscriptionResult: (transcript) => {
+          if (!transcript || !transcript.trim()) return;
+          // Always display transcribed speech in the input box!
+          // NEVER automatically send for chat.
+          const base = baseInputRef.current;
+          const newText = base ? `${base} ${transcript.trim()}` : transcript.trim();
+          setInputText(newText);
         },
         onError: (err) => setMicError(err),
         onAudioElement: (audio) => {
-          sentenceSync.setAudioElement(audio);
+          sentenceSyncRef.current.setAudioElement(audio);
           attachAudioLevelAnalyser(audio);
         },
       });
@@ -302,6 +325,15 @@ export default function Home() {
   const handleSendMessage = async (text: string) => {
     if (!text.trim() || isLoading) return;
 
+    // Reset input box and session base
+    setInputText("");
+    baseInputRef.current = "";
+
+    // Stop listening if active
+    if (isListening) {
+      speechClientRef.current?.stopListening();
+    }
+
     // Optimistically add user message
     const tempUserMsg: ChatMessageProps = {
       id: "temp_" + Date.now(),
@@ -365,6 +397,7 @@ export default function Home() {
         const speechText = data.prayer
           ? `${data.reply} Let us pray together. ${data.prayer.text}`
           : data.reply;
+        setSpeakingText(speechText);
         speechClientRef.current.speakText(speechText);
       }
     } catch (err) {
@@ -382,13 +415,23 @@ export default function Home() {
     }
   };
 
-  const handleSpeak = (text: string) => {
+  const handleTogglePlayPause = (text: string) => {
     if (speechClientRef.current) {
-      if (isSpeaking) {
-        speechClientRef.current.stopSpeaking();
-      } else {
-        speechClientRef.current.speakText(text);
-      }
+      setSpeakingText(text);
+      speechClientRef.current.togglePlayPause(text);
+    }
+  };
+
+  const handleRestartSpeaking = (text: string) => {
+    if (speechClientRef.current) {
+      setSpeakingText(text);
+      speechClientRef.current.restartSpeaking(text);
+    }
+  };
+
+  const handleStopSpeaking = () => {
+    if (speechClientRef.current) {
+      speechClientRef.current.stopSpeaking();
     }
   };
 
@@ -616,7 +659,10 @@ export default function Home() {
                   currentSentenceIndex={sentenceSync.currentSentenceIndex}
                   isLoading={isLoading}
                   isSpeaking={isSpeaking}
-                  onSpeak={handleSpeak}
+                  isPaused={isSpeakingPaused}
+                  onTogglePlayPause={handleTogglePlayPause}
+                  onRestart={handleRestartSpeaking}
+                  onStop={handleStopSpeaking}
                 />
               </motion.div>
             ) : (
@@ -658,15 +704,22 @@ export default function Home() {
 
                 {/* Conversation Transcript */}
                 <div className={messages.length > 0 ? "flex-1 space-y-2" : "space-y-2"}>
-                  {messages.map((msg) => (
-                    <ChatMessage
-                      key={msg.id}
-                      {...msg}
-                      onSpeak={handleSpeak}
-                      onSavePrayer={handleSavePrayer}
-                      isSpeakingNow={isSpeaking}
-                    />
-                  ))}
+                  {messages.map((msg) => {
+                    const isThisMsgActive = isSpeaking && speakingText === msg.content;
+                    const isThisMsgPaused = isThisMsgActive && isSpeakingPaused;
+                    return (
+                      <ChatMessage
+                        key={msg.id}
+                        {...msg}
+                        onSpeak={handleTogglePlayPause}
+                        onRestart={handleRestartSpeaking}
+                        onStop={handleStopSpeaking}
+                        onSavePrayer={handleSavePrayer}
+                        isSpeakingNow={isThisMsgActive}
+                        isPausedNow={isThisMsgPaused}
+                      />
+                    );
+                  })}
 
                   {/* Typing/Thinking State */}
                   {isLoading && (
@@ -690,6 +743,12 @@ export default function Home() {
               isVoiceMode={isVoiceMode}
               isListening={isListening}
               isSpeaking={isSpeaking}
+              isPaused={isSpeakingPaused}
+              onTogglePlayPause={() => {
+                if (lastAssistantMessage?.content) {
+                  handleTogglePlayPause(lastAssistantMessage.content);
+                }
+              }}
               speed={speechSpeed}
               onSpeedChange={setSpeechSpeed}
               voice={voicePreset}
@@ -698,6 +757,8 @@ export default function Home() {
             />
 
             <ChatInput
+              value={inputText}
+              onChange={setInputText}
               onSendMessage={handleSendMessage}
               isLoading={isLoading}
               isListening={isListening}

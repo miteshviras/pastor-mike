@@ -42,7 +42,7 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/server ./server
 
-RUN mkdir -p /app/data /app/models/kittentts
+RUN mkdir -p /app/data /app/models/kittentts /root/.cache/huggingface /root/.cache/moonshine_voice
 
 EXPOSE 3000
 CMD ["node", "server.js"]
