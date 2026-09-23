@@ -1,6 +1,6 @@
 "use client";
 
-import React, { forwardRef, useImperativeHandle, useMemo, useRef } from "react";
+import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { clone as cloneSkeleton } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { useFrame } from "@react-three/fiber";
@@ -8,6 +8,7 @@ import { useGLTF, PerspectiveCamera } from "@react-three/drei";
 import { LipSyncController } from "./LipSyncController";
 import { BlinkController } from "./BlinkController";
 import { IdleController, AvatarMood } from "./IdleController";
+import { GazeController } from "./GazeController";
 import { getAudioLevel, isAudioLevelAvailable } from "@/lib/voice/audioLevel";
 
 // Silence Three.js r183+ deprecation warning for THREE.Clock used internally by @react-three/fiber
@@ -84,8 +85,10 @@ function logMorphTargets(root: THREE.Object3D) {
   );
 }
 
-export const Avatar = forwardRef<AvatarHandle, { onModelError?: (err: unknown) => void }>(
-  function Avatar(_props, ref) {
+export const Avatar = forwardRef<
+  AvatarHandle,
+  { onModelError?: (err: unknown) => void; isPraying?: boolean }
+>(function Avatar({ isPraying = false }, ref) {
     const { scene, animations } = useGLTF(AVATAR_URL);
 
     // Clone per-instance so multiple mounts (or hot reloads) never mutate the cached
@@ -132,8 +135,27 @@ export const Avatar = forwardRef<AvatarHandle, { onModelError?: (err: unknown) =
     const lipSync = useMemo(() => new LipSyncController(root), [root]);
     const blink = useMemo(() => new BlinkController(root), [root]);
     const idle = useMemo(() => new IdleController(root), [root]);
+    const gaze = useMemo(() => new GazeController(root), [root]);
     const mixer = useMemo(() => new THREE.AnimationMixer(root), [root]);
     const currentAction = useRef<THREE.AnimationAction | null>(null);
+
+    // Plain ref, not state — updated on every pointermove without triggering a re-render;
+    // read once per frame in useFrame below.
+    const mouseRef = useRef({ x: 0, y: 0 });
+
+    useEffect(() => {
+      function handlePointerMove(e: PointerEvent) {
+        mouseRef.current.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouseRef.current.y = (e.clientY / window.innerHeight) * 2 - 1;
+      }
+      window.addEventListener("pointermove", handlePointerMove);
+      return () => window.removeEventListener("pointermove", handlePointerMove);
+    }, []);
+
+    useEffect(() => {
+      blink.setForcedClosed(isPraying);
+      idle.setPraying(isPraying);
+    }, [isPraying, blink, idle]);
 
     useImperativeHandle(
       ref,
@@ -168,6 +190,8 @@ export const Avatar = forwardRef<AvatarHandle, { onModelError?: (err: unknown) =
     useFrame((_state, delta) => {
       idle.update(delta);
       blink.update(delta);
+      gaze.setTarget(mouseRef.current.x, mouseRef.current.y);
+      gaze.update(delta);
       lipSync.setExternalLevel(isAudioLevelAvailable() ? getAudioLevel() : null);
       lipSync.update(delta);
       mixer.update(delta);

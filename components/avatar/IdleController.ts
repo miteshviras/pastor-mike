@@ -6,6 +6,7 @@ const NOD_MAX_X_DEG = 2;
 const NOD_MAX_Y_DEG = 1;
 const NOD_SPEED = 1.6;
 const LOOK_DOWN_DEG = 6; // subtle "thinking" head-down tilt
+const PRAYER_BOW_DEG = 10; // deeper, still bow while praying
 
 export type AvatarMood = "idle" | "thinking" | "talking";
 
@@ -16,6 +17,7 @@ export class IdleController {
   private chestBaseScale: THREE.Vector3 | null = null;
 
   private mood: AvatarMood = "idle";
+  private praying = false;
   private clock = 0;
 
   private scratchEuler = new THREE.Euler();
@@ -40,6 +42,12 @@ export class IdleController {
     this.mood = mood;
   }
 
+  // Reactive boolean, not folded into AvatarMood — praying is driven by a prop that tracks
+  // TTS playback position, not an imperative command like speak()/stop().
+  setPraying(praying: boolean) {
+    this.praying = praying;
+  }
+
   update(delta: number) {
     this.clock += delta;
 
@@ -58,7 +66,9 @@ export class IdleController {
     let pitchDeg = 0;
     let yawDeg = 0;
 
-    if (this.mood === "thinking") {
+    if (this.praying) {
+      pitchDeg = PRAYER_BOW_DEG;
+    } else if (this.mood === "thinking") {
       pitchDeg = LOOK_DOWN_DEG;
     } else if (this.mood === "talking") {
       pitchDeg = Math.sin(this.clock * NOD_SPEED) * NOD_MAX_X_DEG;

@@ -74,9 +74,13 @@ export default function Home() {
   const [inputText, setInputText] = useState("");
   const [isSpeakingPaused, setIsSpeakingPaused] = useState(false);
   const [speakingText, setSpeakingText] = useState("");
+  const [isPraying, setIsPraying] = useState(false);
   const inputTextRef = useRef(inputText);
   inputTextRef.current = inputText;
   const baseInputRef = useRef("");
+  // Holds the current reply's prayer text (if any) for the duration of its TTS playback,
+  // so onSpeakingChunkChange can tell whether the chunk it's on belongs to the prayer.
+  const currentPrayerTextRef = useRef<string | null>(null);
 
   const speechClientRef = useRef<PastoralSpeechClient | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -109,10 +113,14 @@ export default function Home() {
           setIsSpeakingPaused(Boolean(paused));
           if (!speaking) {
             setSpeakingText("");
+            currentPrayerTextRef.current = null;
+            setIsPraying(false);
           }
         },
-        onSpeakingChunkChange: (chunkIndex) => {
+        onSpeakingChunkChange: (chunkIndex, _totalChunks, chunkText) => {
           sentenceSyncRef.current.setCurrentChunkIndex(chunkIndex);
+          const prayerText = currentPrayerTextRef.current;
+          setIsPraying(Boolean(prayerText && chunkText && prayerText.includes(chunkText.trim())));
         },
         onTranscriptionResult: (transcript) => {
           if (!transcript || !transcript.trim()) return;
@@ -393,6 +401,7 @@ export default function Home() {
         const speechText = data.prayer
           ? `${data.reply} Let us pray together. ${data.prayer.text}`
           : data.reply;
+        currentPrayerTextRef.current = data.prayer ? data.prayer.text : null;
         setSpeakingText(speechText);
         speechClientRef.current.speakText(speechText);
       }
@@ -688,6 +697,7 @@ export default function Home() {
                   isLoading={isLoading}
                   isSpeaking={isSpeaking}
                   isPaused={isSpeakingPaused}
+                  isPraying={isPraying}
                   onTogglePlayPause={handleTogglePlayPause}
                   onRestart={handleRestartSpeaking}
                   onStop={handleStopSpeaking}

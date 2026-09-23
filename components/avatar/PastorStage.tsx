@@ -38,6 +38,7 @@ interface PastorStageProps {
   isLoading: boolean;
   isSpeaking: boolean;
   isPaused?: boolean;
+  isPraying?: boolean;
   onSpeak?: (text: string) => void;
   onTogglePlayPause: (text: string) => void;
   onRestart?: (text: string) => void;
@@ -98,6 +99,7 @@ export default function PastorStage({
   isLoading,
   isSpeaking,
   isPaused = false,
+  isPraying = false,
   onTogglePlayPause,
   onRestart,
   onStop,
@@ -155,7 +157,7 @@ export default function PastorStage({
           >
             <Suspense fallback={<PlaceholderAvatar />}>
               <AvatarErrorBoundary>
-                <Avatar ref={avatarRef} />
+                <Avatar ref={avatarRef} isPraying={isPraying} />
               </AvatarErrorBoundary>
             </Suspense>
           </Canvas>

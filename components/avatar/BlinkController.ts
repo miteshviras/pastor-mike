@@ -23,6 +23,7 @@ export class BlinkController {
   private clock = 0;
   private nextBlinkAt = 0;
   private blinkEndsAt = -1;
+  private forcedClosed = false;
 
   // Reused scratch objects — never allocated per frame.
   private scratchEuler = new THREE.Euler();
@@ -59,15 +60,28 @@ export class BlinkController {
     this.nextBlinkAt = this.clock + interval;
   }
 
+  // Holds the eyes shut for as long as `closed` is true (e.g. while praying), overriding
+  // the normal timed-blink cadence. Releasing it reschedules a fresh blink interval so the
+  // eyes don't instantly re-blink the moment it's lifted.
+  setForcedClosed(closed: boolean) {
+    if (closed === this.forcedClosed) return;
+    this.forcedClosed = closed;
+    if (!closed) {
+      this.blinkEndsAt = -1;
+      this.scheduleNextBlink();
+    }
+  }
+
   update(delta: number) {
     if (this.mode === "none") return;
     this.clock += delta;
 
-    if (this.blinkEndsAt < 0 && this.clock >= this.nextBlinkAt) {
+    if (!this.forcedClosed && this.blinkEndsAt < 0 && this.clock >= this.nextBlinkAt) {
       this.blinkEndsAt = this.clock + BLINK_DURATION;
     }
 
-    const closed = this.blinkEndsAt >= 0 && this.clock < this.blinkEndsAt;
+    const timedClosed = this.blinkEndsAt >= 0 && this.clock < this.blinkEndsAt;
+    const closed = this.forcedClosed || timedClosed;
 
     if (this.blinkEndsAt >= 0 && this.clock >= this.blinkEndsAt) {
       this.blinkEndsAt = -1;
