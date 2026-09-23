@@ -220,6 +220,10 @@ export function listSessionsWithStats(userId: string): SessionWithStats[] {
       (SELECT created_at FROM messages WHERE session_id = s.id ORDER BY created_at DESC LIMIT 1) as lastMessageAt
     FROM sessions s
     WHERE s.user_id = ?
+      AND (
+        (SELECT COUNT(*) FROM messages WHERE session_id = s.id) > 0
+        OR (SELECT COUNT(*) FROM prayer_requests WHERE session_id = s.id) > 0
+      )
     ORDER BY COALESCE((SELECT created_at FROM messages WHERE session_id = s.id ORDER BY created_at DESC LIMIT 1), s.started_at) DESC
   `).all(userId) as unknown as SessionWithStats[];
 }

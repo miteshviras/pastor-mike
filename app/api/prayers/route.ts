@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   getOrCreateDefaultUser,
+  getSession,
+  createSession,
   listPrayerRequests,
   savePrayerRequest,
   updatePrayerStatus,
@@ -22,15 +24,21 @@ export async function GET(req?: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { text, sessionId } = body;
+    const { text, sessionId: incomingSessionId } = body;
 
     if (!text || typeof text !== "string" || !text.trim()) {
       return NextResponse.json({ error: "Prayer text is required" }, { status: 400 });
     }
 
     const user = getOrCreateDefaultUser();
-    const prayer = savePrayerRequest(user.id, text.trim(), sessionId || null);
-    return NextResponse.json({ prayer });
+    let sessionId = incomingSessionId;
+    if (!sessionId || !getSession(sessionId)) {
+      const newSession = createSession(user.id);
+      sessionId = newSession.id;
+    }
+
+    const prayer = savePrayerRequest(user.id, text.trim(), sessionId);
+    return NextResponse.json({ prayer, sessionId });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : "Internal server error";
     return NextResponse.json({ error: errorMsg }, { status: 500 });

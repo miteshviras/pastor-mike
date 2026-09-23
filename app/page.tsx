@@ -283,30 +283,16 @@ export default function Home() {
           }
         }
 
-        // 4. Create new session only if no sessions exist at all
-        if (!activeSessionId) {
-          const createRes = await fetch("/api/sessions", { method: "POST" });
-          if (createRes.ok) {
-            const createData = await createRes.json();
-            activeSessionId = createData.session.id;
-            setSessionId(createData.session.id);
-            if (typeof window !== "undefined") {
-              localStorage.setItem(
-                "pastor_mike_session_id",
-                createData.session.id,
-              );
-            }
-          }
-        }
-
-        // 5. Load visit-scoped prayers strictly for the active session (empty for brand new session)
+        // 4. Load visit-scoped prayers strictly for the active session (empty for brand new session).
+        // No session is created here — a real session row is only written once the user sends a
+        // message or saves a prayer (see handleSendMessage / handleSavePrayer's lazy-create).
         if (activeSessionId) {
           await loadPrayers(activeSessionId, "session");
         } else {
           setPrayers([]);
         }
 
-        // 6. Check if first-time onboarding should be displayed
+        // 5. Check if first-time onboarding should be displayed
         const hasOnboarded =
           typeof window !== "undefined"
             ? localStorage.getItem("pastor_mike_onboarded") === "true"
@@ -465,7 +451,14 @@ export default function Home() {
         body: JSON.stringify({ text, sessionId }),
       });
       if (res.ok) {
-        await loadPrayers(sessionId, prayerScope);
+        const data = await res.json();
+        if (data.sessionId && data.sessionId !== sessionId) {
+          setSessionId(data.sessionId);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("pastor_mike_session_id", data.sessionId);
+          }
+        }
+        await loadPrayers(data.sessionId || sessionId, prayerScope);
         return true;
       }
       return false;
@@ -511,25 +504,18 @@ export default function Home() {
     }
   };
 
-  const handleNewSession = async () => {
-    try {
-      speechClientRef.current?.stopSpeaking();
-      speechClientRef.current?.stopListening();
-      const res = await fetch("/api/sessions", { method: "POST" });
-      if (res.ok) {
-        const data = await res.json();
-        setSessionId(data.session.id);
-        if (typeof window !== "undefined") {
-          localStorage.setItem("pastor_mike_session_id", data.session.id);
-        }
-        setMessages([]);
-        setPrayers([]);
-        setPrayerScope("session");
-        setLatestSafety(null);
-      }
-    } catch (err) {
-      console.error("Error creating new session:", err);
+  const handleNewSession = () => {
+    speechClientRef.current?.stopSpeaking();
+    speechClientRef.current?.stopListening();
+    // No session row is created here — lazily created on the first message or prayer save.
+    setSessionId(null);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("pastor_mike_session_id");
     }
+    setMessages([]);
+    setPrayers([]);
+    setPrayerScope("session");
+    setLatestSafety(null);
   };
 
   const handleSwitchSession = async (targetSessionId: string) => {
