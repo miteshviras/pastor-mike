@@ -57,13 +57,13 @@ export const VoiceBar: React.FC<VoiceBarProps> = ({
                 <Pause className="h-4 w-4 fill-current" />
               )}
             </button>
-          ) : isTranscribing ? (
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-amber-500">
-              <Loader2 className="h-4 w-4 animate-spin" />
-            </div>
           ) : isListening ? (
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rose-500 text-white animate-pulse">
               <Mic className="h-4 w-4" />
+            </div>
+          ) : isTranscribing ? (
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-amber-500">
+              <Loader2 className="h-4 w-4 animate-spin" />
             </div>
           ) : (
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground">
@@ -77,10 +77,12 @@ export const VoiceBar: React.FC<VoiceBarProps> = ({
                 ? isPaused
                   ? "Pastor Mike is paused"
                   : "Pastor Mike is speaking..."
-                : isTranscribing
-                  ? "Transcribing your words..."
-                  : isListening
-                    ? "Listening... speak now"
+                : isListening
+                  ? isTranscribing
+                    ? "Transcribing in background..."
+                    : "Listening... speak now"
+                  : isTranscribing
+                    ? "Transcribing your words..."
                     : "Voice Mode Active"}
             </p>
             <p className="truncate text-[11px] text-muted-foreground">
@@ -88,10 +90,10 @@ export const VoiceBar: React.FC<VoiceBarProps> = ({
                 ? isPaused
                   ? "Tap to resume audio playback"
                   : "Tap to pause audio playback"
-                : isTranscribing
-                  ? "Converting speech to text"
-                  : isListening
-                    ? "Pause speaking when finished"
+                : isListening
+                  ? "Tap microphone below when finished"
+                  : isTranscribing
+                    ? "Converting speech to text"
                     : "Tap microphone below to speak"}
             </p>
           </div>

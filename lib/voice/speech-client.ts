@@ -178,6 +178,8 @@ export class PastoralSpeechClient {
   private browserRecognitionFailed = false;
   private isFallingBackToMoonshine = false;
   private isStoppingListening = false;
+  private inFlightTranscription: Promise<void> | null = null;
+  private transcriptionTaskId = 0;
 
   constructor(options: SpeechClientOptions = {}) {
     this.options = {
@@ -224,9 +226,9 @@ export class PastoralSpeechClient {
 
       if (SpeechRecClass) {
         const rec = new SpeechRecClass();
-        // Standard single-utterance listening (like Google Search and ChatGPT)
-        // Automatically endpoint-detects when the speaker finishes talking and triggers onend.
-        rec.continuous = false;
+        // Continuous listening: keeps listening and transcribing phrases on each pause
+        // until the user explicitly clicks the microphone button to stop!
+        rec.continuous = true;
         rec.interimResults = true;
         rec.lang = "en-US";
 
@@ -243,6 +245,13 @@ export class PastoralSpeechClient {
             this.isFallingBackToMoonshine = false;
             return;
           }
+          // If the user hasn't clicked stop yet, keep listening seamlessly
+          if (this.isListening && this.activeListeningMode === "browser") {
+            try {
+              this.recognition?.start();
+              return;
+            } catch {}
+          }
           this.isListening = false;
           this.activeListeningMode = null;
           this.options.onListeningStateChange?.(false);
@@ -250,9 +259,7 @@ export class PastoralSpeechClient {
 
         rec.onerror = (e) => {
           if (e.error === "no-speech") {
-            this.isListening = false;
-            this.activeListeningMode = null;
-            this.options.onListeningStateChange?.(false);
+            // In continuous listening, silence between sentences is normal. Do not abort listening.
             return;
           }
 
@@ -389,18 +396,19 @@ export class PastoralSpeechClient {
         this.vadAudioContext = null;
       }
 
-      if (this.mediaRecorder && this.mediaRecorder.state !== "inactive") {
-        const recorder = this.mediaRecorder;
-        const stream = this.mediaStream;
-        const pendingChunks = [...this.audioChunks];
-        this.mediaRecorder = null;
-        this.mediaStream = null;
-        this.audioChunks = [];
+      const recorder = this.mediaRecorder;
+      const stream = this.mediaStream;
+      const pendingChunks = [...this.audioChunks];
+      this.mediaRecorder = null;
+      this.mediaStream = null;
+      this.audioChunks = [];
 
-        this.options.onTranscribingChange?.(true);
+      this.options.onTranscribingChange?.(true);
 
-        // Asynchronously await recorder.onstop to ensure the final audio buffer is completely flushed
-        const blob = await new Promise<Blob | null>((resolve) => {
+      // Asynchronously await recorder.onstop to ensure the final audio buffer is completely flushed
+      let blob: Blob | null = null;
+      if (recorder && recorder.state !== "inactive") {
+        blob = await new Promise<Blob | null>((resolve) => {
           const collected = [...pendingChunks];
           recorder.ondataavailable = (e) => {
             if (e.data && e.data.size > 0) collected.push(e.data);
@@ -416,39 +424,44 @@ export class PastoralSpeechClient {
             resolve(null);
           }
         });
-
-        // Safely stop audio stream tracks only after recorder has completely flushed
-        stream?.getTracks().forEach((t) => t.stop());
-
-        if (blob && blob.size >= 400) {
-          try {
-            const res = await fetch("/api/stt", {
-              method: "POST",
-              headers: { "Content-Type": blob.type || "audio/webm" },
-              body: blob,
-            });
-            if (res.ok) {
-              const data = await res.json();
-              const transcribed = data.text?.trim();
-              if (transcribed) {
-                this.options.onTranscriptionResult?.(transcribed, true);
-              }
-            } else {
-              console.warn("[SpeechClient] /api/stt error on stop:", res.status);
-            }
-          } catch (err) {
-            console.warn("[SpeechClient] Stop transcription failed:", err);
-          } finally {
-            this.options.onTranscribingChange?.(false);
-          }
-        } else {
-          this.options.onTranscribingChange?.(false);
-        }
-      } else if (this.mediaStream) {
-        this.mediaStream.getTracks().forEach((t) => t.stop());
-        this.mediaStream = null;
-        this.audioChunks = [];
       }
+
+      // Safely stop audio stream tracks only after recorder has completely flushed
+      stream?.getTracks().forEach((t) => t.stop());
+
+      // Await any in-flight pause background transcription before finalizing
+      if (this.inFlightTranscription) {
+        try {
+          await this.inFlightTranscription;
+        } catch {}
+        this.inFlightTranscription = null;
+      }
+
+      if (blob && blob.size >= 400) {
+        try {
+          const res = await fetch("/api/stt", {
+            method: "POST",
+            headers: { "Content-Type": blob.type || "audio/webm" },
+            body: blob,
+          });
+          if (res.ok) {
+            const data = await res.json();
+            const transcribed = data.text?.trim();
+            if (transcribed) {
+              this.accumulatedMoonshineText = this.accumulatedMoonshineText
+                ? `${this.accumulatedMoonshineText} ${transcribed}`
+                : transcribed;
+              this.options.onTranscriptionResult?.(this.accumulatedMoonshineText, true);
+            }
+          } else {
+            console.warn("[SpeechClient] /api/stt error on stop:", res.status);
+          }
+        } catch (err) {
+          console.warn("[SpeechClient] Stop transcription failed:", err);
+        }
+      }
+
+      this.options.onTranscribingChange?.(false);
     }
 
     this.isStoppingListening = false;
@@ -486,6 +499,99 @@ export class PastoralSpeechClient {
     };
 
     recorder.start(100);
+  }
+
+  private async handleMoonshinePause(): Promise<void> {
+    if (!this.isListening || this.activeListeningMode !== "moonshine" || !this.mediaRecorder || !this.mediaStream) {
+      return;
+    }
+
+    const oldRecorder = this.mediaRecorder;
+    const oldChunks = [...this.audioChunks];
+    this.audioChunks = [];
+
+    // Immediately start recording into a new MediaRecorder on the same stream
+    // so not even 1ms of audio is missed during or after the pause
+    let newRecorder: MediaRecorder;
+    const mimeType = oldRecorder.mimeType || "audio/webm";
+    try {
+      newRecorder = mimeType
+        ? new MediaRecorder(this.mediaStream, { mimeType })
+        : new MediaRecorder(this.mediaStream);
+    } catch {
+      newRecorder = new MediaRecorder(this.mediaStream);
+    }
+
+    this.mediaRecorder = newRecorder;
+    newRecorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) {
+        this.audioChunks.push(e.data);
+      }
+    };
+    newRecorder.start(100);
+
+    // Stop old recorder and collect its finalized blob
+    const blob = await new Promise<Blob | null>((resolve) => {
+      const collected = [...oldChunks];
+      oldRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) collected.push(e.data);
+      };
+      oldRecorder.onstop = () => {
+        resolve(new Blob(collected, { type: mimeType }));
+      };
+      oldRecorder.onerror = () => resolve(null);
+      try {
+        oldRecorder.stop();
+      } catch {
+        resolve(null);
+      }
+    });
+
+    if (!blob || blob.size < 400) {
+      return;
+    }
+
+    // Process transcription in the background while newRecorder continues listening
+    const taskId = ++this.transcriptionTaskId;
+    const previousTask = this.inFlightTranscription;
+    const currentTask = (async () => {
+      if (previousTask) {
+        try {
+          await previousTask;
+        } catch {}
+      }
+
+      this.options.onTranscribingChange?.(true);
+
+      try {
+        const res = await fetch("/api/stt", {
+          method: "POST",
+          headers: { "Content-Type": blob.type || "audio/webm" },
+          body: blob,
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const segment = data.text?.trim();
+          if (segment) {
+            this.accumulatedMoonshineText = this.accumulatedMoonshineText
+              ? `${this.accumulatedMoonshineText} ${segment}`
+              : segment;
+            this.options.onTranscriptionResult?.(this.accumulatedMoonshineText, true);
+          }
+        } else {
+          console.warn("[SpeechClient] /api/stt error on pause:", res.status);
+        }
+      } catch (err) {
+        console.warn("[SpeechClient] Pause background transcription failed:", err);
+      } finally {
+        if (this.transcriptionTaskId === taskId) {
+          this.inFlightTranscription = null;
+          this.options.onTranscribingChange?.(false);
+        }
+      }
+    })();
+
+    this.inFlightTranscription = currentTask;
   }
 
   private async setupMoonshineVad(stream: MediaStream) {
@@ -554,24 +660,24 @@ export class PastoralSpeechClient {
             silenceStart = Date.now();
           } else if (Date.now() - silenceStart >= PAUSE_DURATION_MS) {
             // Speaker paused for >= 0.9s after talking!
-            // Standard listening: auto-stop, turn off mic, process audio and show result in text box.
+            // Background transcribe this segment and keep mic listening!
             hasSpoken = false;
             silenceStart = null;
             speechStartTime = null;
-            void this.stopListening();
+            void this.handleMoonshinePause();
           }
         }
 
-        // Safety cap 1: if speaking continuously for > 15s without pause, auto-stop and transcribe
+        // Safety cap: if speaking continuously for > 15s without pause, rotate and transcribe chunk in background
         if (hasSpoken && speechStartTime && Date.now() - speechStartTime > 15000) {
           hasSpoken = false;
           silenceStart = null;
           speechStartTime = null;
-          void this.stopListening();
+          void this.handleMoonshinePause();
         }
 
-        // Safety cap 2: silence timeout if user opened mic but didn't speak for 10 seconds
-        if (!hasSpoken && Date.now() - listenStartTime > 10000) {
+        // Long idle safety cap: if user opened mic but never spoke anything for 60 seconds
+        if (!hasSpoken && !this.accumulatedMoonshineText && Date.now() - listenStartTime > 60000) {
           void this.stopListening();
         }
       }, 100);

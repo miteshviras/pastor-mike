@@ -55,23 +55,23 @@ async function testStandardListening() {
     },
   });
 
-  // Test 1: Verify standard single-utterance configuration (continuous = false)
-  console.log("\n[Test 1] Verifying SpeechRecognition initialized with continuous = false (standard query mode)...");
+  // Test 1: Verify continuous listening configuration (continuous = true)
+  console.log("\n[Test 1] Verifying SpeechRecognition initialized with continuous = true (continuous dictation mode)...");
   assert.ok(mockRecognitionInstance, "SpeechRecognition instance should be created");
   assert.strictEqual(
     mockRecognitionInstance.continuous,
-    false,
-    "Web Speech must use continuous = false for standard Google Search endpointing"
+    true,
+    "Web Speech must use continuous = true to keep listening across multiple pauses"
   );
   assert.strictEqual(
     mockRecognitionInstance.interimResults,
     true,
     "Web Speech must use interimResults = true for live streaming feedback"
   );
-  console.log("✓ Correctly configured with continuous = false and interimResults = true");
+  console.log("✓ Correctly configured with continuous = true and interimResults = true");
 
-  // Test 2: Simulate clicking microphone -> user speaks -> interim feedback -> speaker pauses
-  console.log("\n[Test 2] Simulating user tap mic, speak, and pause (standard endpointing)...");
+  // Test 2: Simulate clicking microphone -> user speaks -> pause -> continues listening -> clicks stop
+  console.log("\n[Test 2] Simulating user tap mic, speak, pause (transcribes in background), and explicit stop...");
   client.startListening();
   assert.strictEqual(listeningState, true, "Mic should be active/listening");
 
@@ -83,7 +83,7 @@ async function testStandardListening() {
   assert.strictEqual(transcribedResult, "Dear Pastor");
   assert.strictEqual(isResultFinal, false);
 
-  // Speaker pauses -> browser finalizes phrase and triggers onend natively
+  // Speaker pauses -> phrase finalized
   mockRecognitionInstance.onresult?.({
     results: [{ 0: { transcript: "Dear Pastor pray for me" }, isFinal: true }],
     length: 1,
@@ -91,9 +91,13 @@ async function testStandardListening() {
   assert.strictEqual(transcribedResult, "Dear Pastor pray for me");
   assert.strictEqual(isResultFinal, true);
 
-  mockRecognitionInstance.onend?.();
-  assert.strictEqual(listeningState, false, "Microphone must automatically turn off on pause!");
-  console.log("✓ Speech successfully delivered and microphone automatically paused/stopped on speech completion!");
+  // Even if onend triggers from browser timeout, onend restarts or stopListening stops it
+  assert.strictEqual(listeningState, true, "Microphone must REMAIN LISTENING on pause!");
+
+  // User clicks stop button
+  await client.stopListening();
+  assert.strictEqual(listeningState, false, "Microphone must stop when user clicks the stop button!");
+  console.log("✓ Speech successfully accumulated and microphone safely stopped upon user stop button click!");
 
   // Test 3: Race condition test — network error fallback to Moonshine
   console.log("\n[Test 3] Verifying race-condition guard when falling back to Moonshine STT...");
@@ -172,27 +176,28 @@ async function testStandardListening() {
   handlePageTranscription(transcribedResult);
   mockRecognitionInstance.onend?.();
 
-  assert.strictEqual(listeningState, false, "Microphone must auto-stop on pause");
+  // Microphone stays listening on pause!
+  assert.strictEqual(listeningState, true, "Microphone must remain listening on pause");
   assert.strictEqual(pageInputText, "Lord grant me peace", "Text must appear in input box");
   assert.strictEqual(chatMessages.length, 0, "Chat message MUST NOT be sent automatically!");
-  console.log(`✓ Turn 1: Mic auto-stopped on pause. Input: "${pageInputText}" (Sent: 0)`);
+  console.log(`✓ Pause 1: Mic remained listening. Input: "${pageInputText}" (Sent: 0)`);
 
-  // Turn 2: User taps mic again to append "and strength for today"
-  baseInput = pageInputText.trim();
-  client.startListening();
-  assert.strictEqual(listeningState, true, "Mic starts listening again for append");
-
+  // User continues speaking: "and strength for today"
   mockRecognitionInstance.onresult?.({
-    results: [{ 0: { transcript: "and strength for today" }, isFinal: true }],
+    results: [{ 0: { transcript: "Lord grant me peace and strength for today" }, isFinal: true }],
     length: 1,
   });
   handlePageTranscription(transcribedResult);
-  mockRecognitionInstance.onend?.();
 
-  assert.strictEqual(listeningState, false, "Microphone must auto-stop on pause");
+  // Still listening across pauses
+  assert.strictEqual(listeningState, true, "Microphone must still remain listening");
   assert.strictEqual(pageInputText, "Lord grant me peace and strength for today", "Text should accumulate cleanly in input");
   assert.strictEqual(chatMessages.length, 0, "Chat message STILL must NOT be sent automatically!");
-  console.log(`✓ Turn 2: Mic auto-stopped on pause. Accumulated input: "${pageInputText}" (Sent: 0)`);
+  console.log(`✓ Pause 2: Mic remained listening. Accumulated input: "${pageInputText}" (Sent: 0)`);
+
+  // User explicitly clicks the SAME microphone button to finish
+  await client.stopListening();
+  assert.strictEqual(listeningState, false, "Microphone stops when user clicks the stop button");
 
   // Turn 3: User explicitly submits via Send button
   handlePageSend(pageInputText);

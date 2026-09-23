@@ -109,30 +109,32 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           <button
             type="button"
             onClick={onToggleListening}
-            disabled={isSpeaking || isTranscribing}
+            disabled={isSpeaking || (!isListening && isTranscribing)}
             title={
               isSpeaking
                 ? "Turn-taking active: Pastor Mike is speaking"
-                : isTranscribing
-                  ? "Transcribing your speech..."
-                  : isListening
-                    ? "Listening... Click to finish"
+                : isListening
+                  ? isTranscribing
+                    ? "Listening... (Transcribing in background) Click to stop"
+                    : "Listening... Click to stop"
+                  : isTranscribing
+                    ? "Transcribing your speech..."
                     : "Speak your message"
             }
             className={`flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full transition cursor-pointer touch-manipulation active:scale-95 ${
-              isTranscribing
-                ? "bg-amber-500/20 text-amber-500"
-                : isListening
-                  ? "bg-rose-500 text-white animate-pulse"
+              isListening
+                ? "bg-rose-500 text-white animate-pulse"
+                : isTranscribing
+                  ? "bg-amber-500/20 text-amber-500"
                   : isSpeaking
                     ? "bg-muted text-muted-foreground"
                     : "text-muted-foreground hover:bg-accent hover:text-card-foreground"
             }`}
           >
-            {isTranscribing ? (
-              <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
-            ) : isListening ? (
+            {isListening ? (
               <Mic className="h-4 w-4 sm:h-5 sm:w-5" />
+            ) : isTranscribing ? (
+              <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
             ) : isSpeaking ? (
               <MicOff className="h-4 w-4" />
             ) : (
@@ -148,10 +150,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={
-              isTranscribing
-                ? "Transcribing your words..."
-                : isListening
-                  ? "Listening... speak now, pause when finished..."
+              isListening
+                ? isTranscribing
+                  ? "Listening... transcribing in background... click mic when done"
+                  : "Listening... speak now, click mic when done..."
+                : isTranscribing
+                  ? "Transcribing your words..."
                   : "Share your thoughts or prayer request..."
             }
             disabled={isLoading}
