@@ -616,8 +616,6 @@ export default function Home() {
         onToggleVoiceMode={handleToggleLivePastor}
         onOpenJournal={() => setIsJournalOpen(true)}
         onOpenHistory={() => setIsHistoryOpen(true)}
-        onOpenSettings={() => setGuideModalTab("settings")}
-        onOpenOnboarding={() => setGuideModalTab("guide")}
         onNewSession={handleNewSession}
         prayerCount={prayers.filter((p) => p.status === "active").length}
         providerLabel={providerLabel}
@@ -790,12 +788,11 @@ export default function Home() {
         }}
       />
 
-      {/* Setup Guide & AI Settings Modal — full tabbed wizard for "guide", a single
+      {/* Setup Guide & AI Settings Modal — full wizard for "guide", a single
           focused view (no tabs/stepper) for "settings"/"profile"/"test-audio" */}
       <OnboardingModal
         key={guideModalTab ?? "closed"}
         isOpen={guideModalTab !== null}
-        initialTab={guideModalTab === "settings" ? "settings" : "guide"}
         singleView={
           guideModalTab === "settings" ||
           guideModalTab === "profile" ||

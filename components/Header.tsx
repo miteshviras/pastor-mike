@@ -3,14 +3,12 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
   BookOpen,
-  Compass,
   History,
   Mic,
   MicOff,
   PlusCircle,
   Menu,
   X,
-  Settings,
 } from "lucide-react";
 
 interface HeaderProps {
@@ -18,8 +16,6 @@ interface HeaderProps {
   onToggleVoiceMode: () => void;
   onOpenJournal: () => void;
   onOpenHistory: () => void;
-  onOpenSettings: () => void;
-  onOpenOnboarding: () => void;
   onNewSession: () => void;
   prayerCount: number;
   providerLabel?: string;
@@ -30,8 +26,6 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleVoiceMode,
   onOpenJournal,
   onOpenHistory,
-  onOpenSettings,
-  onOpenOnboarding,
   onNewSession,
   prayerCount,
   providerLabel = "Gemini",
@@ -95,28 +89,6 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="hidden md:inline">Live Pastor</span>
               </>
             )}
-          </button>
-
-          {/* Setup Guide (Desktop) */}
-          <button
-            type="button"
-            onClick={onOpenOnboarding}
-            title="Setup Guide: Persona & Audio Testing"
-            className="hidden md:flex items-center gap-1.5 rounded-full border border-transparent px-3 py-1.5 text-xs font-medium text-[#ededf3] transition hover:bg-card/10 cursor-pointer touch-manipulation active:scale-95"
-          >
-            <Compass className="h-3.5 w-3.5 text-[#9cb4e8]" />
-            <span>Setup Guide</span>
-          </button>
-
-          {/* Settings Button (Desktop) */}
-          <button
-            type="button"
-            onClick={onOpenSettings}
-            title="AI Reasoning Engine Settings"
-            className="hidden md:flex items-center gap-1.5 rounded-full border border-transparent px-3 py-1.5 text-xs font-medium text-[#ededf3] transition hover:bg-card/10 cursor-pointer touch-manipulation active:scale-95"
-          >
-            <Settings className="h-3.5 w-3.5 text-[#9cb4e8]" />
-            <span>Settings</span>
           </button>
 
           {/* Prayer Journal Button */}
@@ -188,33 +160,6 @@ export const Header: React.FC<HeaderProps> = ({
                     <span>Visit History</span>
                   </button>
 
-                  {/* Settings */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      onOpenSettings();
-                    }}
-                    className="flex w-full items-center justify-between px-3 py-2.5 text-xs font-medium text-card-foreground transition hover:bg-accent rounded-lg cursor-pointer touch-manipulation active:scale-95"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <Settings className="h-4 w-4 text-[#5266eb]" />
-                      <span>AI Settings</span>
-                    </div>
-                  </button>
-
-                  {/* Setup Guide */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      onOpenOnboarding();
-                    }}
-                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-xs font-medium text-card-foreground transition hover:bg-accent rounded-lg cursor-pointer touch-manipulation active:scale-95"
-                  >
-                    <Compass className="h-4 w-4 text-muted-foreground" />
-                    <span>Setup Guide</span>
-                  </button>
                 </div>
 
                 <div className="mt-2 border-t border-border-subtle pt-2 px-2 text-[10px] text-muted-foreground">

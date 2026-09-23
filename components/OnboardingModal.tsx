@@ -16,8 +16,6 @@ import {
   Loader2,
   Check,
   ShieldCheck,
-  Compass,
-  Cpu,
 } from "lucide-react";
 import { PastoralSpeechClient } from "@/lib/voice/speech-client";
 import type { AiProviderSettings } from "@/lib/db";
@@ -31,7 +29,6 @@ interface OnboardingModalProps {
     enableVoice: boolean;
   }) => void;
   sessionId: string | null;
-  initialTab?: "guide" | "settings";
   // When set, renders only that one section — no top-level tabs, no step chrome — instead of
   // the full guided wizard. Used by the sidebar's settings popover so Settings/Profile/Test
   // Audio each open as their own focused view rather than being buried in the combined modal.
@@ -67,17 +64,17 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   onClose,
   onComplete,
   sessionId: _sessionId,
-  initialTab = "guide",
   singleView,
   onProviderChange,
 }) => {
-  const [topTab, setTopTab] = useState<"guide" | "settings">(initialTab);
   const [step, setStep] = useState<1 | 2>(1);
 
-  // In single-view mode, the underlying content conditionals below (topTab === "guide" / "settings"
-  // and step === 1 / 2) stay exactly as they are — we just point them at the requested section
-  // instead of local tab/step state, and hide the tab bar + stepper chrome around them.
-  const effectiveTopTab = singleView === "settings" ? "settings" : topTab;
+  // The top-level Setup Guide/Settings tab bar was removed (Settings/Profile/Test Audio are
+  // now reached via the sidebar's settings popover instead) — "guide" is the only way this
+  // component opens without singleView, so effectiveTopTab just picks between that and
+  // singleView="settings". The step conditionals below stay as-is, just pointed at the
+  // requested section in single-view mode, with the stepper chrome hidden around them.
+  const effectiveTopTab = singleView === "settings" ? "settings" : "guide";
   const effectiveStep = singleView === "profile" ? 1 : singleView === "test-audio" ? 2 : step;
 
   // Step 1: Persona & Profile
@@ -467,35 +464,6 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
             <X className="h-4 w-4" />
           </button>
         </div>
-
-        {/* Top-Level Tabs: Setup Guide vs Settings — hidden in single-view mode */}
-        {!singleView && (
-          <div className="grid grid-cols-2 border-b border-slate-200/80 bg-slate-100/50 text-xs font-medium dark:border-slate-800 dark:bg-slate-950/40">
-            <button
-              onClick={() => setTopTab("guide")}
-              className={`flex items-center justify-center gap-1.5 py-3 border-b-2 transition ${
-                topTab === "guide"
-                  ? "border-[#5266eb] text-[#5266eb] font-semibold dark:border-[#9cb4e8] dark:text-[#9cb4e8]"
-                  : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400"
-              }`}
-            >
-              <Compass className="h-3.5 w-3.5" />
-              <span>Setup Guide</span>
-            </button>
-
-            <button
-              onClick={() => setTopTab("settings")}
-              className={`flex items-center justify-center gap-1.5 py-3 border-b-2 transition ${
-                topTab === "settings"
-                  ? "border-[#5266eb] text-[#5266eb] font-semibold dark:border-[#9cb4e8] dark:text-[#9cb4e8]"
-                  : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400"
-              }`}
-            >
-              <Cpu className="h-3.5 w-3.5" />
-              <span>Settings</span>
-            </button>
-          </div>
-        )}
 
         {effectiveTopTab === "guide" ? (
           <>
