@@ -1,217 +1,144 @@
 # Digital Pastor ("Pastor Mike") — Local-First Spiritual Companion
 
-A private, local-first web prototype for a **Digital Pastor** supporting empathetic text chat, voice conversations, scripture search, personal prayer journaling, and Model Context Protocol (MCP) tool integration.
-
-Built in accordance with the [Notion Implementation Plan](https://app.notion.com/p/Digital-Pastor-MVP-Implementation-Plan-3e3831767b47815cbb9ede30f907e34d).
+A private, local-first web prototype for a **Digital Pastor**: empathetic text and voice conversation with a talking 3D avatar, scripture search, and personal prayer journaling.
 
 ---
 
 ## Key Features
 
-- **100% Private & Local-First**: No cloud API keys required (OpenAI, Anthropic, ElevenLabs, etc.).
-- **Local SQLite Persistence**: Uses Node.js native `node:sqlite` (`pastor_mike.db`) to persist messages, sessions, prayer requests, and user memories.
-- **Model Context Protocol (MCP) Server**: Exposes 7 pastoral tools for scripture search, prayer recording, and session recall via stdio (`npm run mcp:server`) or HTTP JSON-RPC (`/api/mcp`).
+- **100% Private & Local-First**: No cloud API keys required (OpenAI, Anthropic, ElevenLabs, etc.) — Google Gemini and Ollama are optional, not mandatory.
+- **Local SQLite Persistence**: Uses Node.js native `node:sqlite` (`data/pastor_mike.db`) to persist messages, sessions, and prayer requests.
+- **Live Pastor — 3D Talking Avatar**: A React Three Fiber-rendered head that lip-syncs to TTS audio (real playback amplitude when available, morph targets or jaw-bone rotation depending on the loaded model), blinks autonomously, and breathes/sways while idle. The current turn's reply streams in beside it as an auto-scrolling, sentence-highlighted transcript. Toggle with the **"Live Pastor"** button in the header.
 - **Scripture Knowledge Base**: Offline public domain World English Bible (WEB) & King James Version (KJV) indexed by topics (anxiety, rest, peace, grief, forgiveness, guidance, healing, love).
-- **Voice Pipeline with KittenTTS**: Local Python adapter running the `kitten-tts-mini` neural model (default voice **Jasper**, 8 voices total), adjustable delivery speeds (0.8x - 1.2x), and intelligent turn-taking (prevents microphone feedback while speaking).
+- **Voice Pipeline**:
+  - **TTS**: Local KittenTTS neural synthesis (8 voice presets, default **Jasper**), chunked into short phrases and played back with prefetching for low first-audio latency, with automatic per-chunk fallback to the browser's Web Speech API.
+  - **STT**: Continuous listening via the browser's native `SpeechRecognition` where available, with an automatic server-side **Moonshine STT** fallback (via `pipecat-ai`) for browsers that lack it — voice-activity detection segments your speech and transcribes each pause in the background while you keep talking.
 - **Pastoral Safety Safeguards**: Built-in crisis detection with immediate compassionate referral to the **988 Suicide & Crisis Lifeline** (24/7 call/text) and Crisis Text Line.
-- **Serene Pastoral UI**: Calming parchment/sage aesthetic, formatted scripture citation cards with copy buttons, prayer cards with "Save to Journal", and active/answered petition tracking.
+- **Serene Pastoral UI**: Calming dark aesthetic, formatted scripture citation cards with copy buttons, prayer cards with "Save to Journal", and active/answered petition tracking, with per-visit prayer journal isolation and a visit history switcher.
+- **Docker Deployment**: A `docker compose up --build` gets you a container with a Python version KittenTTS/Moonshine actually support, independent of whatever Python you have on your host.
 
 ---
 
 ## System Architecture
 
 ```
-User (Browser Chat & Voice UI)
+User (Browser Chat, Voice & 3D Avatar UI)
        │
        ▼
-Next.js App Router Backend (/api/chat, /api/prayers, /api/sessions, /api/tts, /api/mcp)
+Next.js App Router Backend (/api/chat, /api/prayers, /api/sessions, /api/settings, /api/tts, /api/stt)
        │
        ├──► Local SQLite Database (node:sqlite -> data/pastor_mike.db)
        │
-       ├──► MCP Tool Server (search_scripture, get_verse, save_prayer_request, ...)
-       │        └──► Bible Knowledge Base (WEB / KJV)
+       ├──► TTS Pipeline (KittenTTS Adapter -> server/kittentts_adapter.py, spawned per request)
        │
-       ├──► Voice Pipeline (KittenTTS Adapter -> server/kittentts_adapter.py)
+       ├──► STT Fallback Pipeline (Moonshine Adapter -> server/stt_adapter.py, spawned per request)
        │
-       └──► Local Model Runtime (Ollama at localhost:11434 or Built-in Offline Pastoral Engine)
+       └──► Local Model Runtime (Google Gemini, Ollama at localhost:11434, or Built-in Offline Pastoral Engine)
 ```
 
 ---
 
 ## Prerequisites
 
-- **Node.js**: v22.5.0 or higher (Node 26 recommended for built-in `node:sqlite`).
+**Option A — Docker (recommended for the voice pipeline):**
+- Docker Desktop (or Docker Engine + Compose).
+- Nothing else — the container bundles a compatible Node and Python runtime.
+
+**Option B — Run natively:**
+- **Node.js**: v22.5.0 or higher (Node 24 recommended for built-in `node:sqlite`).
 - **npm**: v10+
-- **Python**: 3.10+ (for local KittenTTS adapter)
-- *(Optional)* **Ollama**: If you want to use a local LLM like `llama3.2`, `mistral`, or `qwen2.5`.
+- **Python**: 3.11 or 3.12 recommended. KittenTTS's dependency chain does not currently support Python 3.13+, and the newest KittenTTS release has a broken upstream dependency regardless of Python version — see [Voice Pipeline](#voice-pipeline-kittentts--moonshine-stt) below. Without a compatible Python, the app still works fully via the Windows SAPI / browser Web Speech fallbacks, just with a smaller, less distinct voice set.
+- `ffmpeg` on `PATH` (only needed for the Moonshine STT fallback path).
+- *(Optional)* **Ollama**: for a local LLM like `llama3.2`, `mistral`, or `qwen2.5`.
 
 ---
 
 ## Quickstart Setup Guide
 
-### 1. Clone & Install Dependencies
+### Option A: Docker
+
+```bash
+git clone https://github.com/miteshviras/pastor-mike.git
+cd pastor-mike
+cp .env.example .env
+docker compose up --build
+```
+
+Open [http://localhost:3000](http://localhost:3000). Model weights (KittenTTS + Moonshine) download on first use and are cached in named Docker volumes (`hf-cache`, `moonshine-cache`) so they persist across container restarts.
+
+### Option B: Native
 
 ```bash
 git clone https://github.com/miteshviras/pastor-mike.git
 cd pastor-mike
 npm install
+cp .env.example .env.local
+npm run dev
 ```
 
-### 2. Configure Environment (Optional)
+Open [http://localhost:3000](http://localhost:3000) in your web browser.
+
+### Configure Environment (Optional)
 
 Pastor Mike supports a flexible 3-tier model hierarchy:
 1. **Google Gemini API** (`GEMINI_API_KEY` or `GOOGLE_API_KEY`): Recommended for highest-quality pastoral reflections, prayers, and scripture grounding via Google's Gemini models.
 2. **Local Ollama** (`OLLAMA_BASE_URL`): For private local open-source LLMs (`llama3.2`, `mistral`, `qwen2.5`).
 3. **Built-in Offline Engine**: Zero external dependencies, runs 100% locally with **zero API keys required**.
 
-To configure your environment, copy `.env.example`:
-
-```bash
-cp .env.example .env.local
-```
-
 If using Google Gemini, obtain a free key at [Google AI Studio](https://aistudio.google.com/app/apikey) and set:
 ```env
 GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
-### 3. Run the Test Suite
-
-Verify database persistence, scripture search, MCP tools, safety rules, and the complete Notion demo script:
+### Run the Test Suite
 
 ```bash
 npm test
 ```
 
-### 4. Start the Development Server
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your web browser.
+See [Test Suite Commands](#test-suite-commands) below for the full list of individual test scripts.
 
 ---
 
-## How to Connect with MCP (Model Context Protocol)
+## Voice Pipeline (KittenTTS & Moonshine STT)
 
-Pastor Mike comes equipped with 7 MCP tools:
-1. `search_scripture`: Search Holy Scripture by pastoral topic (e.g. anxiety, grief, rest, courage).
-2. `get_verse`: Lookup specific verse references (e.g. `Philippians 4:6-7`).
-3. `save_prayer_request`: Save a prayer request into the SQLite journal.
-4. `get_recent_context`: Retrieve recent conversation summaries and active prayers.
-5. `save_memory`: Record a key-value memory about the believer.
-6. `load_memory`: Recall a stored memory by key.
-7. `summarize_session`: Generate and persist a session summary.
+### Text-to-Speech
 
-### Option A: In-App MCP Inspector
-Click the **"MCP & Tools"** button in the top navigation header to:
-- Inspect all active tools and schemas.
-- Run live test calls directly inside the browser.
-- View real-time connection status.
+- **Adapter Script**: [`server/kittentts_adapter.py`](server/kittentts_adapter.py) — tries the real `kittentts` neural model first, then falls back to Windows SAPI (`System.Speech`), then macOS `say`, then signals the client to use the browser's Web Speech API. Never plays a dummy chime.
+- **8 voice presets** (`Bella, Jasper, Luna, Bruno, Rosie, Hugo, Kiki, Leo`, default **Jasper**), each mapped onto a real distinct underlying voice (neural voice, or gender+pitch-shifted SAPI voice, depending on which engine is active) and adjustable delivery speed (0.8x–1.2x).
+- Long replies are split sentence-by-sentence and synthesized+concatenated, since the lightweight ONNX model can't handle very long input in one call. On the client, `lib/voice/speech-client.ts` further chunks text into short phrases and prefetches the next chunk while the current one plays, so speech starts within a few seconds instead of waiting for the whole reply to synthesize.
+- **1-Click Downloader**: the **"Setup Guide"** modal checks KittenTTS status and can trigger a download, or run directly:
+  ```bash
+  python server/setup_kittentts.py --download
+  ```
+- **Test CLI Synthesis**:
+  ```bash
+  python server/kittentts_adapter.py --text "Peace be with you." --voice Jasper --speed 0.9 --output output.wav
+  ```
 
-### Option B: Connect to Claude Desktop
-Add this to your `claude_desktop_config.json` (`%APPDATA%\Claude\claude_desktop_config.json` on Windows):
+> **Note on KittenTTS versions**: the newest published KittenTTS release (0.8.1, `kitten-tts-mini`) depends on a version of `misaki` that has never been published to PyPI — installing it via its official wheel URL fails regardless of Python version. `requirements.txt` installs `kittentts` unpinned instead, which lets pip's resolver land on an older, working release (currently resolves to `0.1.3`, the `kitten-tts-nano` model with a different 8-voice set) — the branded preset names above are mapped onto whichever real voices that resolved version exposes.
 
-```json
-{
-  "mcpServers": {
-    "pastor-mike": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "tsx",
-        "C:\\Users\\mitesh\\PersonalProjects\\pastor-mike\\server\\mcp_server.ts"
-      ]
-    }
-  }
-}
-```
+### Speech-to-Text
 
-### Option C: Connect to Cursor
-Add the following to your `.cursor/mcp.json`:
+- **Primary**: the browser's native `SpeechRecognition` API, running continuously — it keeps listening and streaming transcript updates across pauses until you click the mic button to stop.
+- **Fallback**: if native recognition is unavailable or errors (common outside Chromium, or over non-HTTPS origins on mobile), the client records your microphone via `MediaRecorder` and runs a lightweight voice-activity detector; each ~900ms pause is sent to [`/api/stt`](app/api/stt/route.ts) and transcribed in the background via **Moonshine STT** ([`server/stt_adapter.py`](server/stt_adapter.py), using [`pipecat-ai`](https://docs.pipecat.ai)'s `MoonshineSTTService` called directly, not the full pipeline/transport framework) while you keep talking. Segments accumulate into one transcript.
+- **1-Click Downloader / Status Check**:
+  ```bash
+  python server/setup_stt.py --check
+  python server/setup_stt.py --download
+  ```
 
-```json
-{
-  "mcpServers": {
-    "pastor-mike": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "tsx",
-        "C:\\Users\\mitesh\\PersonalProjects\\pastor-mike\\server\\mcp_server.ts"
-      ]
-    }
-  }
-}
-```
+### Browser Playback & Microphone
 
-### Option D: Run Standalone Stdio Server
-To launch the MCP server in your terminal for debugging:
-
-```bash
-npm run mcp:server
-```
-
-### Option E: HTTP JSON-RPC Endpoint
-While the web server is running (`npm run dev`), the MCP gateway is available at:
-
-```http
-POST http://localhost:3000/api/mcp
-Content-Type: application/json
-
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "tools/call",
-  "params": {
-    "name": "search_scripture",
-    "arguments": {
-      "topic_or_keyword": "anxiety and work stress"
-    }
-  }
-}
-```
-
----
-
-## Local AI Runtime Configuration
-
-The app operates with zero cloud API keys:
-
-1. **Built-in Offline Pastoral Reasoning Engine (Default)**:
-   - Always ready immediately without running any background AI software.
-   - Grounded in scripture, compassion, and pastoral empathy.
-2. **Ollama Integration (Optional)**:
-   - If Ollama is running on your machine (`http://127.0.0.1:11434`), Pastor Mike will automatically detect and route prompts to your local model (e.g. `ollama run llama3.2`).
+In the UI, click **Live Pastor** or the microphone icon to talk hands-free with turn-taking awareness (mic pauses while Pastor Mike speaks) and adjustable speech speed.
 
 ---
 
 ## First-Time User Setup Flow
 
-When opening the app for the first time, an interactive 3-step setup guide launches automatically:
+When opening the app for the first time, a 2-step setup guide launches automatically (reopen anytime via **"Setup Guide"** in the header):
 1. **Step 1: Onboarding**: Meet Pastor Mike, review the non-ordained AI disclosure, set your preferred name, and select spiritual focus areas.
-2. **Step 2: Connect to MCP**: Verify local tool execution against `/api/mcp` and inspect Claude Desktop / Cursor stdio configuration.
-3. **Step 3: Test Audio (STT & TTS)**:
-   - Check KittenTTS status.
-   - 1-Click **"Start Download TTS"** button to automatically download KittenTTS weights.
-   - Listen to a test pastoral blessing (TTS) and test microphone recognition (STT).
-   - Click **"Setup Guide"** in the top navigation anytime to re-open this flow.
-
----
-
-## Voice Pipeline (KittenTTS & Speech Check)
-
-- **1-Click Downloader**: Click **"Setup Guide"** in the UI to check status and download KittenTTS neural weights automatically, or trigger directly via:
-  ```bash
-  python server/setup_kittentts.py --download
-  ```
-- **Adapter Script**: Located in [`server/kittentts_adapter.py`](server/kittentts_adapter.py). Uses the `KittenML/kitten-tts-mini-0.8` model with **Jasper** as the default voice (8 voices available: Bella, Jasper, Luna, Bruno, Rosie, Hugo, Kiki, Leo).
-- **Test CLI Synthesis**:
-  ```bash
-  python server/kittentts_adapter.py --text "Peace be with you." --voice Jasper --speed 0.9 --output output.wav
-  ```
-- **Browser Playback & Microphone STT**: In the UI, click **Voice Mode** or the microphone icon to talk hands-free with turn-taking awareness and speed controls (0.8x to 1.1x).
+2. **Step 2: Test Audio (STT & TTS)**: Check KittenTTS status, 1-click download the model weights, listen to a test pastoral blessing, and test microphone recognition.
 
 ---
 
@@ -219,15 +146,22 @@ When opening the app for the first time, an interactive 3-step setup guide launc
 
 | Command | Description |
 | :--- | :--- |
-| `npm test` | Runs the comprehensive Notion E2E Demo test suite |
+| `npm test` | Runs the comprehensive end-to-end demo test suite |
 | `npm run test:db` | Tests SQLite database creation, queries, and migrations |
 | `npm run test:scripture` | Tests topical scripture search and direct verse lookups |
-| `npm run test:mcp` | Tests all 7 MCP tool handlers |
-| `npm run test:mcp-http` | Tests the `/api/mcp` JSON-RPC and REST endpoints |
 | `npm run test:ai` | Tests crisis safety (988 hotline), prophecy boundaries, and empathy generation |
 | `npm run test:api` | Tests all Next.js App Router API routes |
 | `npm run test:tts` | Tests KittenTTS voice synthesis and audio generation |
+| `npm run test:tts-chunking` | Tests TTS text chunking and prefetched chunk playback |
+| `npm run test:lyrics` | Tests the avatar transcript's sentence-highlight sync |
+| `npm run test:play-pause` | Tests TTS playback pause/resume/restart/stop |
+| `npm run test:stt` | Tests Moonshine STT transcription |
+| `npm run test:stt-flow` | Tests the STT-to-input flow (transcript fills the composer without auto-sending) |
+| `npm run test:standard-listening` | Tests the standard (non-continuous) listening flow |
+| `npm run test:onboarding` | Tests the first-run setup guide flow |
 | `npm run build` | Compiles the production Next.js build |
+
+A few additional scripts exist under `scripts/` without an `npm run` shortcut — run directly via `npx tsx scripts/<name>.ts`: `test-continuous-pause-stt.ts` (continuous listening across multiple pauses), `test-dynamic-pastoral.ts` (offline pastoral reasoning engine), `test-visit-history.ts` (visit-scoped prayer journal isolation), `test-three-warning.ts` (suppresses a known `THREE.Clock` deprecation warning).
 
 ---
 

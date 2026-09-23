@@ -11,24 +11,24 @@ Technical design reference. For setup/usage see [README.md](README.md); for buil
 ## Architecture
 
 ```
-Browser UI (app/page.tsx, components/*)
+Browser UI (app/page.tsx, components/*, components/avatar/*)
    │
    ▼
 Next.js App Router API (app/api/*)
-   ├─ /api/chat     → lib/ai/orchestrator.ts (safety → topic match → MCP tools → reply)
+   ├─ /api/chat     → lib/ai/orchestrator.ts (safety → topic match → scripture lookup → reply)
    ├─ /api/sessions → lib/db.ts (session/message history + legacy metadata backfill)
    ├─ /api/prayers  → lib/db.ts (prayer journal CRUD + status toggle)
+   ├─ /api/settings → lib/db.ts (active model provider preference)
    ├─ /api/tts      → server/kittentts_adapter.py (spawned per request) + setup_kittentts.py status/download
-   └─ /api/mcp      → lib/mcp/tools.ts (JSON-RPC gateway, same tool impls as stdio server)
+   └─ /api/stt      → server/stt_adapter.py (spawned per request) + setup_stt.py status/download
    │
-   ├─ lib/db.ts            → node:sqlite, data/pastor_mike.db (single shared connection)
-   ├─ lib/scripture/       → in-memory WEB/KJV verse dataset, topic + keyword search
-   ├─ lib/mcp/              → tool definitions (schemas) + tool implementations
-   ├─ lib/ai/                → safety filter, offline pastoral templates, orchestrator
-   └─ server/mcp_server.ts  → standalone stdio MCP server (@modelcontextprotocol/sdk) for Claude Desktop/Cursor
+   ├─ lib/db.ts       → node:sqlite, data/pastor_mike.db (single shared connection)
+   ├─ lib/scripture/  → in-memory WEB/KJV verse dataset, topic + keyword search
+   ├─ lib/ai/         → safety filter, offline pastoral templates, orchestrator
+   └─ lib/voice/      → PastoralSpeechClient (STT/TTS client), audioLevel.ts, useSentenceSync.ts
 ```
 
-Two MCP entry points share one tool implementation (`lib/mcp/tools.ts`): `server/mcp_server.ts` for stdio clients, `app/api/mcp/route.ts` for HTTP JSON-RPC and the in-app inspector (`McpModal.tsx`).
+> **History note**: an earlier build exposed scripture search and prayer journaling as MCP (Model Context Protocol) tools over stdio and HTTP JSON-RPC, for use from Claude Desktop/Cursor. That layer (`lib/mcp/`, `server/mcp_server.ts`, `app/api/mcp/route.ts`, `McpModal.tsx`) was removed — `search_scripture`/`save_prayer_request` are now plain function calls (`searchScripture()`, `savePrayerRequest()`) inside the orchestrator, not tool invocations. If MCP access is wanted again, that's new work, not a revert — the tool schemas in `lib/mcp/definitions.ts` are gone.
 
 ## Data Model (`lib/db.ts`)
 
@@ -55,8 +55,8 @@ Design note: message `metadata` stores full scripture/prayer objects (not just r
 1. Persist the user message.
 2. `evaluateSafety()` — regex-based crisis / medical-legal / prophecy-coercion classification (`lib/ai/safety.ts`). Crisis and prophecy cases return an immediate canned pastoral response with hotline data and skip everything below.
 3. Keyword-match the message into one of a fixed topic set (`anxiety`, `grief`, `rest`, `guidance`, `general`) — see `OFFLINE_TOPIC_TEMPLATES` in `lib/ai/pastoral-prompt.ts`.
-4. Call the `search_scripture` MCP tool for that topic to fetch grounding verses.
-5. If the message reads as a prayer request, call `save_prayer_request`.
+4. Call `searchScripture()` for that topic to fetch grounding verses.
+5. If the message reads as a prayer request, call `savePrayerRequest()`.
 6. Try local Ollama (`POST http://127.0.0.1:11434/api/chat`, 3.5s timeout, model `llama3.2` by default). On any failure/timeout/absence, fall back to the offline template (empathy + counsel + scripture excerpt + prayer prompt) — this is the default path in a zero-dependency install.
 7. Persist the assistant reply with full metadata and return it.
 
@@ -70,26 +70,34 @@ Three independent regex pattern sets, checked in order — crisis first (highest
 
 Small curated offline WEB/KJV verse set, in-memory array, tagged by topic. Search is topic-tag match plus keyword substring match over reference/text — no embeddings/vector search, which is appropriate given the dataset size (avoids adding a vector DB dependency for a few dozen verses).
 
-## MCP Tool Layer (`lib/mcp/`)
+## 3D Avatar (`components/avatar/`)
 
-- `types.ts` / `definitions.ts`: JSON-schema tool contracts shared by both transports.
-- `tools.ts`: `executeMcpTool(name, args, ctx)` — the actual implementations, thin wrappers over `lib/db.ts` and `lib/scripture`.
-- Exposed tools: `search_scripture`, `get_verse`, `save_prayer_request`, `get_recent_context`, `save_memory`, `load_memory`, `summarize_session`.
+A React Three Fiber head that makes the assistant feel present rather than a text box with a TTS button bolted on. All controllers are plain classes (not React components) driven from a single `useFrame` tick in `Avatar.tsx` — no extra render loops.
 
-Keeping tool *definitions* separate from *execution* lets the same seven tools be served over stdio (`server/mcp_server.ts`, for Claude Desktop/Cursor) and HTTP JSON-RPC (`app/api/mcp/route.ts`, for the in-app inspector and any HTTP MCP client) without duplicating logic.
+- `Avatar.tsx`: loads a loose glTF (`/models/pastor-mike-head/scene.gltf`), hides non-portrait meshes (outfit/footwear), and auto-frames the camera to the model's measured bounding sphere rather than hand-tuned per-asset numbers — swapping the model file doesn't require re-tuning the camera.
+- `LipSyncController.ts`: drives mouth movement via morph targets (viseme/mouth/jaw blendshapes) or jaw-bone rotation, whichever the rig has. Openness is driven by real playback RMS amplitude read from a Web Audio analyser (`lib/voice/audioLevel.ts`) when TTS audio is playing, falling back to a synthetic sine envelope only when no audio element is attached (e.g. the browser `speechSynthesis` fallback).
+- `BlinkController.ts` / `IdleController.ts`: autonomous blink loop and idle breathing/sway, independent of speech state, plus a "thinking" look-down and "talking" head nod keyed off an external `AvatarMood`.
+- `PastorStage.tsx`: the surrounding stage — canvas with an error boundary (falls back to a plain sphere if the glTF fails to load), playback controls, and an auto-scrolling sentence-highlighted transcript (`useSentenceSync.ts` estimates per-sentence timing from audio duration) while the avatar itself stays visually still.
+
+Toggled via the **"Live Pastor"** header button.
 
 ## Voice Pipeline
 
-- **TTS**: `server/kittentts_adapter.py` — real KittenTTS neural model (`KittenML/kitten-tts-mini-0.8`, default voice `Jasper`, 8 voices total), invoked as a child process per `/api/tts` request; falls back to Windows SAPI / macOS `say` if the `kittentts` package isn't installed, then to the browser's Web Speech API if neither is. `server/setup_kittentts.py` handles status-check and one-click install + model cache warm-up (surfaced in `OnboardingModal.tsx`). 0.8x–1.2x speed, passed natively to `model.generate()`.
-- **Client**: `lib/voice/speech-client.ts` wraps browser `SpeechRecognition` (STT) and audio playback, with turn-taking (mic muted while TTS audio plays) to prevent feedback loops. If KittenTTS isn't installed, playback falls back to the browser's built-in `speechSynthesis`.
+- **TTS**: `server/kittentts_adapter.py` — tries the real `kittentts` neural model first (voice/model resolved by whatever version `pip` lands on, see README's note on the upstream `misaki` dependency issue), then Windows SAPI (`System.Speech`, per-preset gender+pitch mapping), then macOS `say`, then signals the client to use the browser's Web Speech API — never plays a dummy chime. Long text is split into sentences and synthesized+concatenated (the lightweight ONNX model errors on long multi-sentence input in one call). `server/setup_kittentts.py` handles status-check and one-click install + model cache warm-up.
+- **STT**: `lib/voice/speech-client.ts`'s `PastoralSpeechClient` tries native browser `SpeechRecognition` first, configured for **continuous listening** (keeps transcribing across pauses until the user clicks stop, auto-restarting recognition internally rather than stopping on first silence). If native recognition is unavailable or errors, it falls back to a `MediaRecorder` + lightweight VAD (RMS with an adaptive noise floor) that segments speech on ~900ms pauses and posts each segment to `/api/stt` in the background while still recording, via `server/stt_adapter.py` (`pipecat-ai`'s `MoonshineSTTService.run_stt()`, called directly rather than through Pipecat's full pipeline/transport framework, which this app has no other use for). The browser-STT-unavailable state is cached in `localStorage` so later sessions skip straight to the Moonshine path.
+- **Client playback**: `speakText()` chunks replies into short phrases and prefetches the next chunk while the current one plays (pipelined, not blocking) so speech starts in a few seconds rather than after the whole reply synthesizes; any chunk that fails server-side falls back individually to browser `speechSynthesis`. Turn-taking (mic muted while TTS plays) prevents feedback loops either way.
 
-## UI Shell (`components/*`, `app/page.tsx`)
+## Docker
 
-Single-page chat experience; no client-side router beyond the one route. State (active session, first-run flag) persisted to `localStorage` so a refresh resumes the same session (task.md Task 11). Key components: `Header` (nav + MCP/Setup entry points), `ChatMessage` (renders scripture/prayer cards inline), `ChatInput`, `VoiceBar`, `PrayerJournalModal`, `McpModal` (live tool inspector), `OnboardingModal` (3-step first-run flow), `CrisisBanner`.
+`Dockerfile` (Node 24 bookworm-slim + Python 3.11 via `apt`) and `docker-compose.yml` exist specifically to get a Python version KittenTTS/Moonshine's dependency chains actually support, independent of the host's Python. Named volumes (`hf-cache`, `moonshine-cache`) persist downloaded model weights across container recreation, separate from the `models/kittentts` bind mount (which only holds a small status marker file). See README's Docker quickstart.
+
+## UI Shell (`components/*`, `components/avatar/*`, `app/page.tsx`)
+
+Single-page chat experience; no client-side router beyond the one route. State (active session, first-run flag) persisted to `localStorage` so a refresh resumes the same session. Key components: `Header` (Live Pastor toggle, Setup Guide, Settings, Prayer Journal), `ChatMessage` (renders scripture/prayer cards inline), `ChatInput`, `VoiceBar`, `PrayerJournalModal`, `VisitHistorySidebar`, `OnboardingModal` (2-step first-run flow: profile, then audio setup), `CrisisBanner`.
 
 ## Testing
 
-Script-based, no test framework — each `scripts/test-*.ts` exercises one layer directly (db, scripture, mcp, mcp-http, ai/safety, api routes, tts, onboarding) via `tsx`, asserting with plain `console.assert`/throw. `npm test` runs `scripts/test-e2e-demo.ts`, which walks the full Notion demo script end-to-end. No mocking of SQLite or Ollama — tests hit the real local DB file and treat Ollama-absent as an expected, asserted code path.
+Script-based, no test framework — each `scripts/test-*.ts` exercises one layer directly (db, scripture, ai/safety, api routes, tts, tts-chunking, stt, onboarding, visit history, ...) via `tsx`, asserting with plain `console.assert`/throw. `npm test` runs `scripts/test-e2e-demo.ts`, which walks a full conversation end-to-end. No mocking of SQLite or Ollama — tests hit the real local DB file and treat Ollama-absent as an expected, asserted code path.
 
 ## Known Simplifications
 
@@ -97,3 +105,6 @@ Script-based, no test framework — each `scripts/test-*.ts` exercises one layer
 - Topic classification is regex keyword matching, not the LLM — cheap and deterministic, but only covers 4 topics before falling back to `general`.
 - No migration system for `lib/db.ts` schema changes — `CREATE TABLE IF NOT EXISTS` only; adding/changing a column requires a manual migration path.
 - `scripture_notes` table exists but has no API/UI wired to it yet.
+- KittenTTS's actual installed voice set/model depends on whatever version `pip` resolves at build time (see README) — the 8 branded preset names are consistent, but which real underlying voice each maps to can change if a future `kittentts` release fixes the `misaki` dependency and a newer version resolves instead.
+- TTS/STT each spawn a fresh Python process per request rather than running a persistent model server — simple and consistent with the rest of the app's "no long-running background service" design, but each call pays model-load overhead (mitigated for STT/TTS model *weights* by the Docker named volumes, not eliminated — the ONNX runtime session itself still initializes per process).
+- The avatar's sentence-timing sync (`useSentenceSync.ts`) estimates per-sentence duration from total audio length rather than real per-word timing — reasonably close for pacing the transcript highlight, not phoneme-accurate.

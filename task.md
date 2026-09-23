@@ -151,6 +151,37 @@ Each task is committed and pushed upon completion.
   - Transform all modals (`VisitHistoryModal`, `PrayerJournalModal`, `McpModal`, `OnboardingModal`) into smooth bottom-sheet drawers on mobile with touch-accessible buttons.
   - *Commit: `feat: overhaul mobile responsiveness, header overflow, and composer layout`*
 
+- [x] **Task 20: MCP Removal & Cleanup**
+  - Remove the MCP (Model Context Protocol) integration entirely: `app/api/mcp/route.ts`, `lib/mcp/`, `server/mcp_server.ts`, `components/McpModal.tsx`, the `@modelcontextprotocol/sdk` dependency, and the `mcp:server`/`test:mcp`/`test:mcp-http` npm scripts.
+  - Replace MCP tool calls in `lib/ai/orchestrator.ts` with direct function calls (`searchScripture()`, `savePrayerRequest()`).
+  - Remove `components/SettingsModal.tsx` and `components/VisitHistoryModal.tsx` in favor of a consolidated `OnboardingModal` settings tab and `VisitHistorySidebar`.
+  - Reduce the first-run setup guide from 3 steps (Onboarding / Connect to MCP / Test Audio) to 2 (Onboarding / Test Audio).
+  - *Commits: `Refactor MCP integration: remove MCP tools and connection tracking...` (`f5b9e59`), `refactor: clean up test scripts and remove MCP dependencies` (`8ecaf50`), `refactor: remove SettingsModal component and update VoiceBar styles and structure` (`171d4cb`)*
+
+- [x] **Task 21: Dockerize the App & Get Real KittenTTS Neural Synthesis Working**
+  - Add `Dockerfile` (Node 24 bookworm-slim + Python 3.11 via apt) and `docker-compose.yml` so KittenTTS's Python dependency chain (which doesn't support Python 3.13+) has a compatible runtime independent of the host machine's Python version.
+  - Discover and route around an upstream KittenTTS packaging issue: the newest release (0.8.1) depends on a `misaki` version never published to PyPI; installing `kittentts` unpinned instead lets pip's resolver land on an older working release.
+  - Adapt `server/kittentts_adapter.py` to the resolved release's actual API (no model-ID constructor arg, different voice names) with a branded-preset-name → real-voice map; synthesize sentence-by-sentence and concatenate, since the ONNX model throws on long multi-sentence input in one call.
+  - Add named Docker volumes (`hf-cache`) so downloaded model weights persist across container restarts.
+  - *Commit: `feat: dockerize app and get real KittenTTS neural synthesis working` (`cea9969`)*
+
+- [x] **Task 22: Server-Side Speech-to-Text via Moonshine**
+  - Add `server/stt_adapter.py` and `server/setup_stt.py`, calling `pipecat-ai`'s `MoonshineSTTService.run_stt()` directly (not the full Pipecat pipeline/transport framework) to transcribe recorded audio, with `ffmpeg` converting whatever format the browser recorded into the 16kHz mono PCM Moonshine expects.
+  - Add `/api/stt` (status check, one-click model download, and transcription) mirroring the existing `/api/tts` route's subprocess pattern.
+  - Add a `moonshine-cache` Docker volume for Moonshine's model weights, separate from KittenTTS's cache.
+  - *Commit: `feat: implement server-side audio transcription with Moonshine STT and add ffmpeg support` (`821d09d`)*
+
+- [x] **Task 23: 3D Avatar — Live Pastor**
+  - Add `components/avatar/` — a React Three Fiber talking head (`Avatar.tsx`) with lip-sync (morph targets or jaw-bone rotation, driven by real playback amplitude), autonomous blink (`BlinkController.ts`) and idle breathing/sway (`IdleController.ts`), and a surrounding stage (`PastorStage.tsx`) with an auto-scrolling sentence-highlighted transcript (`lib/voice/useSentenceSync.ts`) and playback controls.
+  - Add the **"Live Pastor"** toggle in `components/Header.tsx`.
+  - *Commits: `chore: update dependencies and add new packages for 3D rendering and animations` (`134d45b`), `feat: add interactive 3D avatar stage, speech synchronization, and STT/TTS integration` (`78b8efa`), `feat: implement voice speech client, avatar stage, and voice chat UI components` (`9fcad20`)*
+
+- [x] **Task 24: Chunked TTS Playback & Continuous-Listening STT**
+  - Rework `lib/voice/speech-client.ts`'s TTS playback to chunk replies into short phrases and prefetch the next chunk while the current one plays, cutting time-to-first-audio from waiting on the whole reply to a few seconds; any chunk that fails server-side falls back individually to browser `speechSynthesis` instead of dropping the whole response.
+  - Switch native `SpeechRecognition` STT to continuous listening (keeps transcribing across pauses until the user clicks stop) instead of stopping on first silence; add a `MediaRecorder` + adaptive-noise-floor VAD fallback for browsers without native recognition, transcribing each pause via Moonshine in the background while still recording.
+  - Add `scripts/test-continuous-pause-stt.ts`, `test-tts-chunking.ts`, `test-lyrics-sync.ts`, `test-play-pause.ts`, `test-stt-input-flow.ts`, `test-standard-listening.ts` covering the above.
+  - *Commit: `feat: add speech-to-text client, voice UI components, and continuous listening test suites` (`d4d16a2`)*
+
 
 
 
