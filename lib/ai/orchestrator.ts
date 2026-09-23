@@ -1,8 +1,33 @@
 import { evaluateSafety, SafetyCheckResult } from "./safety";
 import { OFFLINE_TOPIC_TEMPLATES } from "./pastoral-prompt";
 import { searchScripture, ScriptureVerse } from "../scripture/bible-data";
-import { saveMessage, getOrCreateDefaultUser, getProviderSettings, getRecentContext, savePrayerRequest, countUserMessages } from "../db";
+import {
+  saveMessage,
+  getOrCreateDefaultUser,
+  getProviderSettings,
+  getRecentContext,
+  savePrayerRequest,
+  countUserMessages,
+  getSessionMessages,
+  saveConversationSummary,
+  saveMemory,
+  AiProviderSettings,
+} from "../db";
 import { generateDynamicPastoralResponse } from "./dynamic-pastoral-engine";
+
+interface ChatTurn {
+  role: "user" | "assistant";
+  content: string;
+}
+
+// Last N messages of this visit (already includes the current turn — called after saveMessage),
+// so the model sees this conversation's own prior turns instead of treating every call as the
+// first message. Capped to bound token usage on long visits.
+function getHistoryTurns(sessionId: string, limit = 20): ChatTurn[] {
+  return getSessionMessages(sessionId)
+    .slice(-limit)
+    .map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: m.content }));
+}
 
 export interface PastoralResponse {
   reply: string;
@@ -18,7 +43,7 @@ export interface PastoralResponse {
 
 // Helper to query Google Gemini API if API key is provided
 async function tryGeminiChat(
-  prompt: string,
+  history: ChatTurn[],
   systemPrompt: string,
   model = process.env.GEMINI_MODEL || "gemma-4-26b-a4b-it"
 ): Promise<string | null> {
@@ -32,6 +57,12 @@ async function tryGeminiChat(
   try {
     const { GoogleGenAI } = await import("@google/genai");
     const ai = new GoogleGenAI({ apiKey });
+
+    // Gemini's turn roles are "user"/"model", not "user"/"assistant".
+    const contents = history.map((t) => ({
+      role: t.role === "assistant" ? "model" : "user",
+      parts: [{ text: t.content }],
+    }));
 
     // Try requested model first, then fallback to current modern Google models
     const candidates = Array.from(new Set([
@@ -49,7 +80,7 @@ async function tryGeminiChat(
       try {
         const response = await ai.models.generateContent({
           model: candidate,
-          contents: prompt,
+          contents,
           config: {
             systemInstruction: systemPrompt,
             temperature: 0.7,
@@ -76,7 +107,7 @@ async function tryGeminiChat(
 
 // Helper to query local Ollama if running
 async function tryOllamaChat(
-  prompt: string,
+  history: ChatTurn[],
   systemPrompt: string,
   model = process.env.OLLAMA_MODEL || "llama3.2"
 ): Promise<string | null> {
@@ -93,7 +124,7 @@ async function tryOllamaChat(
         model,
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: prompt },
+          ...history,
         ],
         stream: false,
       }),
@@ -106,6 +137,50 @@ async function tryOllamaChat(
     return data.message?.content || null;
   } catch {
     return null;
+  }
+}
+
+const MEMORY_EXTRACTION_SYSTEM_PROMPT = `Given a short pastoral conversation exchange, respond with ONLY compact JSON, no markdown and no commentary, in this exact shape: {"summary": "1-2 sentence summary of this visit so far, building on the prior summary if one is given", "preferredName": "their first name if mentioned in this exchange, otherwise omit this key entirely"}.`;
+
+// Best-effort: updates the cross-session summary/memory after a Gemini or Ollama reply,
+// reusing whichever provider just answered. Never awaited by the caller — must not add
+// latency to, or ever break, the actual reply the user is waiting on.
+async function updateMemoryAfterTurn(params: {
+  sessionId: string;
+  userId: string;
+  provider: "gemini" | "ollama";
+  providerSettings: AiProviderSettings;
+  priorSummary?: string;
+  userMessage: string;
+  replyText: string;
+}): Promise<void> {
+  try {
+    const { sessionId, userId, provider, providerSettings, priorSummary, userMessage, replyText } = params;
+
+    const extractionContent = [
+      priorSummary ? `Prior summary of earlier visits: ${priorSummary}` : null,
+      `Latest exchange — Them: "${userMessage}" You: "${replyText}"`,
+    ].filter(Boolean).join("\n");
+
+    const history: ChatTurn[] = [{ role: "user", content: extractionContent }];
+
+    const raw = provider === "gemini"
+      ? await tryGeminiChat(history, MEMORY_EXTRACTION_SYSTEM_PROMPT, providerSettings.geminiModel)
+      : await tryOllamaChat(history, MEMORY_EXTRACTION_SYSTEM_PROMPT, providerSettings.ollamaModel);
+
+    if (!raw) return;
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) return;
+
+    const parsed = JSON.parse(match[0]) as { summary?: string; preferredName?: string };
+    if (parsed.summary?.trim()) {
+      saveConversationSummary(sessionId, parsed.summary.trim());
+    }
+    if (parsed.preferredName?.trim()) {
+      saveMemory(userId, "preferred_name", parsed.preferredName.trim());
+    }
+  } catch (err) {
+    console.warn("[orchestrator] Memory extraction skipped:", err);
   }
 }
 
@@ -123,6 +198,10 @@ export async function processPastoralTurn(
   // Each LLM call below is stateless (no prior turns sent), so the model can't tell this
   // apart from a first message on its own — decide it deterministically here instead.
   const isFirstMessageInVisit = countUserMessages(sessionId) === 1;
+
+  // This visit's own turns so far (includes the just-saved current message) — without this,
+  // every call looked like the start of a brand-new conversation, even mid-visit.
+  const historyTurns = getHistoryTurns(sessionId);
 
   // 2. Safety & Boundary Check
   const safety = evaluateSafety(userMessage);
@@ -217,13 +296,13 @@ ${contextLines.join(" ")}`;
   let activePrayer = template.prayer;
 
   if (providerSettings.provider === "gemini") {
-    const geminiReply = await tryGeminiChat(userMessage, pastoralSystemPrompt, providerSettings.geminiModel);
+    const geminiReply = await tryGeminiChat(historyTurns, pastoralSystemPrompt, providerSettings.geminiModel);
     if (geminiReply) {
       replyText = geminiReply;
       usedModel = "gemini";
     }
   } else if (providerSettings.provider === "ollama") {
-    const ollamaReply = await tryOllamaChat(userMessage, pastoralSystemPrompt, providerSettings.ollamaModel);
+    const ollamaReply = await tryOllamaChat(historyTurns, pastoralSystemPrompt, providerSettings.ollamaModel);
     if (ollamaReply) {
       replyText = ollamaReply;
       usedModel = "ollama";
@@ -251,6 +330,19 @@ ${contextLines.join(" ")}`;
     usedModel,
     savedPrayerId,
   });
+
+  // 10. Cross-session memory: best-effort, not awaited — must not add latency to this reply.
+  if (usedModel === "gemini" || usedModel === "ollama") {
+    void updateMemoryAfterTurn({
+      sessionId,
+      userId,
+      provider: usedModel,
+      providerSettings,
+      priorSummary: recentContext.recentSummaries[0],
+      userMessage,
+      replyText,
+    });
+  }
 
   return {
     reply: replyText,

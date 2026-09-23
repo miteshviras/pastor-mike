@@ -362,6 +362,10 @@ export function saveConversationSummary(sessionId: string, summary: string): Con
   const id = "sum_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7);
   const now = new Date().toISOString();
 
+  // Keep at most one summary row per session — this is called after every turn now, and a
+  // blind insert would pile up several rows for the same visit, skewing getRecentContext's
+  // "most recent distinct past visits" query toward one over-represented session.
+  db.prepare("DELETE FROM conversation_summaries WHERE session_id = ?").run(sessionId);
   db.prepare(
     "INSERT INTO conversation_summaries (id, session_id, summary, created_at) VALUES (?, ?, ?, ?)"
   ).run(id, sessionId, summary, now);
