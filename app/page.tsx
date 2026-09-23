@@ -474,6 +474,35 @@ export default function Home() {
     }
   };
 
+  // Synthesizes the full (untruncated) text in one request and triggers a browser download —
+  // reuses /api/tts as-is, since synthesize_kittentts() already produces one complete WAV
+  // per call regardless of input length.
+  const handleDownloadAudio = async (text: string) => {
+    try {
+      const res = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, voice: voicePreset, speed: speechSpeed }),
+      });
+      const contentType = res.headers.get("content-type") || "";
+      if (!res.ok || !contentType.includes("audio/wav")) {
+        console.error("Audio download unavailable: no local TTS engine produced audio for this reply.");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `pastor-mike-${Date.now()}.wav`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Error downloading audio:", err);
+    }
+  };
+
   const handleDeletePrayer = async (prayerId: string) => {
     try {
       const res = await fetch(
@@ -714,6 +743,7 @@ export default function Home() {
                         onRestart={handleRestartSpeaking}
                         onStop={handleStopSpeaking}
                         onSavePrayer={handleSavePrayer}
+                        onDownload={handleDownloadAudio}
                         isSpeakingNow={isThisMsgActive}
                         isPausedNow={isThisMsgPaused}
                       />

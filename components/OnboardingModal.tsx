@@ -42,6 +42,9 @@ const SINGLE_VIEW_LABELS: Record<"settings" | "profile" | "test-audio", string> 
   "test-audio": "Test voice & microphone",
 };
 
+const BLESSING_TEXT =
+  "The Lord bless you and keep you; the Lord make his face shine upon you and be gracious to you. Welcome, beloved friend.";
+
 const CARE_TOPICS = [
   { id: "anxiety", label: "Anxiety & Peace" },
   { id: "guidance", label: "Guidance & Decisions" },
@@ -128,6 +131,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
   // Audio Testing States
   const [isPlayingBlessing, setIsPlayingBlessing] = useState<boolean>(false);
+  const [downloadingBlessing, setDownloadingBlessing] = useState<boolean>(false);
   const [isTestingMic, setIsTestingMic] = useState<boolean>(false);
   const [micTranscript, setMicTranscript] = useState<string>("");
   const [micVerified, setMicVerified] = useState<boolean>(false);
@@ -357,8 +361,6 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
     }
 
     setIsPlayingBlessing(true);
-    const blessingText =
-      "The Lord bless you and keep you; the Lord make his face shine upon you and be gracious to you. Welcome, beloved friend.";
 
     if (!testSpeechClientRef.current) {
       testSpeechClientRef.current = new PastoralSpeechClient({
@@ -371,7 +373,39 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
       testSpeechClientRef.current.updateOptions({ speed: testSpeed });
     }
 
-    await testSpeechClientRef.current.speakText(blessingText);
+    await testSpeechClientRef.current.speakText(BLESSING_TEXT);
+  };
+
+  // Download the blessing test audio — reuses /api/tts directly rather than the speech
+  // client, since this needs the raw WAV blob rather than playback.
+  const handleDownloadBlessing = async () => {
+    if (downloadingBlessing) return;
+    setDownloadingBlessing(true);
+    try {
+      const res = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: BLESSING_TEXT, voice: "Jasper", speed: testSpeed }),
+      });
+      const contentType = res.headers.get("content-type") || "";
+      if (!res.ok || !contentType.includes("audio/wav")) {
+        console.error("Blessing audio download unavailable: no local TTS engine produced audio.");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "pastor-mike-blessing.wav";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Error downloading blessing audio:", err);
+    } finally {
+      setDownloadingBlessing(false);
+    }
   };
 
   // Test STT Microphone
@@ -661,26 +695,37 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                         </p>
                       </div>
 
-                      <button
-                        onClick={handlePlayBlessing}
-                        className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-medium transition ${
-                          isPlayingBlessing
-                            ? "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200"
-                            : "border border-slate-300 bg-card text-slate-800 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-                        }`}
-                      >
-                        {isPlayingBlessing ? (
-                          <>
-                            <Square className="h-3.5 w-3.5 fill-amber-700" />
-                            <span>Stop Voice</span>
-                          </>
-                        ) : (
-                          <>
-                            <Play className="h-3.5 w-3.5 fill-[#5266eb] text-[#5266eb] dark:fill-[#9cb4e8] dark:text-[#9cb4e8]" />
-                            <span>Play Blessing</span>
-                          </>
-                        )}
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={handlePlayBlessing}
+                          className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-medium transition ${
+                            isPlayingBlessing
+                              ? "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200"
+                              : "border border-slate-300 bg-card text-slate-800 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                          }`}
+                        >
+                          {isPlayingBlessing ? (
+                            <>
+                              <Square className="h-3.5 w-3.5 fill-amber-700" />
+                              <span>Stop Voice</span>
+                            </>
+                          ) : (
+                            <>
+                              <Play className="h-3.5 w-3.5 fill-[#5266eb] text-[#5266eb] dark:fill-[#9cb4e8] dark:text-[#9cb4e8]" />
+                              <span>Play Blessing</span>
+                            </>
+                          )}
+                        </button>
+
+                        <button
+                          onClick={handleDownloadBlessing}
+                          disabled={downloadingBlessing}
+                          title="Download blessing audio"
+                          className="flex items-center justify-center rounded-lg border border-slate-300 bg-card p-1.5 text-slate-600 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                        >
+                          <Download className={`h-3.5 w-3.5 ${downloadingBlessing ? "animate-pulse" : ""}`} />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Speed selector */}

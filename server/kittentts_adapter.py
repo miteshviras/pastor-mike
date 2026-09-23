@@ -37,13 +37,11 @@ KITTEN_VOICE_PROFILES = {
     "Leo": {"gender": "Male", "pitch": -4},
 }
 
-# pip resolves kittentts to whatever version is actually installable (see requirements.txt —
-# newer releases depend on an unpublished `misaki` version), which lands on 0.1.3, a much
-# older/simpler release than the "mini-0.8" model + Bella/Jasper-named voices this file was
-# originally written against. That version's real API takes no model ID (it always downloads
-# the "kitten-tts-nano-0.1" model) and only knows 8 voices named "expr-voice-{2,3,4,5}-{m,f}"
-# — conveniently also 4 male + 4 female, so each branded preset still maps onto a genuinely
-# distinct neural voice, just under a different real name.
+# The real KittenTTS voice ids are "expr-voice-{2,3,4,5}-{m,f}" (4 male + 4 female) on every
+# version, including the latest (0.8.1) — confirmed by reading kittentts/get_model.py directly,
+# which only exposes an optional, empty-by-default `voice_aliases` param with nothing populating
+# it. There is no built-in mapping to human names, so this app's own Bella/Jasper/etc. branded
+# presets are translated to real voice ids here, on every version, not just older ones.
 KITTEN_NEURAL_VOICE_MAP = {
     "Jasper": "expr-voice-2-m",
     "Bruno": "expr-voice-3-m",
@@ -58,11 +56,12 @@ KITTEN_NEURAL_VOICE_MAP = {
 _kitten_model = None
 
 def _get_kitten_model():
-    """Lazily loads and caches the KittenTTS model (first call downloads weights via huggingface_hub)."""
+    """Lazily loads and caches the KittenTTS model (first call downloads weights via
+    huggingface_hub, cached under the default HF cache dir — a mounted Docker volume)."""
     global _kitten_model
     if _kitten_model is None:
         from kittentts import KittenTTS  # type: ignore
-        _kitten_model = KittenTTS()
+        _kitten_model = KittenTTS("KittenML/kitten-tts-nano-0.8")
     return _kitten_model
 
 # Mirrors lib/voice/ttsTextCleaner.ts — keep both in sync if you change the rules in either.
@@ -276,7 +275,9 @@ def synthesize_kittentts(text: str, voice: str, speed: float, output_path: str) 
         silence = np.zeros(int(0.15 * 24000), dtype=np.float32)  # brief pause between sentences
         chunks = []
         for sentence in sentences:
-            chunk = np.asarray(model.generate(sentence, voice=neural_voice, speed=speed)).reshape(-1)
+            # clean_text=True (0.8.1+) expands numbers/currency/abbreviations — complements
+            # clean_speech_text() above, which handles markdown/emoji/bible-references instead.
+            chunk = np.asarray(model.generate(sentence, voice=neural_voice, speed=speed, clean_text=True)).reshape(-1)
             chunks.append(chunk)
             chunks.append(silence)
         audio = np.concatenate(chunks[:-1])
@@ -306,7 +307,9 @@ def synthesize_speech(text: str, voice: str = DEFAULT_VOICE, speed: float = 0.9,
     """
     Synthesizes speech to WAV file.
     Tries KittenTTS neural model, then Windows Speech, then Platform TTS.
-    Fails with non-zero exit code if unavailable, allowing client Web Speech API to speak.
+    Raises RuntimeError if no local engine produced audio, so callers (CLI, worker) decide
+    how to surface that — a worker process must not exit(1) here, that would kill it for
+    every future request too, not just this one.
     """
     # 1. Try the real KittenTTS neural model if installed
     if synthesize_kittentts(text, voice, speed, output_path):
@@ -330,10 +333,19 @@ def synthesize_speech(text: str, voice: str = DEFAULT_VOICE, speed: float = 0.9,
         except Exception:
             pass
 
-    # 4. If no local voice engine could generate real speech, exit with error
-    # This prevents playing dummy chimes and instructs Next.js /api/tts to fallback to browser speech synthesis
+    # 4. No local voice engine could generate real speech — this instructs Next.js /api/tts to
+    # fall back to the browser's Web Speech API instead of playing a dummy chime.
     print("[PastoralTTS] No local speech engine produced audio. Triggering browser speech fallback.", file=sys.stderr)
-    sys.exit(1)
+    raise RuntimeError("No local speech engine produced audio")
+
+
+def synthesize_file(text: str, voice: str = DEFAULT_VOICE, speed: float = 0.9, output_path: str = "output.wav") -> dict:
+    """CLI/worker-facing wrapper: synthesizes and returns a small result dict rather than a
+    bare path, mirroring stt_adapter.py's transcribe_file() shape for the same reason — both
+    the standalone CLI and the persistent worker call this one function."""
+    synthesize_speech(text, voice, speed, output_path)
+    return {"output": output_path, "engine": "kittentts"}
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Pastoral Speech Synthesis Adapter")
@@ -343,4 +355,7 @@ if __name__ == "__main__":
     parser.add_argument("--output", type=str, default="output.wav", help="Output WAV path")
     args = parser.parse_args()
 
-    synthesize_speech(args.text, args.voice, args.speed, args.output)
+    try:
+        synthesize_file(args.text, args.voice, args.speed, args.output)
+    except RuntimeError:
+        sys.exit(1)

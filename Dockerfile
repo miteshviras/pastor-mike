@@ -27,6 +27,14 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends python3 python3-pip python-is-python3 espeak-ng ffmpeg \
   && rm -rf /var/lib/apt/lists/*
 
+# Install CPU-only PyTorch *before* requirements.txt. KittenTTS 0.8.1's misaki[en] dependency
+# pulls in torch transitively (only for text tokenization/G2P — actual TTS inference stays on
+# ONNX Runtime), and pip's default index ships the CUDA/GPU build unless told otherwise —
+# confirmed empirically: that build drags in nvidia-cudnn/cublas/nccl/triton/etc., ~2GB+ of
+# libraries this GPU-less container can never use. Installing the CPU wheel first satisfies
+# misaki's loose `torch>=1.12.0` constraint, so pip never considers the GPU variant at all.
+RUN pip install --break-system-packages --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
+
 COPY requirements.txt ./
 # Debian 12 enforces PEP 668 (externally-managed-environment); --break-system-packages is
 # the pragmatic choice here since this container has exactly one purpose.

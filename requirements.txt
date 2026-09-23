@@ -1,9 +1,11 @@
-# Unpinned deliberately: on Python 3.11 (Debian bookworm's system python3, see Dockerfile),
-# pip's resolver should land on an older KittenTTS release whose `misaki` dependency pin is
-# actually published on PyPI. The newest release (0.8.1) requires misaki>=0.9.4, which has
-# never been published — pinning to 0.8.1 (e.g. via its wheel URL) reproduces that failure.
-# If this still fails to resolve, pin explicitly to the newest pre-misaki-bump release here.
-kittentts
+# KittenTTS 0.8.1 (real latest) is only published as a GitHub release wheel, never to PyPI
+# (PyPI tops out at 0.1.3), so it has to be installed by direct URL rather than by name.
+# Its misaki[en]>=0.9.4 dependency is now actually published (verified — this used to be an
+# unresolvable pin, see git history), so this resolves cleanly, but it pulls in a much heavier
+# chain than 0.1.3's pure-ONNX setup: spacy, curated-transformers, and PyTorch (~555MB) for
+# misaki's text-processing/G2P pipeline. Accepted tradeoff for the newer model + clean_text
+# support — actual TTS inference still runs on ONNX Runtime, not torch.
+https://github.com/KittenML/KittenTTS/releases/download/0.8.1/kittentts-0.8.1-py3-none-any.whl
 soundfile
 numpy
 

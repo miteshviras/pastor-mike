@@ -13,6 +13,7 @@ import {
   Heart,
   Copy,
   Check,
+  Download,
 } from "lucide-react";
 import {
   getVerseByReference,
@@ -43,6 +44,7 @@ export interface ChatMessageProps {
   onRestart?: (text: string) => void;
   onStop?: () => void;
   onSavePrayer?: (text: string) => Promise<boolean>;
+  onDownload?: (text: string) => Promise<void>;
   isSpeakingNow?: boolean;
   isPausedNow?: boolean;
 }
@@ -55,6 +57,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   onRestart,
   onStop,
   onSavePrayer,
+  onDownload,
   isSpeakingNow = false,
   isPausedNow = false,
 }) => {
@@ -64,6 +67,17 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     Boolean(metadata?.savedPrayerId),
   );
   const [savingPrayer, setSavingPrayer] = useState<boolean>(false);
+  const [downloadingAudio, setDownloadingAudio] = useState<boolean>(false);
+
+  const handleDownload = async () => {
+    if (!onDownload || downloadingAudio) return;
+    setDownloadingAudio(true);
+    try {
+      await onDownload(content);
+    } finally {
+      setDownloadingAudio(false);
+    }
+  };
 
   // Normalize prayer from metadata if only title was persisted
   const activePrayer =
@@ -183,6 +197,17 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   className="rounded-full p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition"
                 >
                   <Square className="h-3.5 w-3.5 fill-current" />
+                </button>
+              )}
+
+              {onDownload && (
+                <button
+                  onClick={handleDownload}
+                  disabled={downloadingAudio}
+                  title="Download this reply as audio"
+                  className="rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition disabled:opacity-50"
+                >
+                  <Download className={`h-3.5 w-3.5 ${downloadingAudio ? "animate-pulse" : ""}`} />
                 </button>
               )}
             </div>

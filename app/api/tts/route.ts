@@ -3,8 +3,14 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import fs from "node:fs";
 import path from "node:path";
+import { synthesizeViaWorker } from "@/lib/server/ttsWorker";
 
 const execFileAsync = promisify(execFile);
+
+// Mirrors KITTEN_VOICES in lib/voice/speech-client.ts and server/kittentts_adapter.py.
+const KITTEN_VOICES = new Set(["Bella", "Jasper", "Luna", "Bruno", "Rosie", "Hugo", "Kiki", "Leo"]);
+const MIN_SPEED = 0.5;
+const MAX_SPEED = 2.0;
 
 // GET /api/tts — Check KittenTTS installation and model status
 export async function GET() {
@@ -52,34 +58,30 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. TTS Speech Synthesis
-    const { text, voice = "Jasper", speed = 0.9 } = body;
+    const { text, voice: rawVoice = "Jasper", speed: rawSpeed = 0.9 } = body;
 
     if (!text || typeof text !== "string" || !text.trim()) {
       return NextResponse.json({ error: "Text is required" }, { status: 400 });
     }
 
-    // Try executing local KittenTTS Python adapter if python is available
+    // Validate at the boundary — these come straight from client JSON and previously went
+    // straight into a shell-invoked script unchecked.
+    const voice = KITTEN_VOICES.has(rawVoice) ? rawVoice : "Jasper";
+    const speedNum = typeof rawSpeed === "number" ? rawSpeed : parseFloat(rawSpeed);
+    const speed = Number.isFinite(speedNum) ? Math.min(MAX_SPEED, Math.max(MIN_SPEED, speedNum)) : 0.9;
+
     const dataDir = path.join(process.cwd(), "data");
     if (!fs.existsSync(dataDir)) {
       fs.mkdirSync(dataDir, { recursive: true });
     }
 
     const tempAudioFile = path.join(dataDir, `tts_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.wav`);
-    const scriptPath = path.join(process.cwd(), "server", "kittentts_adapter.py");
 
     try {
-      await execFileAsync("python", [
-        scriptPath,
-        "--text",
-        text.substring(0, 800),
-        "--voice",
-        voice,
-        "--speed",
-        String(speed),
-        "--output",
-        tempAudioFile,
-      ], { timeout: 45000 }); // KittenTTS synthesizes sentence-by-sentence (see kittentts_adapter.py);
-      // a near-800-char response measured ~21s, so 15s was cutting real synthesis off mid-run.
+      // No text truncation here — synthesize_kittentts() already chunks by sentence
+      // internally to work around the model's fixed max input length, so arbitrary-length
+      // text (including a full message for the download-audio feature) is safe end to end.
+      await synthesizeViaWorker(text, voice, speed, tempAudioFile);
 
       if (fs.existsSync(tempAudioFile)) {
         const audioBuffer = fs.readFileSync(tempAudioFile);
