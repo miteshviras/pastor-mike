@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   X,
   History,
@@ -14,6 +14,9 @@ import {
   ListChecks,
   Square,
   CheckSquare,
+  Settings,
+  UserCircle,
+  Volume2,
 } from "lucide-react";
 import type { SessionWithStats } from "@/lib/db";
 
@@ -26,6 +29,9 @@ interface VisitHistorySidebarProps {
   refreshKey?: number;
   onSelectSession: (sessionId: string) => void;
   onNewSession: () => void;
+  onOpenSettings: () => void;
+  onOpenProfile: () => void;
+  onOpenTestAudio: () => void;
 }
 
 function formatVisitDate(isoString: string) {
@@ -64,6 +70,9 @@ export const VisitHistorySidebar: React.FC<VisitHistorySidebarProps> = ({
   refreshKey,
   onSelectSession,
   onNewSession,
+  onOpenSettings,
+  onOpenProfile,
+  onOpenTestAudio,
 }) => {
   const [sessions, setSessions] = useState<SessionWithStats[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -71,6 +80,26 @@ export const VisitHistorySidebar: React.FC<VisitHistorySidebarProps> = ({
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
+  const settingsMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close the settings popover when clicking outside it — mirrors Header's mobile dropdown.
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        settingsMenuRef.current &&
+        !settingsMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsSettingsMenuOpen(false);
+      }
+    }
+    if (isSettingsMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isSettingsMenuOpen]);
 
   // The sidebar is always mounted on desktop (isOpen only controls the separate mobile drawer,
   // via `hidden md:flex` — it doesn't gate whether this component itself is in the DOM), so
@@ -366,8 +395,66 @@ export const VisitHistorySidebar: React.FC<VisitHistorySidebarProps> = ({
           </button>
         </div>
       ) : (
-        <div className="border-t border-border-subtle px-4 py-2.5 text-[10px] text-slate-500 dark:text-slate-400">
-          {sessions.length} total visits recorded in local SQLite
+        <div className="relative flex items-center justify-between border-t border-border-subtle px-4 py-2.5">
+          <span className="text-[10px] text-slate-500 dark:text-slate-400">
+            {sessions.length} total visits recorded in local SQLite
+          </span>
+
+          <div ref={settingsMenuRef} className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setIsSettingsMenuOpen((v) => !v)}
+              title="Settings, profile & audio testing"
+              className={`flex h-7 w-7 items-center justify-center rounded-full border transition ${
+                isSettingsMenuOpen
+                  ? "border-[#5266eb]/40 bg-[#5266eb]/10 text-[#5266eb] dark:text-[#9cb4e8]"
+                  : "border-slate-200/80 text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
+              }`}
+            >
+              <Settings className="h-3.5 w-3.5" />
+            </button>
+
+            {isSettingsMenuOpen && (
+              <div className="absolute bottom-full right-0 z-20 mb-2 w-48 rounded-xl border border-border-subtle bg-card p-1.5 shadow-elevated">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSettingsMenuOpen(false);
+                    onOpenSettings();
+                    if (closeOnAction) onClose();
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-card-foreground transition hover:bg-accent"
+                >
+                  <Settings className="h-3.5 w-3.5 text-[#5266eb]" />
+                  <span>Settings</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSettingsMenuOpen(false);
+                    onOpenProfile();
+                    if (closeOnAction) onClose();
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-card-foreground transition hover:bg-accent"
+                >
+                  <UserCircle className="h-3.5 w-3.5 text-[#5266eb]" />
+                  <span>Profile</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSettingsMenuOpen(false);
+                    onOpenTestAudio();
+                    if (closeOnAction) onClose();
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-card-foreground transition hover:bg-accent"
+                >
+                  <Volume2 className="h-3.5 w-3.5 text-[#5266eb]" />
+                  <span>Test TTS &amp; STT</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </>

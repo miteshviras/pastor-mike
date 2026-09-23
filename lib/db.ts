@@ -443,3 +443,37 @@ export function saveProviderSettings(userId: string, settings: Partial<AiProvide
   return merged;
 }
 
+// Profile Helpers — "preferred_name" is the same key orchestrator.ts's memory extraction
+// writes to after a Gemini/Ollama turn, so a name set here or inferred from conversation
+// both land in one place and the most recently saved one wins.
+const CARE_TOPICS_KEY = "care_topics";
+
+export interface Profile {
+  name: string;
+  topics: string[];
+}
+
+export function getProfile(userId: string): Profile {
+  const name = loadMemory(userId, "preferred_name") || "";
+  const rawTopics = loadMemory(userId, CARE_TOPICS_KEY);
+  let topics: string[] = [];
+  if (rawTopics) {
+    try {
+      topics = JSON.parse(rawTopics);
+    } catch {
+      topics = [];
+    }
+  }
+  return { name, topics };
+}
+
+export function saveProfile(userId: string, profile: Partial<Profile>): Profile {
+  if (profile.name !== undefined) {
+    saveMemory(userId, "preferred_name", profile.name);
+  }
+  if (profile.topics !== undefined) {
+    saveMemory(userId, CARE_TOPICS_KEY, JSON.stringify(profile.topics));
+  }
+  return getProfile(userId);
+}
+

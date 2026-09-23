@@ -32,8 +32,18 @@ interface OnboardingModalProps {
   }) => void;
   sessionId: string | null;
   initialTab?: "guide" | "settings";
+  // When set, renders only that one section — no top-level tabs, no step chrome — instead of
+  // the full guided wizard. Used by the sidebar's settings popover so Settings/Profile/Test
+  // Audio each open as their own focused view rather than being buried in the combined modal.
+  singleView?: "settings" | "profile" | "test-audio";
   onProviderChange?: (provider: string) => void;
 }
+
+const SINGLE_VIEW_LABELS: Record<"settings" | "profile" | "test-audio", string> = {
+  settings: "AI Reasoning Engine",
+  profile: "Your name & care topics",
+  "test-audio": "Test voice & microphone",
+};
 
 const CARE_TOPICS = [
   { id: "anxiety", label: "Anxiety & Peace" },
@@ -58,10 +68,17 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   onComplete,
   sessionId: _sessionId,
   initialTab = "guide",
+  singleView,
   onProviderChange,
 }) => {
   const [topTab, setTopTab] = useState<"guide" | "settings">(initialTab);
   const [step, setStep] = useState<1 | 2>(1);
+
+  // In single-view mode, the underlying content conditionals below (topTab === "guide" / "settings"
+  // and step === 1 / 2) stay exactly as they are — we just point them at the requested section
+  // instead of local tab/step state, and hide the tab bar + stepper chrome around them.
+  const effectiveTopTab = singleView === "settings" ? "settings" : topTab;
+  const effectiveStep = singleView === "profile" ? 1 : singleView === "test-audio" ? 2 : step;
 
   // Step 1: Persona & Profile
   const [userName, setUserName] = useState<string>("");
@@ -184,6 +201,29 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
       }
     }
     loadSettings();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
+
+  // Fetch previously saved profile (name & care topics) whenever the modal opens, so
+  // reopening Profile shows what was saved last time instead of always starting blank.
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+
+    async function loadProfile() {
+      try {
+        const res = await fetch("/api/profile");
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        if (data.profile?.name) setUserName(data.profile.name);
+        if (data.profile?.topics?.length > 0) setSelectedTopics(data.profile.topics);
+      } catch {
+        // Keep defaults
+      }
+    }
+    loadProfile();
     return () => {
       cancelled = true;
     };
@@ -379,6 +419,19 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
       localStorage.setItem("pastor_mike_onboarded", "true");
     }
 
+    try {
+      await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: userName.trim() || "Friend",
+          topics: selectedTopics,
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to save profile:", err);
+    }
+
     onComplete({
       name: userName.trim() || "Friend",
       topics: selectedTopics,
@@ -401,7 +454,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 Pastor Mike
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Setup Guide & AI Settings
+                {singleView ? SINGLE_VIEW_LABELS[singleView] : "Setup Guide & AI Settings"}
               </p>
             </div>
           </div>
@@ -415,36 +468,39 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
           </button>
         </div>
 
-        {/* Top-Level Tabs: Setup Guide vs Settings */}
-        <div className="grid grid-cols-2 border-b border-slate-200/80 bg-slate-100/50 text-xs font-medium dark:border-slate-800 dark:bg-slate-950/40">
-          <button
-            onClick={() => setTopTab("guide")}
-            className={`flex items-center justify-center gap-1.5 py-3 border-b-2 transition ${
-              topTab === "guide"
-                ? "border-[#5266eb] text-[#5266eb] font-semibold dark:border-[#9cb4e8] dark:text-[#9cb4e8]"
-                : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400"
-            }`}
-          >
-            <Compass className="h-3.5 w-3.5" />
-            <span>Setup Guide</span>
-          </button>
+        {/* Top-Level Tabs: Setup Guide vs Settings — hidden in single-view mode */}
+        {!singleView && (
+          <div className="grid grid-cols-2 border-b border-slate-200/80 bg-slate-100/50 text-xs font-medium dark:border-slate-800 dark:bg-slate-950/40">
+            <button
+              onClick={() => setTopTab("guide")}
+              className={`flex items-center justify-center gap-1.5 py-3 border-b-2 transition ${
+                topTab === "guide"
+                  ? "border-[#5266eb] text-[#5266eb] font-semibold dark:border-[#9cb4e8] dark:text-[#9cb4e8]"
+                  : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400"
+              }`}
+            >
+              <Compass className="h-3.5 w-3.5" />
+              <span>Setup Guide</span>
+            </button>
 
-          <button
-            onClick={() => setTopTab("settings")}
-            className={`flex items-center justify-center gap-1.5 py-3 border-b-2 transition ${
-              topTab === "settings"
-                ? "border-[#5266eb] text-[#5266eb] font-semibold dark:border-[#9cb4e8] dark:text-[#9cb4e8]"
-                : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400"
-            }`}
-          >
-            <Cpu className="h-3.5 w-3.5" />
-            <span>Settings</span>
-          </button>
-        </div>
+            <button
+              onClick={() => setTopTab("settings")}
+              className={`flex items-center justify-center gap-1.5 py-3 border-b-2 transition ${
+                topTab === "settings"
+                  ? "border-[#5266eb] text-[#5266eb] font-semibold dark:border-[#9cb4e8] dark:text-[#9cb4e8]"
+                  : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400"
+              }`}
+            >
+              <Cpu className="h-3.5 w-3.5" />
+              <span>Settings</span>
+            </button>
+          </div>
+        )}
 
-        {topTab === "guide" ? (
+        {effectiveTopTab === "guide" ? (
           <>
-            {/* Step Indicator (visually separated from the top-level tabs as a boxed stepper) */}
+            {/* Step Indicator — hidden in single-view mode, since only one section renders */}
+            {!singleView && (
             <div className="mx-4 mt-3 flex gap-1.5 rounded-xl border border-slate-200 bg-slate-50/60 p-1 text-xs font-medium dark:border-slate-800 dark:bg-slate-950/20">
               <button
                 onClick={() => setStep(1)}
@@ -477,11 +533,12 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 )}
               </button>
             </div>
+            )}
 
             {/* Modal Body Content */}
             <div className="flex-1 overflow-y-auto p-6">
               {/* STEP 1: ONBOARDING */}
-              {step === 1 && (
+              {effectiveStep === 1 && (
                 <div className="space-y-5">
                   <div className="rounded-xl border border-slate-200 bg-card/70 p-4 dark:border-slate-800 dark:bg-slate-800/50">
                     <div className="flex items-start gap-3">
@@ -555,7 +612,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               )}
 
               {/* STEP 2: TEST STT & TTS + KITTENTTS AUTO-DOWNLOAD */}
-              {step === 2 && (
+              {effectiveStep === 2 && (
                 <div className="space-y-5">
                   {/* KittenTTS Engine Status Card & 1-Click Downloader */}
                   <div className="rounded-xl border border-slate-200 bg-card/70 p-4 dark:border-slate-800 dark:bg-slate-800/50">
@@ -792,42 +849,62 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
             </div>
 
             {/* Footer Navigation Controls */}
-            <div className="flex items-center justify-between border-t border-slate-200/80 bg-[#f7f4ed] px-6 py-4 dark:border-slate-800 dark:bg-[#181716]">
-              {step > 1 ? (
-                <button
-                  onClick={() => setStep(1)}
-                  className="flex items-center gap-1 rounded-lg border border-slate-200 bg-card px-3.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                >
-                  <ArrowLeft className="h-3.5 w-3.5" />
-                  <span>Previous</span>
-                </button>
-              ) : (
+            {singleView ? (
+              <div className="flex items-center justify-end gap-2 border-t border-slate-200/80 bg-[#f7f4ed] px-6 py-4 dark:border-slate-800 dark:bg-[#181716]">
                 <button
                   onClick={onClose}
-                  className="text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                  className="rounded-lg border border-slate-200 bg-card px-3.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
                 >
-                  Skip Setup
+                  Close
                 </button>
-              )}
+                {singleView === "profile" && (
+                  <button
+                    onClick={handleFinish}
+                    className="flex items-center gap-1.5 rounded-lg bg-[#5266eb] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#3f52c9] dark:bg-[#5266eb] dark:hover:bg-[#4d664a]"
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                    <span>Save Profile</span>
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center justify-between border-t border-slate-200/80 bg-[#f7f4ed] px-6 py-4 dark:border-slate-800 dark:bg-[#181716]">
+                {step > 1 ? (
+                  <button
+                    onClick={() => setStep(1)}
+                    className="flex items-center gap-1 rounded-lg border border-slate-200 bg-card px-3.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    <span>Previous</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={onClose}
+                    className="text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                  >
+                    Skip Setup
+                  </button>
+                )}
 
-              {step < 2 ? (
-                <button
-                  onClick={() => setStep(2)}
-                  className="flex items-center gap-1.5 rounded-lg bg-[#5266eb] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#3f52c9] dark:bg-[#5266eb] dark:hover:bg-[#4d664a]"
-                >
-                  <span>Continue</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </button>
-              ) : (
-                <button
-                  onClick={handleFinish}
-                  className="flex items-center gap-1.5 rounded-lg bg-[#5266eb] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#3f52c9] dark:bg-[#5266eb] dark:hover:bg-[#4d664a]"
-                >
-                  <Sparkles className="h-3.5 w-3.5 text-amber-300" />
-                  <span>Enter Sanctuary</span>
-                </button>
-              )}
-            </div>
+                {step < 2 ? (
+                  <button
+                    onClick={() => setStep(2)}
+                    className="flex items-center gap-1.5 rounded-lg bg-[#5266eb] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#3f52c9] dark:bg-[#5266eb] dark:hover:bg-[#4d664a]"
+                  >
+                    <span>Continue</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleFinish}
+                    className="flex items-center gap-1.5 rounded-lg bg-[#5266eb] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#3f52c9] dark:bg-[#5266eb] dark:hover:bg-[#4d664a]"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+                    <span>Enter Sanctuary</span>
+                  </button>
+                )}
+              </div>
+            )}
           </>
         ) : (
           <>

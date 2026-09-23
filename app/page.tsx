@@ -64,7 +64,7 @@ export default function Home() {
   // of only updating on a hard refresh.
   const [historyRefreshTick, setHistoryRefreshTick] = useState(0);
   const [guideModalTab, setGuideModalTab] = useState<
-    "guide" | "settings" | null
+    "guide" | "settings" | "profile" | "test-audio" | null
   >(null);
   const [latestSafety, setLatestSafety] = useState<SafetyCheckResult | null>(
     null,
@@ -636,6 +636,9 @@ export default function Home() {
             setIsHistoryOpen(false);
             handleNewSession();
           }}
+          onOpenSettings={() => setGuideModalTab("settings")}
+          onOpenProfile={() => setGuideModalTab("profile")}
+          onOpenTestAudio={() => setGuideModalTab("test-audio")}
         />
 
         <div className="flex flex-1 flex-col overflow-hidden">
@@ -787,11 +790,19 @@ export default function Home() {
         }}
       />
 
-      {/* Setup Guide & AI Settings Modal (tabbed) */}
+      {/* Setup Guide & AI Settings Modal — full tabbed wizard for "guide", a single
+          focused view (no tabs/stepper) for "settings"/"profile"/"test-audio" */}
       <OnboardingModal
         key={guideModalTab ?? "closed"}
         isOpen={guideModalTab !== null}
-        initialTab={guideModalTab ?? "guide"}
+        initialTab={guideModalTab === "settings" ? "settings" : "guide"}
+        singleView={
+          guideModalTab === "settings" ||
+          guideModalTab === "profile" ||
+          guideModalTab === "test-audio"
+            ? guideModalTab
+            : undefined
+        }
         onClose={() => setGuideModalTab(null)}
         onComplete={handleCompleteOnboarding}
         sessionId={sessionId}
