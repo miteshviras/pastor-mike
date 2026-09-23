@@ -75,6 +75,10 @@ export default function Home() {
   const [isSpeakingPaused, setIsSpeakingPaused] = useState(false);
   const [speakingText, setSpeakingText] = useState("");
   const [isPraying, setIsPraying] = useState(false);
+  // True from the moment a (re)play is requested until that audio actually starts (or fails/
+  // gets superseded) — covers the network/synthesis gap so the UI can show a loading state
+  // instead of nothing changing.
+  const [isSpeechLoading, setIsSpeechLoading] = useState(false);
   const inputTextRef = useRef(inputText);
   inputTextRef.current = inputText;
   const baseInputRef = useRef("");
@@ -85,10 +89,17 @@ export default function Home() {
   const speechClientRef = useRef<PastoralSpeechClient | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Paces the last assistant reply's text reveal to match TTS playback, for the
-  // Pastor Stage's current-turn view (Live Pastor mode).
+  // Paces the currently-playing reply's text reveal to match TTS playback, for the
+  // Pastor Stage's transcript view (Live Pastor mode) — not necessarily the latest reply,
+  // since any past reply can be selected and dictated from that view.
   const lastAssistantMessage = [...messages].reverse().find((m) => m.role === "assistant");
-  const sentenceSync = useSentenceSync(lastAssistantMessage?.content ?? "", isSpeaking);
+  const assistantMessages = messages.filter((m) => m.role === "assistant");
+  const isSpeechSessionActive = isSpeaking || isSpeechLoading;
+  const activeSpeakingMessage = isSpeechSessionActive
+    ? assistantMessages.find((m) => m.content === speakingText)
+    : undefined;
+  const displayedMessage = activeSpeakingMessage ?? lastAssistantMessage;
+  const sentenceSync = useSentenceSync(displayedMessage?.content ?? "", isSpeaking);
   const sentenceSyncRef = useRef(sentenceSync);
   sentenceSyncRef.current = sentenceSync;
 
@@ -111,6 +122,7 @@ export default function Home() {
         onSpeakingStateChange: (speaking, paused) => {
           setIsSpeaking(speaking);
           setIsSpeakingPaused(Boolean(paused));
+          setIsSpeechLoading(false);
           if (!speaking) {
             setSpeakingText("");
             currentPrayerTextRef.current = null;
@@ -402,8 +414,14 @@ export default function Home() {
           ? `${data.reply} Let us pray together. ${data.prayer.text}`
           : data.reply;
         currentPrayerTextRef.current = data.prayer ? data.prayer.text : null;
-        setSpeakingText(speechText);
+        // speakText() internally stops any prior speech first, which synchronously fires
+        // onSpeakingStateChange(false, ...) and clears speakingText/loading — call it before
+        // setting them so our values (set after) are the ones that stick.
         speechClientRef.current.speakText(speechText);
+        // Tracked as data.reply (not speechText, which also carries the prayer suffix), so it
+        // matches assistantMsg.content the same way every other speakingText consumer expects.
+        setSpeakingText(data.reply);
+        setIsSpeechLoading(true);
       }
     } catch (err) {
       console.error("Error sending message:", err);
@@ -421,17 +439,25 @@ export default function Home() {
   };
 
   const handleTogglePlayPause = (text: string) => {
-    if (speechClientRef.current) {
-      setSpeakingText(text);
-      speechClientRef.current.togglePlayPause(text);
-    }
+    if (!speechClientRef.current) return;
+    // Mirrors PastoralSpeechClient.togglePlayPause()'s own condition for "this will (re)start
+    // speech from scratch" vs "this just pauses/resumes what's already playing" — used below
+    // to know whether a loading state is warranted.
+    const willLoad = !isSpeaking || speakingText !== text;
+    // Call the client FIRST: if it's switching messages, it synchronously stops the old
+    // speech, which fires onSpeakingStateChange(false, ...) and clears speakingText/loading —
+    // setting them again below (after, not before) ensures our values are what the resulting
+    // render actually sees, instead of being clobbered by that nested reset.
+    speechClientRef.current.togglePlayPause(text);
+    setSpeakingText(text);
+    if (willLoad) setIsSpeechLoading(true);
   };
 
   const handleRestartSpeaking = (text: string) => {
-    if (speechClientRef.current) {
-      setSpeakingText(text);
-      speechClientRef.current.restartSpeaking(text);
-    }
+    if (!speechClientRef.current) return;
+    speechClientRef.current.restartSpeaking(text);
+    setSpeakingText(text);
+    setIsSpeechLoading(true);
   };
 
   const handleStopSpeaking = () => {
@@ -690,7 +716,8 @@ export default function Home() {
                 transition={{ duration: 0.25, ease: "easeOut" }}
               >
                 <PastorStage
-                  assistantText={lastAssistantMessage?.content ?? ""}
+                  assistantText={displayedMessage?.content ?? ""}
+                  assistantMessages={assistantMessages}
                   revealedText={sentenceSync.revealedText}
                   sentences={sentenceSync.sentences}
                   currentSentenceIndex={sentenceSync.currentSentenceIndex}
@@ -698,9 +725,11 @@ export default function Home() {
                   isSpeaking={isSpeaking}
                   isPaused={isSpeakingPaused}
                   isPraying={isPraying}
+                  isSpeechLoading={isSpeechLoading}
                   onTogglePlayPause={handleTogglePlayPause}
                   onRestart={handleRestartSpeaking}
                   onStop={handleStopSpeaking}
+                  onDownload={handleDownloadAudio}
                 />
               </motion.div>
             ) : (
