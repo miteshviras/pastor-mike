@@ -78,7 +78,8 @@ export async function POST(req: NextRequest) {
         String(speed),
         "--output",
         tempAudioFile,
-      ], { timeout: 15000 });
+      ], { timeout: 45000 }); // KittenTTS synthesizes sentence-by-sentence (see kittentts_adapter.py);
+      // a near-800-char response measured ~21s, so 15s was cutting real synthesis off mid-run.
 
       if (fs.existsSync(tempAudioFile)) {
         const audioBuffer = fs.readFileSync(tempAudioFile);
@@ -94,8 +95,12 @@ export async function POST(req: NextRequest) {
           },
         });
       }
-    } catch {
-      // If Python fails or times out, fallback to browser speech synthesis
+    } catch (err) {
+      // If Python fails or times out, fallback to browser speech synthesis — but log why,
+      // since silently swallowing this made real synthesis failures indistinguishable from
+      // "no local engine available" during earlier debugging.
+      const detail = err && typeof err === "object" && "stderr" in err ? (err as { stderr?: string }).stderr : err;
+      console.error("[api/tts] Python synthesis failed, falling back to browser TTS:", detail);
     }
 
     // Fallback response instructs the client to synthesize locally via Web Speech API

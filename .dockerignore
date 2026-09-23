@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+data
+models
+*.db
+*.db-journal
+*.db-wal
+*.wav
+*.onnx
+.env
+.env.local
+.env.*.local
+npm-debug.log*
+.vscode
+.DS_Store

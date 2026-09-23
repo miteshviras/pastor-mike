@@ -16,23 +16,43 @@ import subprocess
 import re
 
 # Real KittenTTS model + voices: https://github.com/KittenML/KittenTTS
-KITTEN_MODEL_ID = "KittenML/kitten-tts-mini-0.8"
 DEFAULT_VOICE = "Jasper"
 KITTEN_VOICES = ["Bella", "Jasper", "Luna", "Bruno", "Rosie", "Hugo", "Kiki", "Leo"]
 
-# ponytail: SAPI/Windows fallback has no Jasper/Luna/etc. voices, only whatever the OS ships.
-# Map each preset onto a gender + pitch shift of an installed SAPI voice so presets are at
-# least audibly distinct. Upgrade path: real per-voice timbre once synthesize_kittentts()
-# can actually install (see the KittenTTS neural model path above).
+# ponytail: SAPI/Windows fallback has no Jasper/Luna/etc. voices, only whatever the OS ships
+# (typically exactly one male + one female voice — "Microsoft David"/"Microsoft Zira" on
+# stock Windows). Map each preset onto a gender + pitch shift of that installed voice so
+# presets are at least audibly distinct. Measured empirically: SAPI's SSML prosody pitch is
+# NOT 1:1 with real semitones (a requested 20st swing only produced ~11 semitones of actual
+# shift), so the spread here is wider than "20 real semitones" would need, to stay clearly
+# audible between adjacent presets of the same gender.
 KITTEN_VOICE_PROFILES = {
-    "Bella": {"gender": "Female", "pitch": 2},
+    "Bella": {"gender": "Female", "pitch": 0},
     "Jasper": {"gender": "Male", "pitch": 0},
-    "Luna": {"gender": "Female", "pitch": -2},
-    "Bruno": {"gender": "Male", "pitch": -4},
-    "Rosie": {"gender": "Female", "pitch": 4},
-    "Hugo": {"gender": "Male", "pitch": 3},
-    "Kiki": {"gender": "Female", "pitch": 6},
-    "Leo": {"gender": "Male", "pitch": -1},
+    "Luna": {"gender": "Female", "pitch": -8},
+    "Bruno": {"gender": "Male", "pitch": -9},
+    "Rosie": {"gender": "Female", "pitch": 6},
+    "Hugo": {"gender": "Male", "pitch": 7},
+    "Kiki": {"gender": "Female", "pitch": 10},
+    "Leo": {"gender": "Male", "pitch": -4},
+}
+
+# pip resolves kittentts to whatever version is actually installable (see requirements.txt —
+# newer releases depend on an unpublished `misaki` version), which lands on 0.1.3, a much
+# older/simpler release than the "mini-0.8" model + Bella/Jasper-named voices this file was
+# originally written against. That version's real API takes no model ID (it always downloads
+# the "kitten-tts-nano-0.1" model) and only knows 8 voices named "expr-voice-{2,3,4,5}-{m,f}"
+# — conveniently also 4 male + 4 female, so each branded preset still maps onto a genuinely
+# distinct neural voice, just under a different real name.
+KITTEN_NEURAL_VOICE_MAP = {
+    "Jasper": "expr-voice-2-m",
+    "Bruno": "expr-voice-3-m",
+    "Hugo": "expr-voice-4-m",
+    "Leo": "expr-voice-5-m",
+    "Bella": "expr-voice-2-f",
+    "Luna": "expr-voice-3-f",
+    "Rosie": "expr-voice-4-f",
+    "Kiki": "expr-voice-5-f",
 }
 
 _kitten_model = None
@@ -42,7 +62,7 @@ def _get_kitten_model():
     global _kitten_model
     if _kitten_model is None:
         from kittentts import KittenTTS  # type: ignore
-        _kitten_model = KittenTTS(KITTEN_MODEL_ID)
+        _kitten_model = KittenTTS()
     return _kitten_model
 
 def clean_speech_text(text: str) -> str:
@@ -117,14 +137,36 @@ $synth.Dispose()
         return False
 
 def synthesize_kittentts(text: str, voice: str, speed: float, output_path: str) -> bool:
-    """Synthesizes speech using the real KittenTTS neural model (kitten-tts-mini)."""
+    """Synthesizes speech using the real KittenTTS neural model (kitten-tts-nano).
+
+    Chunks the text into sentences and synthesizes + concatenates each separately, rather
+    than passing the whole text to model.generate() in one call. Empirically confirmed: the
+    nano model's ONNX graph throws "invalid expand shape" (ONNXRuntimeError) on longer
+    multi-sentence/paragraph text (e.g. a real ~900-char pastoral response) even though any
+    single sentence from that same text synthesizes fine on its own — this looks like a fixed
+    max input length in the exported graph, not a text-content issue.
+    """
     try:
         clean_text = clean_speech_text(text)
         if not clean_text:
             return False
 
+        import numpy as np
+
         model = _get_kitten_model()
-        audio = model.generate(clean_text, voice=voice, speed=speed)
+        neural_voice = KITTEN_NEURAL_VOICE_MAP.get(voice, "expr-voice-2-m")
+
+        sentences = [s for s in re.split(r'(?<=[.!?])\s+', clean_text) if s.strip()]
+        if not sentences:
+            sentences = [clean_text]
+
+        silence = np.zeros(int(0.15 * 24000), dtype=np.float32)  # brief pause between sentences
+        chunks = []
+        for sentence in sentences:
+            chunk = np.asarray(model.generate(sentence, voice=neural_voice, speed=speed)).reshape(-1)
+            chunks.append(chunk)
+            chunks.append(silence)
+        audio = np.concatenate(chunks[:-1])
 
         try:
             import soundfile as sf
@@ -132,7 +174,6 @@ def synthesize_kittentts(text: str, voice: str, speed: float, output_path: str) 
         except ImportError:
             # soundfile not installed: write PCM16 WAV via stdlib
             import wave
-            import numpy as np
             pcm = (np.clip(audio, -1.0, 1.0) * 32767).astype(np.int16)
             with wave.open(output_path, "wb") as wf:
                 wf.setnchannels(1)
@@ -141,7 +182,7 @@ def synthesize_kittentts(text: str, voice: str, speed: float, output_path: str) 
                 wf.writeframes(pcm.tobytes())
 
         if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
-            print(f"[PastoralTTS] KittenTTS ({KITTEN_MODEL_ID}, voice={voice}) synthesized audio.")
+            print(f"[PastoralTTS] KittenTTS (voice={voice} -> {neural_voice}, {len(sentences)} sentence(s)) synthesized audio.")
             return True
         return False
     except Exception as e:
@@ -154,7 +195,7 @@ def synthesize_speech(text: str, voice: str = DEFAULT_VOICE, speed: float = 0.9,
     Tries KittenTTS neural model, then Windows Speech, then Platform TTS.
     Fails with non-zero exit code if unavailable, allowing client Web Speech API to speak.
     """
-    # 1. Try the real KittenTTS neural model (kitten-tts-mini) if installed
+    # 1. Try the real KittenTTS neural model if installed
     if synthesize_kittentts(text, voice, speed, output_path):
         return output_path
 

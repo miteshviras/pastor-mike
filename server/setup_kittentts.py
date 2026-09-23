@@ -13,10 +13,13 @@ import subprocess
 MODELS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models", "kittentts")
 CONFIG_FILE = os.path.join(MODELS_DIR, "config.json")
 
-KITTEN_MODEL_ID = "KittenML/kitten-tts-mini-0.8"
+# pip resolves kittentts to whatever version is actually installable (see requirements.txt),
+# currently 0.1.3, which always downloads "kitten-tts-nano-0.1" regardless of what's requested
+# — kept here only for the status JSON's informational "model_id" field, not passed to the
+# library. See the matching note in kittentts_adapter.py.
+KITTEN_MODEL_ID = "KittenML/kitten-tts-nano-0.1"
 DEFAULT_VOICE = "Jasper"
 KITTEN_VOICES = ["Bella", "Jasper", "Luna", "Bruno", "Rosie", "Hugo", "Kiki", "Leo"]
-WHEEL_URL = "https://github.com/KittenML/KittenTTS/releases/download/0.8.1/kittentts-0.8.1-py3-none-any.whl"
 
 def check_status() -> dict:
     """Checks if the KittenTTS library and its model weights are available."""
@@ -26,7 +29,9 @@ def check_status() -> dict:
     try:
         import kittentts  # type: ignore
         has_library = True
-        lib_version = getattr(kittentts, "__version__", "0.8.1")
+        # pip resolves whatever version is actually compatible (see requirements.txt) — not
+        # necessarily the newest release — so there's no single correct hardcoded fallback here.
+        lib_version = getattr(kittentts, "__version__", "unknown")
     except ImportError:
         has_library = False
 
@@ -48,13 +53,15 @@ def download_model() -> dict:
     """Installs the KittenTTS package and warms its model cache for kitten-tts-mini."""
     os.makedirs(MODELS_DIR, exist_ok=True)
     download_success = False
-    method_used = "pip_wheel"
+    method_used = "pip"
     error_detail = None
 
-    # Step 1: pip install the KittenTTS wheel
+    # Step 1: pip install KittenTTS. Deliberately unpinned — see requirements.txt for why
+    # pinning to a specific wheel (e.g. the newest release) can pull in an unpublished
+    # transitive dependency and fail; letting pip's resolver choose avoids that.
     try:
         result = subprocess.run(
-            [sys.executable, "-m", "pip", "install", WHEEL_URL, "--no-warn-script-location"],
+            [sys.executable, "-m", "pip", "install", "kittentts", "--no-warn-script-location"],
             capture_output=True,
             text=True,
             timeout=60

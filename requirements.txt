@@ -1,0 +1,8 @@
+# Unpinned deliberately: on Python 3.11 (Debian bookworm's system python3, see Dockerfile),
+# pip's resolver should land on an older KittenTTS release whose `misaki` dependency pin is
+# actually published on PyPI. The newest release (0.8.1) requires misaki>=0.9.4, which has
+# never been published — pinning to 0.8.1 (e.g. via its wheel URL) reproduces that failure.
+# If this still fails to resolve, pin explicitly to the newest pre-misaki-bump release here.
+kittentts
+soundfile
+numpy

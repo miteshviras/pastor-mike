@@ -63,12 +63,20 @@ interface ISpeechRecognition {
   onresult: ((event: SpeechRecognitionEvent) => void) | null;
 }
 
+// Words per TTS request — small enough that the first chunk starts playing almost
+// immediately instead of waiting for the whole response to synthesize (a long pastoral
+// reply could otherwise take 20s+ before any audio starts).
+const WORDS_PER_CHUNK = 12;
+
 export class PastoralSpeechClient {
   private recognition: ISpeechRecognition | null = null;
   private currentAudio: HTMLAudioElement | null = null;
   private isSpeaking = false;
   private isListening = false;
   private options: SpeechClientOptions;
+  // Incremented on every stopSpeaking()/new speakText() call so an in-flight chunk loop
+  // notices it's been superseded and stops fetching/playing further chunks.
+  private speakGeneration = 0;
 
   constructor(options: SpeechClientOptions = {}) {
     this.options = {
@@ -170,15 +178,19 @@ export class PastoralSpeechClient {
     }
   }
 
-  // Speak text with KittenTTS or browser speech fallback
-  public async speakText(text: string): Promise<void> {
-    // 1. Stop listening during speech (turn-taking rule)
-    this.stopListening();
-    this.stopSpeaking();
+  private chunkText(text: string): string[] {
+    const words = text.trim().split(/\s+/).filter(Boolean);
+    const chunks: string[] = [];
+    for (let i = 0; i < words.length; i += WORDS_PER_CHUNK) {
+      chunks.push(words.slice(i, i + WORDS_PER_CHUNK).join(" "));
+    }
+    return chunks;
+  }
 
-    this.isSpeaking = true;
-    this.options.onSpeakingStateChange?.(true);
-
+  // Fetches one chunk's KittenTTS audio. Returns null (rather than throwing) on any
+  // failure so the caller can fall back to the browser for just this chunk instead of
+  // aborting the whole response.
+  private async fetchChunkAudio(text: string): Promise<HTMLAudioElement | null> {
     try {
       const res = await fetch("/api/tts", {
         method: "POST",
@@ -189,84 +201,114 @@ export class PastoralSpeechClient {
           speed: this.options.speed || 0.88,
         }),
       });
-
       const contentType = res.headers.get("content-type") || "";
-
-      if (res.ok && contentType.includes("audio/wav")) {
-        // Played from KittenTTS WAV output
-        const blob = await res.blob();
-        const audioUrl = URL.createObjectURL(blob);
-        const audio = new Audio(audioUrl);
-        this.currentAudio = audio;
-        this.options.onAudioElement?.(audio);
-
-        audio.onended = () => {
-          this.isSpeaking = false;
-          this.options.onSpeakingStateChange?.(false);
-          this.options.onAudioElement?.(null);
-          URL.revokeObjectURL(audioUrl);
-        };
-
-        audio.onerror = () => {
-          this.fallbackBrowserTTS(text);
-        };
-
-        await audio.play();
-      } else {
-        // Fallback to browser Web Speech API
-        this.fallbackBrowserTTS(text);
-      }
+      if (!res.ok || !contentType.includes("audio/wav")) return null;
+      const blob = await res.blob();
+      return new Audio(URL.createObjectURL(blob));
     } catch {
-      this.fallbackBrowserTTS(text);
+      return null;
     }
   }
 
-  private fallbackBrowserTTS(text: string) {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-      this.isSpeaking = false;
-      this.options.onSpeakingStateChange?.(false);
-      return;
+  private playAudio(audio: HTMLAudioElement): Promise<void> {
+    return new Promise((resolve) => {
+      this.currentAudio = audio;
+      this.options.onAudioElement?.(audio);
+      audio.onended = () => {
+        this.options.onAudioElement?.(null);
+        URL.revokeObjectURL(audio.src);
+        resolve();
+      };
+      audio.onerror = () => resolve();
+      audio.play().catch(() => resolve());
+    });
+  }
+
+  // Speak text with KittenTTS, chunked into short word groups (WORDS_PER_CHUNK) so playback
+  // of the first chunk can start almost immediately instead of waiting for the entire
+  // response to synthesize. Each next chunk is fetched while the current one is still
+  // playing, so there's normally no gap between chunks. A chunk that fails to synthesize
+  // server-side falls back to the browser for just that chunk, not the whole response.
+  public async speakText(text: string): Promise<void> {
+    // 1. Stop listening during speech (turn-taking rule)
+    this.stopListening();
+    this.stopSpeaking();
+
+    const chunks = this.chunkText(text);
+    if (chunks.length === 0) return;
+
+    const generation = ++this.speakGeneration;
+    this.isSpeaking = true;
+    this.options.onSpeakingStateChange?.(true);
+
+    let nextAudioPromise = this.fetchChunkAudio(chunks[0]);
+
+    for (let i = 0; i < chunks.length; i++) {
+      if (generation !== this.speakGeneration) return; // superseded by stop/new speakText
+
+      const audio = await nextAudioPromise;
+      nextAudioPromise = i + 1 < chunks.length ? this.fetchChunkAudio(chunks[i + 1]) : Promise.resolve(null);
+
+      if (generation !== this.speakGeneration) return;
+
+      if (audio) {
+        await this.playAudio(audio);
+      } else {
+        await this.speakChunkViaBrowser(chunks[i]);
+      }
     }
 
-    window.speechSynthesis.cancel();
-    // Clean markdown stars or brackets from speech text
-    const cleanText = text.replace(/[*#_>]/g, "").replace(/\n+/g, " ").trim();
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.rate = this.options.speed || 0.88;
-
-    const profile = KITTEN_VOICE_PROFILES[this.options.voicePreset || "Jasper"] ?? {
-      gender: "Male" as const,
-      pitch: 1,
-    };
-    utterance.pitch = profile.pitch;
-
-    // Pick a voice matching this preset's gender; fall back to any English voice, then
-    // whatever the browser defaults to — every preset used to search for the exact same
-    // "Guy/David/Male" pattern regardless of selection, which is why all voices sounded
-    // identical no matter which preset (male or female) was chosen.
-    const voices = window.speechSynthesis.getVoices();
-    const genderPattern = profile.gender === "Female" ? FEMALE_VOICE_NAME_PATTERN : MALE_VOICE_NAME_PATTERN;
-    const englishVoices = voices.filter((v) => v.lang.startsWith("en"));
-    const matchedVoice = englishVoices.find((v) => genderPattern.test(v.name));
-    const pickedVoice = matchedVoice || englishVoices[0];
-    if (pickedVoice) {
-      utterance.voice = pickedVoice;
+    if (generation === this.speakGeneration) {
+      this.isSpeaking = false;
+      this.options.onSpeakingStateChange?.(false);
     }
+  }
 
-    utterance.onend = () => {
-      this.isSpeaking = false;
-      this.options.onSpeakingStateChange?.(false);
-    };
+  // Browser Web Speech fallback for a single chunk (used when that chunk's KittenTTS
+  // request fails) — resolves once the utterance finishes so the chunk loop can continue.
+  private speakChunkViaBrowser(text: string): Promise<void> {
+    return new Promise((resolve) => {
+      if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+        resolve();
+        return;
+      }
 
-    utterance.onerror = () => {
-      this.isSpeaking = false;
-      this.options.onSpeakingStateChange?.(false);
-    };
+      // Clean markdown stars or brackets from speech text
+      const cleanText = text.replace(/[*#_>]/g, "").replace(/\n+/g, " ").trim();
+      if (!cleanText) {
+        resolve();
+        return;
+      }
 
-    window.speechSynthesis.speak(utterance);
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.rate = this.options.speed || 0.88;
+
+      const profile = KITTEN_VOICE_PROFILES[this.options.voicePreset || "Jasper"] ?? {
+        gender: "Male" as const,
+        pitch: 1,
+      };
+      utterance.pitch = profile.pitch;
+
+      // Pick a voice matching this preset's gender; fall back to any English voice, then
+      // whatever the browser defaults to — every preset used to search for the exact same
+      // "Guy/David/Male" pattern regardless of selection, which is why all voices sounded
+      // identical no matter which preset (male or female) was chosen.
+      const voices = window.speechSynthesis.getVoices();
+      const genderPattern = profile.gender === "Female" ? FEMALE_VOICE_NAME_PATTERN : MALE_VOICE_NAME_PATTERN;
+      const englishVoices = voices.filter((v) => v.lang.startsWith("en"));
+      const pickedVoice = englishVoices.find((v) => genderPattern.test(v.name)) || englishVoices[0];
+      if (pickedVoice) {
+        utterance.voice = pickedVoice;
+      }
+
+      utterance.onend = () => resolve();
+      utterance.onerror = () => resolve();
+      window.speechSynthesis.speak(utterance);
+    });
   }
 
   public stopSpeaking() {
+    this.speakGeneration++; // invalidates any in-flight speakText chunk loop
     if (this.currentAudio) {
       this.currentAudio.pause();
       this.currentAudio = null;
