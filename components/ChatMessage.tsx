@@ -273,11 +273,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   className="relative overflow-hidden rounded-[18px] border border-[#DCEAC8] border-l-4 border-l-[#77B500] bg-[#EEF8E7]/90 p-4 sm:p-5 shadow-xs"
                 >
                   {/* Decorative Landscape Church Graphic on Right */}
-                  <div className="absolute right-0 top-0 bottom-0 w-36 sm:w-44 pointer-events-none select-none opacity-90 hidden sm:block">
+                  <div className="absolute right-0 top-0 bottom-0 w-36 sm:w-48 pointer-events-none select-none opacity-85 hidden sm:block overflow-hidden">
                     <img
-                      src="/images/scripture_landscape_full.png"
+                      src="/images/church_landscape.jpg"
                       alt=""
-                      className="h-full w-full object-cover object-left"
+                      className="h-full w-full object-cover object-left mix-blend-multiply"
                     />
                   </div>
 

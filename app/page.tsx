@@ -760,12 +760,21 @@ export default function Home() {
       {/* 3-Column Sanctuary Layout */}
       <div className="flex-1 flex overflow-hidden max-w-[1680px] w-full mx-auto px-2 sm:px-4 lg:px-6 pb-2 sm:pb-3 gap-3 sm:gap-4 lg:gap-5 min-h-0">
         {/* Left Column: Sanctuary Architectural Window (Static Emotional Anchor) */}
-        <aside className="hidden lg:flex w-56 xl:w-64 2xl:w-72 shrink-0 flex-col rounded-[24px] overflow-hidden border border-[#ECE8E2] bg-[#FAF8F3] relative shadow-xs select-none">
+        <aside className="hidden lg:flex w-56 xl:w-64 2xl:w-72 shrink-0 flex-col rounded-[24px] overflow-hidden border border-[#ECE8E2] bg-[#FAF8F3] relative shadow-xs select-none group">
           <img
-            src="/images/sanctuary_panel_perfect.png"
-            alt="Sanctuary Window — Be still, and know that I am God. Psalm 46:10"
-            className="h-full w-full object-cover object-left-top pointer-events-none"
+            src="/images/sanctuary_window.jpg"
+            alt="Sanctuary Window"
+            className="h-full w-full object-cover object-center pointer-events-none transition-transform duration-700 ease-out group-hover:scale-[1.02]"
           />
+          {/* Scripture Anchor Overlay */}
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#FAF8F3]/95 via-[#FAF8F3]/85 to-transparent pt-16 pb-6 px-4 text-center pointer-events-none">
+            <p className="font-serif italic text-[13px] xl:text-[14px] text-[#2F2F2F] leading-snug font-medium">
+              &ldquo;Be still, and know that I am God.&rdquo;
+            </p>
+            <p className="text-[10px] font-bold tracking-widest uppercase text-[#77B500] mt-1.5">
+              Psalm 46:10
+            </p>
+          </div>
         </aside>
 
         {/* Center Column: Elevated Main Sanctuary / Conversation Stage */}
@@ -813,19 +822,19 @@ export default function Home() {
                 >
                   {/* Hero Greeting Banner */}
                   <div className="relative w-full rounded-[22px] bg-gradient-to-r from-[#EFF6E8] via-[#FAF9F5] to-[#F5F8F2] p-5 sm:p-6 border border-[#ECE8E2] shadow-xs overflow-hidden mb-4 shrink-0">
-                    <div className="absolute right-0 top-0 bottom-0 w-28 pointer-events-none select-none opacity-80 hidden sm:block">
+                    <div className="absolute right-0 top-0 bottom-0 w-32 pointer-events-none select-none opacity-75 hidden sm:block">
                       <img
-                        src="/images/hero_leaf_clean.png"
+                        src="/images/botanical_leaf.jpg"
                         alt=""
-                        className="h-full w-full object-contain object-right-top"
+                        className="h-full w-full object-contain object-right-top mix-blend-multiply"
                       />
                     </div>
                     <div className="relative z-10 flex items-center gap-4 sm:gap-6">
                       <div className="relative h-20 w-20 sm:h-24 sm:w-24 shrink-0 rounded-full border-2 border-white shadow-sm overflow-hidden bg-gradient-to-b from-[#E2ECD6] to-[#F2EFE8]">
                         <img
-                          src="/images/pastor-head-portrait.png"
+                          src="/images/pastor_portrait.jpg"
                           alt="Pastor Mike"
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-cover object-top"
                         />
                       </div>
                       <div className="min-w-0 pr-0 sm:pr-20">
@@ -1084,11 +1093,11 @@ export default function Home() {
               <span>Today&apos;s Verse</span>
             </div>
             <div className="relative overflow-hidden rounded-[16px] bg-white border border-[#ECE8E2] p-4 shadow-xs">
-              <div className="absolute -right-2 -bottom-2 w-20 h-20 pointer-events-none opacity-75">
+              <div className="absolute -right-3 -bottom-3 w-20 h-20 pointer-events-none opacity-60">
                 <img
-                  src="/images/hero_leaf_clean.png"
+                  src="/images/botanical_leaf.jpg"
                   alt=""
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-contain mix-blend-multiply"
                 />
               </div>
               <div className="relative z-10">

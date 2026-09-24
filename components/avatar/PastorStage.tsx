@@ -135,11 +135,11 @@ export default function PastorStage({
       {/* Hero Section Banner */}
       <div className="relative w-full rounded-[22px] bg-gradient-to-r from-[#EFF6E8] via-[#FAF9F5] to-[#F5F8F2] p-5 sm:p-6 border border-[#ECE8E2] shadow-xs overflow-hidden mb-4 shrink-0">
         {/* Botanical leaf decoration in top right corner */}
-        <div className="absolute right-0 top-0 bottom-0 w-24 sm:w-32 pointer-events-none select-none opacity-80 hidden sm:block">
+        <div className="absolute right-0 top-0 bottom-0 w-24 sm:w-32 pointer-events-none select-none opacity-75 hidden sm:block">
           <img
-            src="/images/hero_leaf_clean.png"
+            src="/images/botanical_leaf.jpg"
             alt=""
-            className="h-full w-full object-contain object-right-top"
+            className="h-full w-full object-contain object-right-top mix-blend-multiply"
           />
         </div>
 
