@@ -1,30 +1,33 @@
 @import "tailwindcss";
 
-/* Mercury design system — dark-mode-first fintech palette */
+/* ChurchSpring design system — warm, uplifting church platform palette */
 :root {
-  --background: #171721;
-  --foreground: #ededf3;
+  --background: #fbfbfd;
+  --foreground: #1a1a1a;
   --card: #ffffff;
-  --card-foreground: #000000;
-  --primary: #5266eb;
-  --primary-hover: #3f52c9;
-  --primary-foreground: #ededf3;
-  --accent: rgba(156, 180, 232, 0.2);
-  --accent-foreground: #ededf3;
-  --accent-soft: #afb2ce;
-  --accent-light: #ededf3;
-  --muted: #272735;
-  --muted-foreground: #c3c3cc;
-  --border: rgba(156, 180, 232, 0.3);
-  --border-subtle: #ebebeb;
-  --surface-darker: #272735;
-  --scripture-bg: #ededf3;
-  --scripture-border: rgba(156, 180, 232, 0.3);
-  --prayer-bg: rgba(82, 102, 235, 0.06);
-  --prayer-border: rgba(82, 102, 235, 0.25);
-  --shadow-nav: 0px 0px 6px 0px rgba(86, 86, 118, 0.1);
-  --shadow-hover: 0px 10px 16px 0px rgba(28, 28, 35, 0.02), 0px 6px 10px 0px rgba(28, 28, 35, 0.04), 0px 0px 3px 0px rgba(28, 28, 35, 0.09);
-  --shadow-elevated: 0px 0px 3px 0px rgba(0, 0, 0, 0.05), 0px 8px 12px 0px rgba(0, 0, 0, 0.05), 0px 12px 20px 0px rgba(0, 0, 0, 0.05);
+  --card-foreground: #1a1a1a;
+  --primary: #77b500;
+  --primary-hover: #659c00;
+  --primary-foreground: #ffffff;
+  --primary-soft: #eef5dd;
+  --primary-border: #b5dd66;
+  --accent: #77b500;
+  --accent-foreground: #1a1a1a;
+  --accent-soft: #eef5dd;
+  --accent-light: #f7f8fa;
+  --accent-gold: #ffba01;
+  --muted: #f3f4f6;
+  --muted-foreground: #6b7280;
+  --border: #e4e4e4;
+  --border-subtle: #eeeeee;
+  --surface-darker: #f0f1f3;
+  --scripture-bg: #ffffff;
+  --scripture-border: #77b500;
+  --prayer-bg: #eef5dd;
+  --prayer-border: #b5dd66;
+  --shadow-nav: 0px 1px 3px rgba(0, 0, 0, 0.05), 0px 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-hover: 0px 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-elevated: 0px 4px 20px rgba(0, 0, 0, 0.08);
 }
 
 @theme inline {
@@ -35,43 +38,52 @@
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-border: var(--primary-border);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent-soft: var(--accent-soft);
   --color-accent-light: var(--accent-light);
+  --color-accent-gold: var(--accent-gold);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
   --color-border-subtle: var(--border-subtle);
   --color-surface-darker: var(--surface-darker);
+  --color-scripture-bg: var(--scripture-bg);
+  --color-scripture-border: var(--scripture-border);
+  --color-prayer-bg: var(--prayer-bg);
+  --color-prayer-border: var(--prayer-border);
   --shadow-nav: var(--shadow-nav);
   --shadow-hover: var(--shadow-hover);
   --shadow-elevated: var(--shadow-elevated);
-  --radius-input: 32px;
-  --radius-pill: 40px;
+  --radius-input: 12px;
+  --radius-pill: 9999px;
   --font-sans: 'General Sans', var(--font-geist-sans), system-ui, -apple-system, sans-serif;
   --font-display: 'General Sans', var(--font-geist-sans), system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-geist-mono);
 }
 
-/* True OS dark mode: deepen to pure black per the Mercury token sheet's surface/on-surface pair */
+/* Accessible, elegant dark mode pairing with ChurchSpring green accents */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #000000;
-    --foreground: #ffffff;
-    --card: #171721;
-    --card-foreground: #ededf3;
-    --accent: rgba(156, 180, 232, 0.15);
-    --accent-foreground: #ededf3;
-    --muted: #171721;
-    --muted-foreground: #c3c3cc;
-    --border: rgba(156, 180, 232, 0.2);
-    --border-subtle: #272735;
-    --surface-darker: #000000;
-    --scripture-bg: #171721;
-    --scripture-border: rgba(156, 180, 232, 0.25);
-    --prayer-bg: rgba(82, 102, 235, 0.1);
-    --prayer-border: rgba(82, 102, 235, 0.3);
+    --background: #14171a;
+    --foreground: #f3f4f6;
+    --card: #1f2428;
+    --card-foreground: #f3f4f6;
+    --accent: #77b500;
+    --accent-foreground: #ffffff;
+    --accent-soft: rgba(119, 181, 0, 0.15);
+    --accent-light: #24292e;
+    --muted: #24292e;
+    --muted-foreground: #9ca3af;
+    --border: #2f363d;
+    --border-subtle: #24292e;
+    --surface-darker: #101214;
+    --scripture-bg: #1f2428;
+    --scripture-border: #77b500;
+    --prayer-bg: rgba(119, 181, 0, 0.12);
+    --prayer-border: rgba(181, 221, 102, 0.35);
   }
 }
 
@@ -84,7 +96,7 @@ body {
   overflow: hidden;
 }
 
-/* Custom scrollbars for a clean, peaceful aesthetic */
+/* Custom scrollbars for a clean ChurchSpring aesthetic */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -93,11 +105,11 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(156, 180, 232, 0.25);
+  background: rgba(119, 181, 0, 0.25);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(156, 180, 232, 0.45);
+  background: rgba(119, 181, 0, 0.5);
 }
 
 /* Utility to hide scrollbars while preserving scrolling */
@@ -109,7 +121,7 @@ body {
   scrollbar-width: none;
 }
 
-/* Instant tap responsiveness on mobile — eliminates 300ms touch delay */
+/* Instant tap responsiveness on mobile */
 button,
 [role="button"] {
   touch-action: manipulation;

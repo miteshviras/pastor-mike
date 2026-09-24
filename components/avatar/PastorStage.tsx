@@ -89,7 +89,7 @@ function PlaceholderAvatar() {
   return (
     <mesh>
       <sphereGeometry args={[0.6, 24, 24]} />
-      <meshStandardMaterial color="#5266eb" />
+      <meshStandardMaterial color="#77b500" />
     </mesh>
   );
 }
@@ -169,7 +169,7 @@ export default function PastorStage({
             className="relative h-[270px] sm:h-[330px] md:h-[370px] w-full max-w-[440px] shrink-0"
             style={{
               background:
-                "radial-gradient(circle at center, rgba(82,102,235,0.18), transparent 72%)",
+                "radial-gradient(circle at center, rgba(119,181,0,0.15), rgba(255,186,1,0.06) 45%, transparent 72%)",
             }}
           >
             <Canvas
@@ -211,7 +211,7 @@ export default function PastorStage({
                       ? "bg-amber-100 text-amber-900 hover:bg-amber-200 dark:bg-amber-950/70 dark:text-amber-200"
                       : isPaused
                         ? "bg-emerald-600 text-white hover:bg-emerald-700 animate-pulse"
-                        : "bg-[#5266eb] text-white hover:bg-[#4353d4]"
+                        : "bg-[#77b500] text-white hover:bg-[#659c00]"
                 }`}
               >
                 {isSpeechLoading && !isSpeaking ? (
@@ -295,7 +295,7 @@ export default function PastorStage({
                       ref={isCurrent ? activeSpanRef : null}
                       className={`transition-all duration-300 ${
                         isCurrent
-                          ? "rounded-md bg-[#5266eb]/25 dark:bg-[#5266eb]/35 text-[#4353d4] dark:text-[#a8beff] font-semibold px-2 py-0.5 shadow-sm inline-block my-0.5 scale-[1.02]"
+                          ? "rounded-md bg-[#eef5dd] text-[#4f7a00] border border-[#b5dd66]/60 font-bold px-2 py-0.5 shadow-2xs inline-block my-0.5 scale-[1.02]"
                           : isPast
                             ? "opacity-90 text-slate-800 dark:text-slate-200"
                             : isFuture
@@ -347,7 +347,7 @@ export default function PastorStage({
                   key={msg.id}
                   className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 transition ${
                     isActive || isRowLoading
-                      ? "border-[#5266eb]/50 bg-[#5266eb]/10"
+                      ? "border-[#77b500]/50 bg-[#77b500]/10"
                       : "border-border/40 bg-card/40 hover:bg-card/70"
                   }`}
                 >

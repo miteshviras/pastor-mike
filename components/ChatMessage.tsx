@@ -2,19 +2,18 @@
 
 import React, { useState } from "react";
 import {
-  Volume2,
-  VolumeX,
   Play,
   Pause,
   RotateCcw,
   Square,
-  Heart,
   Copy,
   Check,
   Download,
   CheckCheck,
   BookMarked,
   BookmarkCheck,
+  HeartHandshake,
+  BookOpen,
 } from "lucide-react";
 import {
   getVerseByReference,
@@ -74,13 +73,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     new Set(),
   );
   const [savingVerseRef, setSavingVerseRef] = useState<string | null>(null);
-  // Only ever comes from metadata — populated when the orchestrator auto-saves this prayer
-  // to the journal (i.e. an existing active petition really exists to mark answered). There's
-  // no manual "Save to Journal" here anymore: it used to save the AI's composed prayer text as
-  // a brand-new entry, which just duplicated the real petition instead of resolving it.
   const savedPrayerId = metadata?.savedPrayerId;
-  // A freshly-generated prayer is never pre-answered — this only flips true once the user
-  // confirms it's been answered from this chat card.
   const [prayerAnswered, setPrayerAnswered] = useState<boolean>(false);
   const [markingAnswered, setMarkingAnswered] = useState<boolean>(false);
   const [downloadingAudio, setDownloadingAudio] = useState<boolean>(false);
@@ -138,7 +131,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   if (isUser) {
     return (
       <div className="flex justify-end my-4">
-        <div className="max-w-[85%] sm:max-w-[70%] bg-[#5266eb] px-4 py-3 text-white">
+        <div className="max-w-[85%] sm:max-w-[70%] bg-[#1a1a1a] text-white px-4 py-3 sm:px-5 sm:py-3.5 rounded-2xl rounded-tr-xs shadow-xs font-normal">
           <p className="text-sm leading-relaxed whitespace-pre-wrap">
             {content}
           </p>
@@ -148,29 +141,31 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   }
 
   return (
-    <div className="flex flex-col gap-3 my-5 max-w-[92%] sm:max-w-[82%]">
-      {/* Pastor Mike Message Bubble */}
-      <div className="border border-border-subtle bg-card p-4 sm:p-5 shadow-hover">
+    <div className="flex flex-col gap-3 my-5 max-w-[95%] sm:max-w-[85%]">
+      {/* Pastor Mike Message Card */}
+      <div className="border border-[#e4e4e4] bg-white p-4 sm:p-5 shadow-sm rounded-2xl">
         {/* Header with Pastor avatar and Voice Play */}
-        <div className="flex items-center justify-between mb-3 border-b border-border-subtle pb-2.5">
-          <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#5266eb] text-[11px] font-bold text-white">
+        <div className="flex items-center justify-between mb-3 border-b border-[#eeeeee] pb-2.5">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#77b500] text-xs font-bold text-white shadow-xs">
               M
             </div>
-            <span className="text-sm font-semibold text-card-foreground">
-              Pastor Mike
-            </span>
-            {metadata?.usedModel && (
-              <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium text-accent-foreground border border-border">
-                {metadata.usedModel === "gemini"
-                  ? metadata.modelName
-                    ? `Google Gemini (${metadata.modelName})`
-                    : "Google Gemini"
-                  : metadata.usedModel === "ollama"
-                    ? "Local Ollama"
-                    : "Offline Engine"}
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-[#1a1a1a]">
+                Pastor Mike
               </span>
-            )}
+              {metadata?.usedModel && (
+                <span className="rounded-full bg-[#f3f4f6] px-2 py-0.5 text-[10px] font-semibold text-[#6b7280] border border-[#e4e4e4]">
+                  {metadata.usedModel === "gemini"
+                    ? metadata.modelName
+                      ? `Gemini (${metadata.modelName})`
+                      : "Gemini"
+                    : metadata.usedModel === "ollama"
+                      ? "Ollama"
+                      : "Offline"}
+                </span>
+              )}
+            </div>
           </div>
 
           {onSpeak && (
@@ -184,12 +179,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       ? "Resume speaking"
                       : "Listen to Pastor Mike"
                 }
-                className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition ${
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition cursor-pointer ${
                   isSpeakingNow && !isPausedNow
-                    ? "bg-amber-100 text-amber-900 hover:bg-amber-200 dark:bg-amber-950/70 dark:text-amber-200"
+                    ? "bg-[#eef5dd] text-[#4f7a00] border border-[#b5dd66]"
                     : isSpeakingNow && isPausedNow
-                      ? "bg-emerald-600 text-white hover:bg-emerald-700 animate-pulse"
-                      : "text-muted-foreground hover:bg-accent"
+                      ? "bg-[#77b500] text-white hover:bg-[#659c00] animate-pulse"
+                      : "border border-[#e4e4e4] bg-white text-[#1a1a1a] hover:border-[#77b500] hover:text-[#77b500]"
                 }`}
               >
                 {isSpeakingNow && !isPausedNow ? (
@@ -204,7 +199,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   </>
                 ) : (
                   <>
-                    <Play className="h-3.5 w-3.5 fill-current" />
+                    <Play className="h-3.5 w-3.5 fill-current text-[#77b500]" />
                     <span>Listen</span>
                   </>
                 )}
@@ -214,7 +209,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                 <button
                   onClick={() => onRestart(content)}
                   title="Restart from beginning"
-                  className="rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition"
+                  className="rounded-lg p-1.5 border border-[#e4e4e4] text-[#6b7280] hover:border-[#77b500] hover:text-[#77b500] transition cursor-pointer"
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
                 </button>
@@ -224,7 +219,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                 <button
                   onClick={onStop}
                   title="Stop speaking"
-                  className="rounded-full p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition"
+                  className="rounded-lg p-1.5 border border-red-200 text-red-600 hover:bg-red-50 transition cursor-pointer"
                 >
                   <Square className="h-3.5 w-3.5 fill-current" />
                 </button>
@@ -235,7 +230,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   onClick={handleDownload}
                   disabled={downloadingAudio}
                   title="Download this reply as audio"
-                  className="rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition disabled:opacity-50"
+                  className="rounded-lg p-1.5 border border-[#e4e4e4] text-[#6b7280] hover:border-[#77b500] hover:text-[#77b500] transition cursor-pointer disabled:opacity-50"
                 >
                   <Download className={`h-3.5 w-3.5 ${downloadingAudio ? "animate-pulse" : ""}`} />
                 </button>
@@ -245,7 +240,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         </div>
 
         {/* Message Content */}
-        <div className="text-sm leading-relaxed text-card-foreground whitespace-pre-wrap">
+        <div className="text-sm leading-relaxed text-[#2b2b2b] whitespace-pre-wrap font-normal">
           {content}
         </div>
 
@@ -275,14 +270,15 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
               return (
                 <div
                   key={refKey + idx}
-                  className="border border-scripture-border bg-scripture-bg p-3.5"
+                  className="border border-[#e4e4e4] border-l-4 border-l-[#77b500] bg-[#fbfbfd] p-3.5 rounded-xl shadow-xs"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-card-foreground">
+                      <BookOpen className="h-3.5 w-3.5 text-[#77b500]" />
+                      <span className="text-xs font-bold text-[#1a1a1a]">
                         {verse.reference}
                       </span>
-                      <span className="rounded bg-[#5266eb]/10 px-1.5 py-0.5 text-[10px] font-medium text-[#5266eb]">
+                      <span className="rounded bg-[#eef5dd] border border-[#b5dd66]/40 px-1.5 py-0.5 text-[10px] font-bold text-[#4f7a00]">
                         {verse.translation || "WEB"}
                       </span>
                     </div>
@@ -299,12 +295,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                           }
                           disabled={savingVerseRef === verse.reference}
                           title="Save this verse to your journal"
-                          className="flex items-center gap-1 text-[11px] text-muted-foreground transition hover:text-card-foreground"
+                          className="flex items-center gap-1 text-[11px] font-semibold text-[#6b7280] transition hover:text-[#77b500] cursor-pointer"
                         >
                           {savedVerseRefs.has(verse.reference) ? (
                             <>
-                              <BookmarkCheck className="h-3 w-3 text-emerald-600" />
-                              <span>Saved</span>
+                              <BookmarkCheck className="h-3 w-3 text-[#77b500]" />
+                              <span className="text-[#4f7a00]">Saved</span>
                             </>
                           ) : (
                             <>
@@ -322,12 +318,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       <button
                         onClick={() => handleCopyVerse(verse.reference, bodyText)}
                         title="Copy Scripture"
-                        className="flex items-center gap-1 text-[11px] text-muted-foreground transition hover:text-card-foreground"
+                        className="flex items-center gap-1 text-[11px] font-semibold text-[#6b7280] transition hover:text-[#77b500] cursor-pointer"
                       >
                         {copiedVerse === verse.reference ? (
                           <>
-                            <Check className="h-3 w-3 text-emerald-600" />
-                            <span>Copied</span>
+                            <Check className="h-3 w-3 text-[#77b500]" />
+                            <span className="text-[#4f7a00]">Copied</span>
                           </>
                         ) : (
                           <>
@@ -339,12 +335,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                     </div>
                   </div>
 
-                  <blockquote className="mt-2 text-sm italic leading-relaxed text-card-foreground/80">
+                  <blockquote className="mt-2 text-sm italic leading-relaxed text-[#3a3a3a]">
                     &ldquo;{bodyText}&rdquo;
                   </blockquote>
 
                   {verse.pastoralContext && (
-                    <p className="mt-2 text-xs text-muted-foreground">
+                    <p className="mt-2 text-xs text-[#8a8a8a]">
                       {verse.pastoralContext}
                     </p>
                   )}
@@ -356,11 +352,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
         {/* Prayer Card */}
         {activePrayer && (
-          <div className="mt-4 border border-prayer-border bg-prayer-bg p-4">
+          <div className="mt-4 border border-[#b5dd66] bg-[#eef5dd]/90 p-4 rounded-xl shadow-xs">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Heart className="h-4 w-4 text-[#5266eb]" />
-                <h4 className="text-sm font-semibold text-card-foreground">
+                <HeartHandshake className="h-4 w-4 text-[#77b500]" />
+                <h4 className="text-sm font-bold text-[#1a1a1a]">
                   {activePrayer.title}
                 </h4>
               </div>
@@ -371,13 +367,13 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                     onClick={handleMarkAnswered}
                     disabled={prayerAnswered || markingAnswered}
                     title="Confirm this prayer has been answered"
-                    className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition ${
+                    className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition cursor-pointer ${
                       prayerAnswered
-                        ? "border-emerald-500/50 bg-emerald-100 text-emerald-800"
-                        : "border-border bg-card text-card-foreground hover:bg-accent"
+                        ? "border border-[#b5dd66] bg-white text-[#4f7a00] shadow-xs"
+                        : "bg-[#77b500] hover:bg-[#659c00] text-white shadow-xs"
                     }`}
                   >
-                    <CheckCheck className="h-3.5 w-3.5 text-emerald-600" />
+                    <CheckCheck className="h-3.5 w-3.5" />
                     <span>
                       {prayerAnswered
                         ? "Answered"
@@ -390,7 +386,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
               </div>
             </div>
 
-            <p className="mt-2.5 text-sm italic leading-relaxed text-card-foreground/80">
+            <p className="mt-2.5 text-sm italic leading-relaxed text-[#2b2b2b]">
               {activePrayer.text}
             </p>
           </div>

@@ -91,6 +91,21 @@ Toggled via the **"Live Pastor"** header button.
 
 `Dockerfile` (Node 24 bookworm-slim + Python 3.11 via `apt`) and `docker-compose.yml` exist specifically to get a Python version KittenTTS/Moonshine's dependency chains actually support, independent of the host's Python. Named volumes (`hf-cache`, `moonshine-cache`) persist downloaded model weights across container recreation, separate from the `models/kittentts` bind mount (which only holds a small status marker file). See README's Docker quickstart.
 
+## Theme & Design System (ChurchSpring)
+
+The UI is built on the **ChurchSpring platform design system** (derived from the [ChurchSpring Sandbox](https://sandbox.churchspring.com/)), providing a warm, accessible, peaceful church technology aesthetic that invites spiritual reflection:
+
+- **Canvas & Surfaces**: Crisp light neutral background (`#FBFBFD`) with pure white elevated cards (`#FFFFFF`) and subtle dividers (`#E4E4E4`).
+- **Brand Colors**: ChurchSpring's signature vibrant green (`#77B500`, hover `#659C00`) serves as the primary action and status color; a soft pastel green tint (`#EEF5DD`, border `#B5DD66`) accents prayer cards, pill tags, and active states.
+- **Spiritual Warmth Accents**: Warm amber/gold (`#FFBA01`) for saved scripture bookmarks and answered prayer milestones.
+- **Typography & Hierarchy**: High-contrast charcoal (`#1A1A1A`) headings and labels with bold weights (700/900) and tight tracking; comfortable slate (`#3A3A3A`, `#4B5563`) body text formatted for calm, readable spiritual counsel.
+- **Card System**:
+  - **User Message**: High-contrast charcoal pill (`#1A1A1A`) with clean white text (`rounded-2xl rounded-tr-xs`).
+  - **Pastor Mike Card**: Pure white card (`#FFFFFF`) with subtle border, header avatar, and model engine indicator.
+  - **Scripture Citation Card**: Clean card with a 4px ChurchSpring green left border (`#77B500`), book icon, translation badge (`WEB`/`KJV`), and "Save Verse" / "Copy" quick actions.
+  - **Pastoral Prayer Card**: Soft pastel green container (`#EEF5DD`) with heart/hands badge, prayer petition text, and 1-click "Mark as Answered" action.
+- **Live Pastor Stage**: Sunlit sanctuary ambient glow replacing dark stage backgrounds, with synchronized sentence-highlight pacing in soft green (`#EEF5DD` / `#4F7A00`).
+
 ## UI Shell (`components/*`, `components/avatar/*`, `app/page.tsx`)
 
 Single-page chat experience; no client-side router beyond the one route. State (active session, first-run flag) persisted to `localStorage` so a refresh resumes the same session. Key components: `Header` (Live Pastor toggle, Setup Guide, Settings, Prayer Journal), `ChatMessage` (renders scripture/prayer cards inline), `ChatInput`, `VoiceBar`, `PrayerJournalModal`, `VisitHistorySidebar`, `OnboardingModal` (2-step first-run flow: profile, then audio setup), `CrisisBanner`.

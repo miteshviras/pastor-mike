@@ -709,7 +709,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-background text-foreground selection:bg-[#5266eb]/30 selection:text-white">
+    <div className="flex h-full flex-col overflow-hidden bg-background text-foreground selection:bg-[#77b500]/25 selection:text-[#1a1a1a]">
       {/* Top Header */}
       <Header
         isVoiceMode={isVoiceMode}
@@ -783,22 +783,23 @@ export default function Home() {
 
                 {/* Welcome Empty State */}
                 {messages.length === 0 && (
-                  <div className="my-auto flex flex-col items-center justify-center text-center py-6 sm:py-10 px-2">
-                    <div className="mb-3 sm:mb-4 flex h-13 w-13 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-[#5266eb]/10 text-[#5266eb] dark:bg-[#5266eb]/20 dark:text-[#9cb4e8]">
-                      <HeartHandshake className="h-6 w-6 sm:h-8 sm:w-8" />
+                  <div className="my-auto flex flex-col items-center justify-center text-center py-8 sm:py-14 px-4">
+                    <div className="mb-4 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-[#eef5dd] text-[#77b500] border border-[#b5dd66]/40 shadow-xs">
+                      <HeartHandshake className="h-7 w-7 sm:h-8 sm:w-8" />
                     </div>
-                    <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-slate-100">
-                      Welcome, Beloved Friend
+                    <span className="text-xs font-bold text-[#77b500] uppercase tracking-widest mb-1.5">
+                      Your Spiritual Companion
+                    </span>
+                    <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#1a1a1a]">
+                      Peace be with you
                     </h2>
-                    <p className="mt-2 max-w-md text-xs sm:text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-                      I am Pastor Mike, your AI pastoral companion. I am here to
-                      offer a listening ear, gentle comfort, Holy Scripture, and
-                      prayer.
+                    <p className="mt-2.5 max-w-md text-xs sm:text-sm leading-relaxed text-[#6b7280]">
+                      I am Pastor Mike. I am here to offer a listening ear, gentle spiritual guidance, Holy Scripture, and heartfelt prayer.
                     </p>
-                    <div className="mt-3 sm:mt-4 flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
-                      <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
+                    <div className="mt-4 flex items-center gap-2 rounded-full border border-[#e4e4e4] bg-white px-3 py-1 text-[11px] font-medium text-[#6b7280] shadow-xs">
+                      <span className="inline-block h-2 w-2 rounded-full bg-[#77b500]" />
                       <span>
-                        Safe, confidential, and saved locally on your device
+                        Safe, private, and preserved on your device
                       </span>
                     </div>
                   </div>
@@ -827,9 +828,9 @@ export default function Home() {
 
                   {/* Typing/Thinking State */}
                   {isLoading && (
-                    <div className="flex items-center gap-2 my-4 rounded-2xl rounded-tl-xs border border-slate-200/80 bg-card/90 p-4 text-xs dark:border-slate-800 dark:bg-slate-900/90">
-                      <Sparkles className="h-4 w-4 animate-spin text-amber-600" />
-                      <span className="font-medium text-slate-700 dark:text-slate-300">
+                    <div className="flex items-center gap-2.5 my-4 rounded-2xl rounded-tl-xs border border-[#e4e4e4] bg-white p-4 text-xs shadow-xs">
+                      <Sparkles className="h-4 w-4 animate-spin text-[#77b500]" />
+                      <span className="font-semibold text-[#1a1a1a]">
                         Pastor Mike is reflecting on your words...
                       </span>
                     </div>

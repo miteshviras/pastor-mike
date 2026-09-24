@@ -491,11 +491,11 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 backdrop-blur-xs">
-      <div className="flex max-h-[92dvh] sm:max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-t-3xl sm:rounded-none border border-border-subtle bg-card shadow-elevated">
+      <div className="flex max-h-[92dvh] sm:max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-t-3xl sm:rounded-2xl border border-border-subtle bg-card shadow-elevated">
         {/* Header Bar */}
         <div className="flex items-center justify-between border-b border-slate-200/80 px-4 py-3.5 sm:px-6 sm:py-4 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#5266eb] text-white dark:bg-[#5266eb]">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#77b500] text-white dark:bg-[#77b500]">
               <span className="text-sm font-bold">M</span>
             </div>
             <div>
@@ -526,7 +526,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 onClick={() => setStep(1)}
                 className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 transition ${
                   step === 1
-                    ? "bg-card text-[#5266eb] font-semibold shadow-sm dark:bg-slate-800 dark:text-[#9cb4e8]"
+                    ? "bg-card text-[#77b500] font-semibold shadow-sm dark:bg-slate-800 dark:text-[#b5dd66]"
                     : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
                 }`}
               >
@@ -540,7 +540,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 onClick={() => setStep(2)}
                 className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 transition ${
                   step === 2
-                    ? "bg-card text-[#5266eb] font-semibold shadow-sm dark:bg-slate-800 dark:text-[#9cb4e8]"
+                    ? "bg-card text-[#77b500] font-semibold shadow-sm dark:bg-slate-800 dark:text-[#b5dd66]"
                     : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
                 }`}
               >
@@ -562,7 +562,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 <div className="space-y-5">
                   <div className="rounded-xl border border-slate-200 bg-card/70 p-4 dark:border-slate-800 dark:bg-slate-800/50">
                     <div className="flex items-start gap-3">
-                      <HeartHandshake className="mt-0.5 h-5 w-5 text-[#5266eb] dark:text-[#9cb4e8]" />
+                      <HeartHandshake className="mt-0.5 h-5 w-5 text-[#77b500] dark:text-[#b5dd66]" />
                       <div>
                         <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                           Meet Pastor Mike
@@ -596,7 +596,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                       value={userName}
                       onChange={(e) => setUserName(e.target.value)}
                       placeholder="e.g. Sarah, David, or Friend (Optional)"
-                      className="mt-1.5 w-full rounded-xl border border-slate-200 bg-card px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#5266eb] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:focus:border-[#9cb4e8]"
+                      className="mt-1.5 w-full rounded-xl border border-slate-200 bg-card px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#77b500] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:focus:border-[#b5dd66]"
                     />
                   </div>
 
@@ -618,7 +618,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                             onClick={() => toggleTopic(topic.id)}
                             className={`rounded-full px-3 py-1 text-xs font-medium transition ${
                               isSelected
-                                ? "bg-[#5266eb] text-white dark:bg-[#5266eb]"
+                                ? "bg-[#77b500] text-white dark:bg-[#77b500]"
                                 : "border border-slate-200 bg-card text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-750"
                             }`}
                           >
@@ -638,7 +638,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   <div className="rounded-xl border border-slate-200 bg-card/70 p-4 dark:border-slate-800 dark:bg-slate-800/50">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
-                        <div className="rounded-lg bg-[#5266eb]/10 p-2 text-[#5266eb] dark:bg-[#5266eb]/20 dark:text-[#9cb4e8]">
+                        <div className="rounded-lg bg-[#77b500]/10 p-2 text-[#77b500] dark:bg-[#77b500]/20 dark:text-[#b5dd66]">
                           <Volume2 className="h-5 w-5" />
                         </div>
                         <div>
@@ -658,7 +658,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                         <button
                           onClick={handleDownloadTts}
                           disabled={isDownloadingTts}
-                          className="flex items-center gap-1.5 rounded-lg bg-[#5266eb] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[#3f52c9] disabled:opacity-60 dark:bg-[#5266eb] dark:hover:bg-[#4d664a]"
+                          className="flex items-center gap-1.5 rounded-lg bg-[#77b500] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[#659c00] disabled:opacity-60 dark:bg-[#77b500] dark:hover:bg-[#4f7a00]"
                         >
                           {isDownloadingTts ? (
                             <>
@@ -711,7 +711,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                             </>
                           ) : (
                             <>
-                              <Play className="h-3.5 w-3.5 fill-[#5266eb] text-[#5266eb] dark:fill-[#9cb4e8] dark:text-[#9cb4e8]" />
+                              <Play className="h-3.5 w-3.5 fill-[#77b500] text-[#77b500] dark:fill-[#b5dd66] dark:text-[#b5dd66]" />
                               <span>Play Blessing</span>
                             </>
                           )}
@@ -740,7 +740,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                             onClick={() => setTestSpeed(rate)}
                             className={`rounded px-2 py-0.5 text-[10px] font-medium transition ${
                               testSpeed === rate
-                                ? "bg-[#5266eb] text-white dark:bg-[#5266eb]"
+                                ? "bg-[#77b500] text-white dark:bg-[#77b500]"
                                 : "bg-slate-200/80 text-slate-700 hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-300"
                             }`}
                           >
@@ -788,7 +788,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                           >
                             {isDownloadingStt ? (
                               <>
-                                <Loader2 className="h-3.5 w-3.5 animate-spin text-[#5266eb]" />
+                                <Loader2 className="h-3.5 w-3.5 animate-spin text-[#77b500]" />
                                 <span>Warming STT...</span>
                               </>
                             ) : downloadSttSuccess ? (
@@ -798,7 +798,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                               </>
                             ) : (
                               <>
-                                <Download className="h-3.5 w-3.5 text-[#5266eb]" />
+                                <Download className="h-3.5 w-3.5 text-[#77b500]" />
                                 <span>Pre-warm STT</span>
                               </>
                             )}
@@ -839,7 +839,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                       <p className="mt-2 text-xs italic text-slate-600 dark:text-slate-400">
                         Speak now, e.g.: &ldquo;Hello Pastor Mike, thank you for listening.&rdquo;
                         {activeSttEngine && (
-                          <span className="ml-2 font-medium text-[#5266eb] dark:text-[#9cb4e8]">
+                          <span className="ml-2 font-medium text-[#77b500] dark:text-[#b5dd66]">
                             ({activeSttEngine})
                           </span>
                         )}
@@ -869,7 +869,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                       type="checkbox"
                       checked={autoVoiceMode}
                       onChange={(e) => setAutoVoiceMode(e.target.checked)}
-                      className="rounded border-slate-300 text-[#5266eb] focus:ring-[#5266eb] dark:border-slate-700"
+                      className="rounded border-slate-300 text-[#77b500] focus:ring-[#77b500] dark:border-slate-700"
                     />
                     <span>
                       Enable Voice Mode automatically when starting my visits
@@ -881,7 +881,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
             {/* Footer Navigation Controls */}
             {singleView ? (
-              <div className="flex items-center justify-end gap-2 border-t border-slate-200/80 bg-[#f7f4ed] px-6 py-4 dark:border-slate-800 dark:bg-[#181716]">
+              <div className="flex items-center justify-end gap-2 border-t border-slate-200/80 bg-[#fbfbfd] px-6 py-4 dark:border-slate-800 dark:bg-[#181716]">
                 <button
                   onClick={onClose}
                   className="rounded-lg border border-slate-200 bg-card px-3.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
@@ -891,7 +891,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 {singleView === "profile" && (
                   <button
                     onClick={handleFinish}
-                    className="flex items-center gap-1.5 rounded-lg bg-[#5266eb] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#3f52c9] dark:bg-[#5266eb] dark:hover:bg-[#4d664a]"
+                    className="flex items-center gap-1.5 rounded-lg bg-[#77b500] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#659c00] dark:bg-[#77b500] dark:hover:bg-[#4f7a00]"
                   >
                     <Check className="h-3.5 w-3.5" />
                     <span>Save Profile</span>
@@ -899,7 +899,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 )}
               </div>
             ) : (
-              <div className="flex items-center justify-between border-t border-slate-200/80 bg-[#f7f4ed] px-6 py-4 dark:border-slate-800 dark:bg-[#181716]">
+              <div className="flex items-center justify-between border-t border-slate-200/80 bg-[#fbfbfd] px-6 py-4 dark:border-slate-800 dark:bg-[#181716]">
                 {step > 1 ? (
                   <button
                     onClick={() => setStep(1)}
@@ -920,7 +920,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 {step < 2 ? (
                   <button
                     onClick={() => setStep(2)}
-                    className="flex items-center gap-1.5 rounded-lg bg-[#5266eb] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#3f52c9] dark:bg-[#5266eb] dark:hover:bg-[#4d664a]"
+                    className="flex items-center gap-1.5 rounded-lg bg-[#77b500] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#659c00] dark:bg-[#77b500] dark:hover:bg-[#4f7a00]"
                   >
                     <span>Continue</span>
                     <ArrowRight className="h-3.5 w-3.5" />
@@ -928,7 +928,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 ) : (
                   <button
                     onClick={handleFinish}
-                    className="flex items-center gap-1.5 rounded-lg bg-[#5266eb] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#3f52c9] dark:bg-[#5266eb] dark:hover:bg-[#4d664a]"
+                    className="flex items-center gap-1.5 rounded-lg bg-[#77b500] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#659c00] dark:bg-[#77b500] dark:hover:bg-[#4f7a00]"
                   >
                     <Sparkles className="h-3.5 w-3.5 text-amber-300" />
                     <span>Enter Sanctuary</span>
@@ -1006,7 +1006,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                       }
                       disabled={isSavingSettings}
                       aria-label="Default Gemini Model"
-                      className="rounded-lg border border-slate-200 bg-card px-2 py-1 text-[11px] font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-[#5266eb]"
+                      className="rounded-lg border border-slate-200 bg-card px-2 py-1 text-[11px] font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-[#77b500]"
                     >
                       {Array.from(
                         new Set([
@@ -1129,7 +1129,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end border-t border-slate-200/80 bg-[#f7f4ed] px-6 py-4 dark:border-slate-800 dark:bg-[#181716]">
+            <div className="flex items-center justify-end border-t border-slate-200/80 bg-[#fbfbfd] px-6 py-4 dark:border-slate-800 dark:bg-[#181716]">
               <button
                 onClick={onClose}
                 className="rounded-lg border border-slate-200 bg-card px-3.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"

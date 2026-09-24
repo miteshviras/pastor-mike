@@ -76,13 +76,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   }, [input]);
 
   return (
-    <div className="sticky bottom-0 z-20 border-t border-border/60 bg-background/95 px-3 py-2.5 sm:px-4 sm:py-3 pb-[calc(0.6rem+env(safe-area-inset-bottom,0px))] backdrop-blur-md">
+    <div className="sticky bottom-0 z-20 border-t border-[#e4e4e4] bg-[#fbfbfd]/95 px-3 py-2.5 sm:px-4 sm:py-3.5 pb-[calc(0.6rem+env(safe-area-inset-bottom,0px))] backdrop-blur-md">
       <div className="mx-auto max-w-3xl">
-        {/* Starter suggestion pills — horizontally scrollable on mobile to preserve screen height */}
+        {/* Starter suggestion pills */}
         {showStarterPills && (
           <div className="mb-2.5">
-            <div className="flex items-center gap-1.5 mb-1.5 text-xs font-medium text-[#c3c3cc]">
-              <Sparkles className="h-3 w-3 text-[#9cb4e8] shrink-0" />
+            <div className="flex items-center gap-1.5 mb-1.5 text-xs font-bold text-[#1a1a1a]">
+              <Sparkles className="h-3.5 w-3.5 text-[#77b500] shrink-0" />
               <span className="text-[11px] sm:text-xs">
                 How can Pastor Mike help support you today?
               </span>
@@ -94,7 +94,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   type="button"
                   onClick={() => handleSelectPrompt(prompt)}
                   disabled={isLoading}
-                  className="whitespace-nowrap shrink-0 rounded-full border border-[#9cb4e8]/25 bg-[#9cb4e8]/10 px-3.5 py-2 text-xs text-[#ededf3] transition hover:bg-[#9cb4e8]/20 disabled:opacity-50 cursor-pointer touch-manipulation active:scale-[0.98]"
+                  className="whitespace-nowrap shrink-0 rounded-full border border-[#e4e4e4] bg-white px-3.5 py-1.5 text-xs font-semibold text-[#1a1a1a] shadow-xs transition hover:border-[#77b500] hover:text-[#4f7a00] hover:bg-[#eef5dd] disabled:opacity-50 cursor-pointer touch-manipulation active:scale-[0.98]"
                 >
                   {prompt}
                 </button>
@@ -104,8 +104,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         )}
 
         {/* Input box */}
-        <div className="rounded-2xl border border-border bg-card p-2 sm:p-2.5 transition-all duration-200 focus-within:border-[#5266eb] focus-within:ring-2 focus-within:ring-[#5266eb]/15 shadow-sm">
-          {/* Text Area - full width so multiline text flows naturally without awkward indentation */}
+        <div className="rounded-2xl border border-[#e4e4e4] bg-white p-2 sm:p-2.5 transition-all duration-200 focus-within:border-[#77b500] focus-within:ring-2 focus-within:ring-[#77b500]/15 shadow-sm">
+          {/* Text Area */}
           <textarea
             ref={textareaRef}
             rows={1}
@@ -119,10 +119,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   : "Listening... speak now, click mic when done..."
                 : isTranscribing
                   ? "Transcribing your words..."
-                  : "Share your thoughts or prayer request..."
+                  : "Share what's on your heart or ask a question..."
             }
             disabled={isLoading}
-            className="w-full resize-none bg-transparent px-2.5 pt-1 pb-1 text-base sm:text-sm text-card-foreground placeholder:text-muted-foreground focus:outline-none min-h-[36px] max-h-36 leading-relaxed"
+            className="w-full resize-none bg-transparent px-2.5 pt-1 pb-1 text-base sm:text-sm text-[#1a1a1a] placeholder:text-[#8a8a8a] focus:outline-none min-h-[36px] max-h-36 leading-relaxed font-normal"
           />
 
           {/* Bottom Action Bar */}
@@ -144,26 +144,26 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                         ? "Transcribing your speech..."
                         : "Speak your message"
                 }
-                className={`flex items-center gap-1.5 rounded-full px-2.5 py-1.5 sm:px-3 text-xs font-medium transition cursor-pointer touch-manipulation active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5266eb] ${
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 sm:px-3 text-xs font-bold transition cursor-pointer touch-manipulation active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#77b500] ${
                   isListening
-                    ? "bg-rose-500 text-white shadow-sm shadow-rose-500/30 animate-pulse"
+                    ? "bg-rose-500 text-white shadow-xs animate-pulse"
                     : isTranscribing
-                      ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                      ? "bg-amber-100 text-amber-800 border border-amber-300"
                       : isSpeaking
-                        ? "bg-muted text-muted-foreground opacity-60 cursor-not-allowed"
-                        : "text-muted-foreground hover:bg-accent hover:text-card-foreground border border-border/40"
+                        ? "bg-[#f3f4f6] text-[#8a8a8a] opacity-60 cursor-not-allowed"
+                        : "text-[#6b7280] hover:border-[#77b500] hover:text-[#77b500] border border-[#e4e4e4] bg-white"
                 }`}
               >
                 {isListening ? (
                   <>
                     <Mic className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-white" />
-                    <span className="text-[11px] sm:text-xs font-medium">
+                    <span className="text-[11px] sm:text-xs">
                       {isTranscribing ? "Transcribing..." : "Listening..."}
                     </span>
                   </>
                 ) : isTranscribing ? (
                   <>
-                    <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 animate-spin text-amber-400" />
+                    <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 animate-spin text-amber-700" />
                     <span className="text-[11px] sm:text-xs">Transcribing...</span>
                   </>
                 ) : isSpeaking ? (
@@ -173,14 +173,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   </>
                 ) : (
                   <>
-                    <Mic className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                    <Mic className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-[#77b500]" />
                     <span className="hidden sm:inline text-[11px] sm:text-xs">Speak</span>
                   </>
                 )}
               </button>
 
               {isListening && (
-                <span className="hidden sm:inline text-[11px] text-muted-foreground">
+                <span className="hidden sm:inline text-[11px] font-medium text-[#6b7280]">
                   Click mic when done
                 </span>
               )}
@@ -192,10 +192,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               onClick={handleSend}
               disabled={!input.trim() || isLoading}
               title="Send message"
-              className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full bg-[#5266eb] text-white shadow-sm shadow-[#5266eb]/30 transition hover:bg-[#3f52c9] disabled:opacity-30 disabled:hover:bg-[#5266eb] disabled:cursor-not-allowed cursor-pointer touch-manipulation active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5266eb]"
+              className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-xl bg-[#77b500] text-white shadow-xs transition hover:bg-[#659c00] disabled:opacity-40 disabled:hover:bg-[#77b500] disabled:cursor-not-allowed cursor-pointer touch-manipulation active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#77b500]"
             >
               {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin text-white" />
               ) : (
                 <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               )}
@@ -204,12 +204,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         </div>
 
         {micError && (
-          <div className="mt-1.5 px-1 text-[11px] text-rose-400">
+          <div className="mt-1.5 px-1 text-[11px] font-medium text-rose-600">
             {micError}
           </div>
         )}
 
-        <div className="mt-1.5 flex items-center justify-between px-1 text-[10px] sm:text-[11px] text-[#c3c3cc]/70">
+        <div className="mt-1.5 flex items-center justify-between px-1 text-[10px] sm:text-[11px] text-[#6b7280]">
           <span>Private & stored locally in SQLite</span>
           <span className="hidden sm:inline">
             Press Enter to send • Shift+Enter for newline
