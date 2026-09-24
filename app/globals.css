@@ -2,34 +2,35 @@
 
 @variant dark (&:where(.dark, .dark *));
 
-/* ChurchSpring design system — warm, uplifting church platform palette */
+/* ChurchSpring design system — warm, peaceful sanctuary palette */
 :root {
-  --background: #fbfbfd;
-  --foreground: #1a1a1a;
-  --card: #ffffff;
-  --card-foreground: #1a1a1a;
-  --primary: #77b500;
-  --primary-hover: #659c00;
-  --primary-foreground: #ffffff;
-  --primary-soft: #eef5dd;
-  --primary-border: #b5dd66;
-  --accent: #77b500;
-  --accent-foreground: #1a1a1a;
-  --accent-soft: #eef5dd;
-  --accent-light: #f7f8fa;
-  --accent-gold: #ffba01;
-  --muted: #f3f4f6;
-  --muted-foreground: #6b7280;
-  --border: #e4e4e4;
-  --border-subtle: #eeeeee;
-  --surface-darker: #f0f1f3;
-  --scripture-bg: #ffffff;
-  --scripture-border: #77b500;
-  --prayer-bg: #eef5dd;
-  --prayer-border: #b5dd66;
-  --shadow-nav: 0px 1px 3px rgba(0, 0, 0, 0.05), 0px 1px 2px rgba(0, 0, 0, 0.03);
-  --shadow-hover: 0px 4px 12px rgba(0, 0, 0, 0.06);
-  --shadow-elevated: 0px 4px 20px rgba(0, 0, 0, 0.08);
+  --background: #F8F5EE;
+  --foreground: #2F2F2F;
+  --card: #FFFFFF;
+  --card-foreground: #2F2F2F;
+  --primary: #77B500;
+  --primary-hover: #689E00;
+  --primary-foreground: #FFFFFF;
+  --primary-soft: #EAF6DF;
+  --primary-border: #D2EAC0;
+  --accent: #77B500;
+  --accent-foreground: #2F2F2F;
+  --accent-soft: #EAF6DF;
+  --accent-light: #FAF9F5;
+  --accent-gold: #C8A86A;
+  --muted: #F2EFEA;
+  --muted-foreground: #6B7280;
+  --border: #ECE8E2;
+  --border-subtle: #F2EFEA;
+  --surface-secondary: #FBFAF7;
+  --surface-darker: #EFECE5;
+  --scripture-bg: #EEF8E7;
+  --scripture-border: #77B500;
+  --prayer-bg: #EAF6DF;
+  --prayer-border: #B5DD66;
+  --shadow-nav: 0px 2px 10px rgba(0, 0, 0, 0.03);
+  --shadow-hover: 0px 6px 20px rgba(0, 0, 0, 0.05);
+  --shadow-elevated: 0px 20px 60px rgba(0, 0, 0, 0.06);
 }
 
 @theme inline {
@@ -67,13 +68,13 @@
 }
 
 html {
-  background-color: #fbfbfd;
-  color: #1a1a1a;
+  background-color: #F8F5EE;
+  color: #2F2F2F;
 }
 
 body {
-  background-color: #fbfbfd;
-  color: #1a1a1a;
+  background-color: #F8F5EE;
+  color: #2F2F2F;
   font-family: var(--font-sans);
   font-weight: 420;
   height: 100%;

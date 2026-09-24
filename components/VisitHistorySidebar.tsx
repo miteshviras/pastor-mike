@@ -459,27 +459,14 @@ export const VisitHistorySidebar: React.FC<VisitHistorySidebarProps> = ({
 
   return (
     <>
-      {/* Persistent desktop sidebar — hidden in Live Pastor mode so sanctuary stage gets full, balanced width */}
-      <aside
-        className={`${
-          isVoiceMode ? "hidden" : "hidden md:flex"
-        } md:w-72 lg:w-80 flex-col border-r border-[#e4e4e4] bg-white shrink-0`}
-      >
-        {panelContent(false)}
-      </aside>
-
-      {/* Drawer overlay — used on mobile always, and also on desktop when in Live Pastor mode */}
+      {/* Drawer overlay for viewing full visit history */}
       {isOpen && (
-        <div
-          className={`fixed inset-0 z-50 ${
-            isVoiceMode ? "flex" : "md:hidden"
-          }`}
-        >
+        <div className="fixed inset-0 z-50 flex">
           <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-xs"
+            className="fixed inset-0 bg-black/30 backdrop-blur-xs transition-opacity"
             onClick={onClose}
           />
-          <div className="fixed inset-y-0 left-0 z-10 flex h-full w-[85%] max-w-sm flex-col bg-white shadow-2xl">
+          <div className="fixed inset-y-0 left-0 z-10 flex h-full w-[85%] max-w-sm flex-col bg-white shadow-2xl border-r border-[#ECE8E2]">
             {panelContent(true)}
           </div>
         </div>

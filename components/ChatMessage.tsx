@@ -246,7 +246,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
         {/* Scripture Citation Cards */}
         {metadata?.scriptures && metadata.scriptures.length > 0 && (
-          <div className="mt-4 space-y-2.5">
+          <div className="mt-4 space-y-3">
             {metadata.scriptures.map((verseItem, idx) => {
               const verse: Partial<ScriptureVerse> & {
                 reference: string;
@@ -270,80 +270,96 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
               return (
                 <div
                   key={refKey + idx}
-                  className="border border-[#e4e4e4] border-l-4 border-l-[#77b500] bg-[#fbfbfd] p-3.5 rounded-xl shadow-xs"
+                  className="relative overflow-hidden rounded-[18px] border border-[#DCEAC8] border-l-4 border-l-[#77B500] bg-[#EEF8E7]/90 p-4 sm:p-5 shadow-xs"
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <BookOpen className="h-3.5 w-3.5 text-[#77b500]" />
-                      <span className="text-xs font-bold text-[#1a1a1a]">
-                        {verse.reference}
-                      </span>
-                      <span className="rounded bg-[#eef5dd] border border-[#b5dd66]/40 px-1.5 py-0.5 text-[10px] font-bold text-[#4f7a00]">
-                        {verse.translation || "WEB"}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2.5">
-                      {onSaveVerse && (
-                        <button
-                          onClick={() =>
-                            handleSaveVerse(
-                              verse.reference,
-                              bodyText,
-                              verse.translation,
-                            )
-                          }
-                          disabled={savingVerseRef === verse.reference}
-                          title="Save this verse to your journal"
-                          className="flex items-center gap-1 text-[11px] font-semibold text-[#6b7280] transition hover:text-[#77b500] cursor-pointer"
-                        >
-                          {savedVerseRefs.has(verse.reference) ? (
-                            <>
-                              <BookmarkCheck className="h-3 w-3 text-[#77b500]" />
-                              <span className="text-[#4f7a00]">Saved</span>
-                            </>
-                          ) : (
-                            <>
-                              <BookMarked className="h-3 w-3" />
-                              <span>
-                                {savingVerseRef === verse.reference
-                                  ? "Saving..."
-                                  : "Save"}
-                              </span>
-                            </>
-                          )}
-                        </button>
-                      )}
-
-                      <button
-                        onClick={() => handleCopyVerse(verse.reference, bodyText)}
-                        title="Copy Scripture"
-                        className="flex items-center gap-1 text-[11px] font-semibold text-[#6b7280] transition hover:text-[#77b500] cursor-pointer"
-                      >
-                        {copiedVerse === verse.reference ? (
-                          <>
-                            <Check className="h-3 w-3 text-[#77b500]" />
-                            <span className="text-[#4f7a00]">Copied</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="h-3 w-3" />
-                            <span>Copy</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
+                  {/* Decorative Landscape Church Graphic on Right */}
+                  <div className="absolute right-0 top-0 bottom-0 w-36 sm:w-44 pointer-events-none select-none opacity-90 hidden sm:block">
+                    <img
+                      src="/images/scripture_landscape_full.png"
+                      alt=""
+                      className="h-full w-full object-cover object-left"
+                    />
                   </div>
 
-                  <blockquote className="mt-2 text-sm italic leading-relaxed text-[#3a3a3a]">
-                    &ldquo;{bodyText}&rdquo;
-                  </blockquote>
+                  <div className="relative z-10 flex items-start gap-3 sm:gap-3.5">
+                    <div className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full bg-white text-[#77B500] shadow-xs border border-[#DCEAC8]">
+                      <BookOpen className="h-4 w-4" />
+                    </div>
 
-                  {verse.pastoralContext && (
-                    <p className="mt-2 text-xs text-[#8a8a8a]">
-                      {verse.pastoralContext}
-                    </p>
-                  )}
+                    <div className="flex-1 min-w-0 pr-0 sm:pr-32">
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] font-bold tracking-wider uppercase text-[#4A7822]">
+                            {verse.reference}
+                          </span>
+                          <span className="rounded-full bg-white/80 border border-[#DCEAC8] px-1.5 py-0.2 text-[9.5px] font-bold text-[#4F7A00]">
+                            {verse.translation || "WEB"}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {onSaveVerse && (
+                            <button
+                              onClick={() =>
+                                handleSaveVerse(
+                                  verse.reference,
+                                  bodyText,
+                                  verse.translation,
+                                )
+                              }
+                              disabled={savingVerseRef === verse.reference}
+                              title="Save this verse to your journal"
+                              className="flex items-center gap-1 text-[11px] font-semibold text-[#5B6B50] transition hover:text-[#77B500] cursor-pointer"
+                            >
+                              {savedVerseRefs.has(verse.reference) ? (
+                                <>
+                                  <BookmarkCheck className="h-3 w-3 text-[#77B500]" />
+                                  <span className="text-[#4F7A00]">Saved</span>
+                                </>
+                              ) : (
+                                <>
+                                  <BookMarked className="h-3 w-3" />
+                                  <span>
+                                    {savingVerseRef === verse.reference
+                                      ? "Saving..."
+                                      : "Save"}
+                                  </span>
+                                </>
+                              )}
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => handleCopyVerse(verse.reference, bodyText)}
+                            title="Copy Scripture"
+                            className="flex items-center gap-1 text-[11px] font-semibold text-[#5B6B50] transition hover:text-[#77B500] cursor-pointer"
+                          >
+                            {copiedVerse === verse.reference ? (
+                              <>
+                                <Check className="h-3 w-3 text-[#77B500]" />
+                                <span className="text-[#4F7A00]">Copied</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="h-3 w-3" />
+                                <span>Copy</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      <blockquote className="font-serif text-[13.5px] sm:text-[14.5px] font-medium leading-relaxed text-[#234A14] italic">
+                        &ldquo;{bodyText}&rdquo;
+                      </blockquote>
+
+                      {verse.pastoralContext && (
+                        <p className="mt-2 text-xs text-[#5B6B50]/90">
+                          {verse.pastoralContext}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               );
             })}

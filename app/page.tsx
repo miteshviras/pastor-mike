@@ -16,7 +16,20 @@ import { useSentenceSync } from "@/lib/voice/useSentenceSync";
 import { attachAudioLevelAnalyser } from "@/lib/voice/audioLevel";
 import type { PrayerRequest, SavedVerse } from "@/lib/db";
 import { SafetyCheckResult } from "@/lib/ai/safety";
-import { Sparkles, HeartHandshake, Play, Pause, Download, Loader2 } from "lucide-react";
+import {
+  Sparkles,
+  HeartHandshake,
+  Play,
+  Pause,
+  Download,
+  Loader2,
+  Search,
+  X,
+  Sun,
+  Compass,
+  MoreVertical,
+  Calendar,
+} from "lucide-react";
 
 // Keeps the three.js/R3F bundle out of the server-rendered chunk.
 const PastorStage = dynamic(() => import("@/components/avatar/PastorStage"), {
@@ -63,6 +76,7 @@ export default function Home() {
   // desktop sidebar — which isn't remounted by isHistoryOpen toggling — knows to refetch instead
   // of only updating on a hard refresh.
   const [historyRefreshTick, setHistoryRefreshTick] = useState(0);
+  const [allSessions, setAllSessions] = useState<{ id: string; started_at: string; summary: string | null; firstMessagePreview: string | null }[]>([]);
   const [guideModalTab, setGuideModalTab] = useState<
     "guide" | "settings" | "profile" | "test-audio" | null
   >(null);
@@ -197,6 +211,24 @@ export default function Home() {
       console.error("Error loading saved verses:", err);
     }
   };
+
+  const loadSessionsList = async () => {
+    try {
+      const sRes = await fetch("/api/sessions");
+      if (sRes.ok) {
+        const sData = await sRes.json();
+        if (sData.sessions) {
+          setAllSessions(sData.sessions);
+        }
+      }
+    } catch (err) {
+      console.error("Error loading sessions for sidebar:", err);
+    }
+  };
+
+  useEffect(() => {
+    loadSessionsList();
+  }, [historyRefreshTick]);
 
   // Load or create initial session and prayers
   useEffect(() => {
@@ -709,7 +741,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-[#fbfbfd] text-[#1a1a1a] selection:bg-[#77b500]/25 selection:text-[#1a1a1a]">
+    <div className="flex h-full flex-col overflow-hidden bg-[#F8F5EE] text-[#2F2F2F] selection:bg-[#77B500]/25 selection:text-[#2F2F2F]">
       {/* Top Header */}
       <Header
         isVoiceMode={isVoiceMode}
@@ -719,35 +751,31 @@ export default function Home() {
         onNewSession={handleNewSession}
         prayerCount={prayers.filter((p) => p.status === "active").length}
         providerLabel={providerLabel}
+        onOpenProfile={() => setGuideModalTab("profile")}
+        onOpenSettings={() => setGuideModalTab("settings")}
+        onOpenTestAudio={() => setGuideModalTab("test-audio")}
+        onOpenGuide={() => setGuideModalTab("guide")}
       />
 
-      {/* Body row: persistent visit history sidebar + center stage/chat column + right replies sidebar */}
-      <div className="flex flex-1 overflow-hidden bg-[#fbfbfd]">
-        {/* Pastoral Visit History — persistent sidebar on desktop in chat mode, drawer in Live Pastor */}
-        <VisitHistorySidebar
-          isOpen={isHistoryOpen}
-          onClose={() => setIsHistoryOpen(false)}
-          currentSessionId={sessionId}
-          refreshKey={historyRefreshTick}
-          onSelectSession={handleSwitchSession}
-          onNewSession={() => {
-            setIsHistoryOpen(false);
-            handleNewSession();
-          }}
-          onOpenSettings={() => setGuideModalTab("settings")}
-          onOpenProfile={() => setGuideModalTab("profile")}
-          onOpenTestAudio={() => setGuideModalTab("test-audio")}
-          isVoiceMode={isVoiceMode}
-        />
+      {/* 3-Column Sanctuary Layout */}
+      <div className="flex-1 flex overflow-hidden max-w-[1680px] w-full mx-auto px-2 sm:px-4 lg:px-6 pb-2 sm:pb-3 gap-3 sm:gap-4 lg:gap-5 min-h-0">
+        {/* Left Column: Sanctuary Architectural Window (Static Emotional Anchor) */}
+        <aside className="hidden lg:flex w-56 xl:w-64 2xl:w-72 shrink-0 flex-col rounded-[24px] overflow-hidden border border-[#ECE8E2] bg-[#FAF8F3] relative shadow-xs select-none">
+          <img
+            src="/images/sanctuary_panel_perfect.png"
+            alt="Sanctuary Window — Be still, and know that I am God. Psalm 46:10"
+            className="h-full w-full object-cover object-left-top pointer-events-none"
+          />
+        </aside>
 
-        {/* Center Main Sanctuary / Conversation Column */}
-        <div className="flex flex-1 flex-col overflow-hidden bg-[#fbfbfd]">
-          <div className="flex-1 min-h-0 overflow-hidden">
+        {/* Center Column: Elevated Main Sanctuary / Conversation Stage */}
+        <main className="flex-1 flex flex-col min-w-0 min-h-0 rounded-[28px] bg-white border border-[#ECE8E2] shadow-[0_20px_60px_rgba(0,0,0,0.06)] overflow-hidden relative">
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-8 pt-5 sm:pt-7 pb-4 [scrollbar-width:thin]">
             <AnimatePresence mode="wait" initial={false}>
               {isVoiceMode ? (
                 <motion.div
                   key="pastor-stage"
-                  className="h-full w-full min-h-0 overflow-hidden bg-[#fbfbfd]"
+                  className="w-full flex flex-col min-h-0"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
@@ -775,45 +803,53 @@ export default function Home() {
                   />
                 </motion.div>
               ) : (
-                <motion.main
+                <motion.div
                   key="conversation-list"
-                  className="mx-auto flex h-full w-full max-w-3xl flex-col overflow-y-auto overscroll-contain px-3 py-3 sm:px-4 sm:py-6 bg-[#fbfbfd]"
+                  className="mx-auto flex h-full w-full max-w-3xl flex-col"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.25, ease: "easeOut" }}
                 >
+                  {/* Hero Greeting Banner */}
+                  <div className="relative w-full rounded-[22px] bg-gradient-to-r from-[#EFF6E8] via-[#FAF9F5] to-[#F5F8F2] p-5 sm:p-6 border border-[#ECE8E2] shadow-xs overflow-hidden mb-4 shrink-0">
+                    <div className="absolute right-0 top-0 bottom-0 w-28 pointer-events-none select-none opacity-80 hidden sm:block">
+                      <img
+                        src="/images/hero_leaf_clean.png"
+                        alt=""
+                        className="h-full w-full object-contain object-right-top"
+                      />
+                    </div>
+                    <div className="relative z-10 flex items-center gap-4 sm:gap-6">
+                      <div className="relative h-20 w-20 sm:h-24 sm:w-24 shrink-0 rounded-full border-2 border-white shadow-sm overflow-hidden bg-gradient-to-b from-[#E2ECD6] to-[#F2EFE8]">
+                        <img
+                          src="/images/pastor-head-portrait.png"
+                          alt="Pastor Mike"
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                      <div className="min-w-0 pr-0 sm:pr-20">
+                        <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2F2F2F] mb-1">
+                          <span className="h-2 w-2 rounded-full bg-[#77B500] ring-2 ring-[#D2EAC0]" />
+                          <span>Pastor Mike</span>
+                        </div>
+                        <h2 className="font-serif text-xl sm:text-2xl font-bold tracking-tight text-[#1F2937] leading-tight mb-1">
+                          You are not alone.
+                        </h2>
+                        <p className="text-[12px] sm:text-[13px] text-[#4B5563] leading-relaxed max-w-[460px]">
+                          I&apos;m here to listen, pray, and share God&apos;s wisdom with you. Take a deep breath — let&apos;s walk through this together.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Safety Crisis Alert if triggered */}
                   {latestSafety && latestSafety.isCrisis && (
                     <CrisisBanner safety={latestSafety} />
                   )}
 
-                  {/* Welcome Empty State */}
-                  {messages.length === 0 && (
-                    <div className="my-auto flex flex-col items-center justify-center text-center py-8 sm:py-14 px-4">
-                      <div className="mb-4 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-[#eef5dd] text-[#77b500] border border-[#b5dd66]/40 shadow-xs">
-                        <HeartHandshake className="h-7 w-7 sm:h-8 sm:w-8" />
-                      </div>
-                      <span className="text-xs font-bold text-[#77b500] uppercase tracking-widest mb-1.5">
-                        Your Spiritual Companion
-                      </span>
-                      <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#1a1a1a]">
-                        Peace be with you
-                      </h2>
-                      <p className="mt-2.5 max-w-md text-xs sm:text-sm leading-relaxed text-[#6b7280]">
-                        I am Pastor Mike. I am here to offer a listening ear, gentle spiritual guidance, Holy Scripture, and heartfelt prayer.
-                      </p>
-                      <div className="mt-4 flex items-center gap-2 rounded-full border border-[#e4e4e4] bg-white px-3 py-1 text-[11px] font-medium text-[#6b7280] shadow-xs">
-                        <span className="inline-block h-2 w-2 rounded-full bg-[#77b500]" />
-                        <span>
-                          Safe, private, and preserved on your device
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Conversation Transcript */}
-                  <div className={messages.length > 0 ? "flex-1 space-y-2" : "space-y-2"}>
+                  {/* Conversation Messages */}
+                  <div className="flex-1 space-y-2">
                     {messages.map((msg) => {
                       const isThisMsgActive = isSpeaking && speakingText === msg.content;
                       const isThisMsgPaused = isThisMsgActive && isSpeakingPaused;
@@ -833,11 +869,10 @@ export default function Home() {
                       );
                     })}
 
-                    {/* Typing/Thinking State */}
                     {isLoading && (
-                      <div className="flex items-center gap-2.5 my-4 rounded-2xl rounded-tl-xs border border-[#e4e4e4] bg-white p-4 text-xs shadow-xs">
-                        <Sparkles className="h-4 w-4 animate-spin text-[#77b500]" />
-                        <span className="font-semibold text-[#1a1a1a]">
+                      <div className="flex items-center gap-2.5 my-4 rounded-2xl rounded-tl-xs border border-[#ECE8E2] bg-[#FAF8F3] p-4 text-xs shadow-xs">
+                        <Sparkles className="h-4 w-4 animate-spin text-[#77B500]" />
+                        <span className="font-semibold text-[#2F2F2F]">
                           Pastor Mike is reflecting on your words...
                         </span>
                       </div>
@@ -845,33 +880,13 @@ export default function Home() {
 
                     <div ref={messagesEndRef} />
                   </div>
-                </motion.main>
+                </motion.div>
               )}
             </AnimatePresence>
           </div>
 
-          {/* Bottom Chat Composer — always perfectly coaxial and centered! */}
-          <div className="sticky bottom-0 z-20">
-            {!isVoiceMode && isSpeaking && (
-              <VoiceBar
-                isVoiceMode={true}
-                isListening={isListening}
-                isTranscribing={isTranscribing}
-                isSpeaking={isSpeaking}
-                isPaused={isSpeakingPaused}
-                onTogglePlayPause={() => {
-                  if (lastAssistantMessage?.content) {
-                    handleTogglePlayPause(lastAssistantMessage.content);
-                  }
-                }}
-                speed={speechSpeed}
-                onSpeedChange={setSpeechSpeed}
-                voice={voicePreset}
-                onVoiceChange={setVoicePreset}
-                onClose={() => {}}
-              />
-            )}
-
+          {/* Sticky Bottom Composer */}
+          <div className="shrink-0 px-4 sm:px-8 pb-3.5 pt-1 bg-white/95 backdrop-blur-xs border-t border-[#F2EFEA]">
             <ChatInput
               value={inputText}
               onChange={setInputText}
@@ -881,32 +896,115 @@ export default function Home() {
               isTranscribing={isTranscribing}
               onToggleListening={handleToggleListening}
               isSpeaking={isSpeaking}
-              showStarterPills={messages.length === 0 && !isVoiceMode}
               micError={micError}
             />
           </div>
-        </div>
+        </main>
 
-        {/* Right-hand Replies Sidebar — in Live Pastor mode on desktop, FULL HEIGHT! */}
-        {isVoiceMode && (
-          <aside className="hidden lg:flex w-72 lg:w-80 flex-col border-l border-[#e4e4e4] bg-white shrink-0 h-full">
-            <div className="shrink-0 border-b border-[#e4e4e4] px-4 py-3 bg-[#fbfbfd] flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#6b7280]">
-                Replies
-              </h3>
-              <span className="text-[11px] font-bold text-[#77b500] bg-[#eef5dd] px-2 py-0.5 rounded-full border border-[#b5dd66]/40">
-                {assistantMessages.length}
+        {/* Right Column: ChurchSpring Sidebar (#FBFAF7) */}
+        <aside className="hidden xl:flex w-72 2xl:w-80 shrink-0 flex-col rounded-[24px] bg-[#FBFAF7] border border-[#ECE8E2] p-4 shadow-xs overflow-y-auto [scrollbar-width:none]">
+          {/* Section 1: Replies */}
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              <h3 className="text-[14px] font-bold text-[#2F2F2F]">Replies</h3>
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#EAF6DF] text-[#4F7A00] text-[11px] font-bold border border-[#D2EAC0]">
+                {assistantMessages.length > 0 ? assistantMessages.length : 2}
               </span>
             </div>
+            <div className="flex items-center gap-1 text-[#6B7280]">
+              <button
+                type="button"
+                title="Search replies"
+                className="p-1 hover:text-[#77B500] transition cursor-pointer"
+              >
+                <Search className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsHistoryOpen(true)}
+                title="View past sessions"
+                className="p-1 hover:text-[#77B500] transition cursor-pointer"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
 
-            <div className="flex-1 overflow-y-auto px-3 py-3 bg-[#fbfbfd] space-y-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-              {assistantMessages.length === 0 && (
-                <p className="px-1 text-sm font-medium text-[#6b7280]">
-                  No replies yet.
-                </p>
-              )}
+          <p className="text-[10.5px] text-[#6B7280] mb-3">
+            Your recent conversations with Pastor Mike
+          </p>
 
-              {assistantMessages.map((msg) => {
+          {/* Replies Cards */}
+          <div className="space-y-2.5 mb-5">
+            {assistantMessages.length === 0 ? (
+              <>
+                {/* Mockup Card 1 */}
+                <div
+                  onClick={() =>
+                    handleTogglePlayPause(
+                      "I hear how heavily the weight of approaching deadlines feels right now. It's natural to feel the pressure, but you are not facing this alone.",
+                    )
+                  }
+                  className="relative overflow-hidden rounded-[16px] border border-[#A8DB80] bg-[#F4FAF0] p-3 shadow-xs transition cursor-pointer hover:shadow-sm"
+                >
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#77B500]" />
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="line-clamp-2 text-[12px] font-medium text-[#2F2F2F] leading-snug">
+                      I hear how heavily the weight of approaching deadlines is...
+                    </p>
+                    <div className="flex items-center gap-1 shrink-0 text-[#77B500]">
+                      <Play className="h-3.5 w-3.5 fill-current" />
+                      <MoreVertical className="h-3.5 w-3.5 text-[#9CA3AF]" />
+                    </div>
+                  </div>
+                  <div className="mt-2.5 flex items-center justify-between">
+                    <span className="text-[10px] text-[#6B7280] flex items-center gap-1">
+                      <Calendar className="h-3 w-3" /> Today, 10:42 AM
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <span className="bg-[#EAF6DF] text-[#3B5B24] text-[9.5px] font-semibold px-2 py-0.5 rounded-md">
+                        Anxiety
+                      </span>
+                      <span className="bg-[#EAF6DF] text-[#3B5B24] text-[9.5px] font-semibold px-2 py-0.5 rounded-md">
+                        Guidance
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mockup Card 2 */}
+                <div
+                  onClick={() =>
+                    handleTogglePlayPause(
+                      "Beloved, I hear how deeply you are hurting right now, and I want you to know you are held in God's unending grace and comfort.",
+                    )
+                  }
+                  className="relative overflow-hidden rounded-[16px] border border-[#ECE8E2] bg-white p-3 shadow-xs transition cursor-pointer hover:border-[#77B500]"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="line-clamp-2 text-[12px] font-medium text-[#2F2F2F] leading-snug">
+                      Beloved, I hear how deeply you are hurting right now, and I wa...
+                    </p>
+                    <div className="flex items-center gap-1 shrink-0 text-[#77B500]">
+                      <Play className="h-3.5 w-3.5 fill-current" />
+                      <MoreVertical className="h-3.5 w-3.5 text-[#9CA3AF]" />
+                    </div>
+                  </div>
+                  <div className="mt-2.5 flex items-center justify-between">
+                    <span className="text-[10px] text-[#6B7280]">Yesterday, 4:18 PM</span>
+                    <div className="flex items-center gap-1">
+                      <span className="bg-[#E3EFFD] text-[#1E40AF] text-[9.5px] font-semibold px-2 py-0.5 rounded-md">
+                        Encouragement
+                      </span>
+                      <span className="bg-[#E3EFFD] text-[#1E40AF] text-[9.5px] font-semibold px-2 py-0.5 rounded-md">
+                        Prayer
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              assistantMessages.map((msg, i) => {
                 const isTarget = msg.content === (displayedMessage?.content ?? "");
                 const isActive = isSpeaking && isTarget;
                 const isActivePaused = isActive && isSpeakingPaused;
@@ -915,53 +1013,183 @@ export default function Home() {
                 return (
                   <div
                     key={msg.id}
-                    className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 transition ${
+                    className={`relative overflow-hidden rounded-[16px] border p-3 shadow-xs transition cursor-pointer ${
                       isActive || isRowLoading
-                        ? "border-[#b5dd66] bg-[#eef5dd]/60 shadow-xs"
-                        : "border-[#e4e4e4] bg-white hover:border-[#77b500] shadow-xs"
+                        ? "border-[#A8DB80] bg-[#F4FAF0]"
+                        : "border-[#ECE8E2] bg-white hover:border-[#77B500]"
                     }`}
                   >
-                    <p className="line-clamp-2 flex-1 text-left text-sm text-[#2b2b2b] font-normal leading-relaxed">
-                      {msg.content}
-                    </p>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <button
-                        onClick={() => handleTogglePlayPause(msg.content)}
-                        disabled={isRowLoading}
-                        title={
-                          isRowLoading
-                            ? "Loading audio..."
-                            : isActive && !isActivePaused
-                              ? "Pause"
-                              : isActivePaused
-                                ? "Resume"
-                                : "Listen to this reply"
-                        }
-                        className="rounded-lg p-1.5 text-[#6b7280] hover:text-[#77b500] hover:bg-[#eef5dd] transition cursor-pointer"
-                      >
-                        {isRowLoading ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : isActive && !isActivePaused ? (
-                          <Pause className="h-3.5 w-3.5 fill-current text-[#77b500]" />
-                        ) : (
-                          <Play className="h-3.5 w-3.5 fill-current text-[#77b500]" />
-                        )}
-                      </button>
-                      <button
-                        onClick={() => handleDownloadAudio(msg.content)}
-                        title="Download this reply as audio"
-                        className="rounded-lg p-1.5 text-[#6b7280] hover:text-[#77b500] hover:bg-[#eef5dd] transition cursor-pointer"
-                      >
-                        <Download className="h-3.5 w-3.5" />
-                      </button>
+                    {isActive && (
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#77B500]" />
+                    )}
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="line-clamp-2 text-[12px] font-medium text-[#2F2F2F] leading-snug">
+                        {msg.content}
+                      </p>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleTogglePlayPause(msg.content)}
+                          disabled={isRowLoading}
+                          title={
+                            isRowLoading
+                              ? "Loading..."
+                              : isActive && !isActivePaused
+                                ? "Pause"
+                                : "Listen"
+                          }
+                          className="text-[#77B500] hover:scale-105 transition cursor-pointer"
+                        >
+                          {isRowLoading ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : isActive && !isActivePaused ? (
+                            <Pause className="h-3.5 w-3.5 fill-current" />
+                          ) : (
+                            <Play className="h-3.5 w-3.5 fill-current" />
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadAudio(msg.content)}
+                          title="Download audio"
+                          className="text-[#9CA3AF] hover:text-[#77B500] transition cursor-pointer"
+                        >
+                          <MoreVertical className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="mt-2.5 flex items-center justify-between">
+                      <span className="text-[10px] text-[#6B7280]">
+                        {i === 0 ? "Latest reply" : `Reply #${assistantMessages.length - i}`}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <span className="bg-[#EAF6DF] text-[#3B5B24] text-[9.5px] font-semibold px-2 py-0.5 rounded-md">
+                          Scripture
+                        </span>
+                        <span className="bg-[#EAF6DF] text-[#3B5B24] text-[9.5px] font-semibold px-2 py-0.5 rounded-md">
+                          Guidance
+                        </span>
+                      </div>
                     </div>
                   </div>
                 );
-              })}
+              })
+            )}
+          </div>
+
+          {/* Section 2: Today's Verse */}
+          <div className="mb-5">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-[#2F2F2F] mb-2">
+              <Sun className="h-4 w-4 text-[#C8A86A]" />
+              <span>Today&apos;s Verse</span>
             </div>
-          </aside>
-        )}
+            <div className="relative overflow-hidden rounded-[16px] bg-white border border-[#ECE8E2] p-4 shadow-xs">
+              <div className="absolute -right-2 -bottom-2 w-20 h-20 pointer-events-none opacity-75">
+                <img
+                  src="/images/hero_leaf_clean.png"
+                  alt=""
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <div className="relative z-10">
+                <span className="text-2xl font-serif text-[#C8A86A] leading-none select-none">“</span>
+                <p className="font-serif text-[12.5px] font-medium text-[#2F2F2F] leading-snug pr-6 -mt-2">
+                  Cast all your anxiety on Him because He cares for you.
+                </p>
+                <p className="text-[10px] font-semibold text-[#6B7280] mt-2">
+                  1 Peter 5:7
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Your Journey */}
+          <div>
+            <div className="flex items-center justify-between mb-2.5">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-[#2F2F2F]">
+                <Compass className="h-4 w-4 text-[#77B500]" />
+                <span>Your Journey</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsHistoryOpen(true)}
+                className="text-[11px] font-semibold text-[#77B500] hover:underline cursor-pointer"
+              >
+                View All
+              </button>
+            </div>
+
+            <div className="relative pl-3 border-l-2 border-[#ECE8E2] space-y-3 ml-1.5 text-[11px]">
+              <div>
+                <span className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider block mb-1">
+                  Today
+                </span>
+                <div
+                  onClick={() => {
+                    if (allSessions[0]) handleSwitchSession(allSessions[0].id);
+                  }}
+                  className="flex items-center justify-between text-[#2F2F2F] font-medium py-0.5 cursor-pointer hover:text-[#77B500] transition"
+                >
+                  <div className="flex items-center gap-1.5 truncate pr-2">
+                    <span className="h-2 w-2 rounded-full bg-[#77B500] shrink-0" />
+                    <span className="truncate">
+                      {allSessions[0]?.summary || "Conversation about anxiety"}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-[#9CA3AF] shrink-0">10:42 AM</span>
+                </div>
+                <div
+                  onClick={() => setIsJournalOpen(true)}
+                  className="flex items-center justify-between text-[#4B5563] py-0.5 cursor-pointer hover:text-[#77B500] transition"
+                >
+                  <div className="flex items-center gap-1.5 truncate pr-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#D2EAC0] shrink-0" />
+                    <span className="truncate">Prayer request</span>
+                  </div>
+                  <span className="text-[10px] text-[#9CA3AF] shrink-0">9:15 AM</span>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider block mb-1">
+                  Yesterday
+                </span>
+                <div
+                  onClick={() => {
+                    if (allSessions[1]) handleSwitchSession(allSessions[1].id);
+                  }}
+                  className="flex items-center justify-between text-[#4B5563] py-0.5 cursor-pointer hover:text-[#77B500] transition"
+                >
+                  <div className="flex items-center gap-1.5 truncate pr-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#D2EAC0] shrink-0" />
+                    <span className="truncate">
+                      {allSessions[1]?.summary || "Encouragement and healing"}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-[#9CA3AF] shrink-0">4:18 PM</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
       </div>
+
+      {/* Pastoral Visit History Drawer */}
+      <VisitHistorySidebar
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        currentSessionId={sessionId}
+        refreshKey={historyRefreshTick}
+        onSelectSession={handleSwitchSession}
+        onNewSession={() => {
+          setIsHistoryOpen(false);
+          handleNewSession();
+        }}
+        onOpenSettings={() => setGuideModalTab("settings")}
+        onOpenProfile={() => setGuideModalTab("profile")}
+        onOpenTestAudio={() => setGuideModalTab("test-audio")}
+        isVoiceMode={isVoiceMode}
+      />
 
       {/* Prayer Journal Modal */}
       <PrayerJournalModal

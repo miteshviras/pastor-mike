@@ -16,11 +16,12 @@ interface ChatInputProps {
   micError?: string | null;
 }
 
-const STARTER_PROMPTS = [
-  "I am feeling anxious about work and overwhelmed.",
-  "Help me pray for my family and loved ones.",
-  "I'm walking through grief and need comforting scripture.",
-  "I need guidance and peace for an important decision.",
+const SUGGESTION_CHIPS = [
+  { icon: "🙏", label: "Pray for peace", prompt: "Could you pray with me for inner peace and stillness?" },
+  { icon: "📖", label: "Explain this verse", prompt: "Can you help explain the scripture verse you shared?" },
+  { icon: "💬", label: "Help me with anxiety", prompt: "I am feeling anxious and overwhelmed right now. Can we talk through it?" },
+  { icon: "🌱", label: "Give practical steps", prompt: "What practical, faith-rooted steps can I take today to handle this?" },
+  { icon: "•••", label: "More", prompt: "What other scripture or guidance can you share for my heart today?" },
 ];
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -32,7 +33,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   isTranscribing = false,
   onToggleListening,
   isSpeaking,
-  showStarterPills = false,
   micError,
 }) => {
   const [internalInput, setInternalInput] = useState("");
@@ -63,159 +63,131 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
-  const handleSelectPrompt = (prompt: string) => {
-    onSendMessage(prompt);
+  const handleSelectChip = (chipPrompt: string) => {
+    onSendMessage(chipPrompt);
   };
 
   // Adjust textarea height dynamically
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 140)}px`;
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
     }
   }, [input]);
 
   return (
-    <div className="sticky bottom-0 z-20 border-t border-[#e4e4e4] bg-[#fbfbfd]/95 px-3 py-2.5 sm:px-4 sm:py-3.5 pb-[calc(0.6rem+env(safe-area-inset-bottom,0px))] backdrop-blur-md">
-      <div className="mx-auto max-w-3xl">
-        {/* Starter suggestion pills */}
-        {showStarterPills && (
-          <div className="mb-2.5">
-            <div className="flex items-center gap-1.5 mb-1.5 text-xs font-bold text-[#1a1a1a]">
-              <Sparkles className="h-3.5 w-3.5 text-[#77b500] shrink-0" />
-              <span className="text-[11px] sm:text-xs">
-                How can Pastor Mike help support you today?
-              </span>
-            </div>
-            <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar sm:flex-wrap">
-              {STARTER_PROMPTS.map((prompt) => (
-                <button
-                  key={prompt}
-                  type="button"
-                  onClick={() => handleSelectPrompt(prompt)}
-                  disabled={isLoading}
-                  className="whitespace-nowrap shrink-0 rounded-full border border-[#e4e4e4] bg-white px-3.5 py-1.5 text-xs font-semibold text-[#1a1a1a] shadow-xs transition hover:border-[#77b500] hover:text-[#4f7a00] hover:bg-[#eef5dd] disabled:opacity-50 cursor-pointer touch-manipulation active:scale-[0.98]"
-                >
-                  {prompt}
-                </button>
-              ))}
+    <div className="w-full pt-2 pb-1">
+      {/* Elevated Composer Card */}
+      <div className="rounded-[20px] border border-[#ECE8E2] bg-white p-3 sm:p-3.5 shadow-[0_12px_40px_rgba(0,0,0,0.06)] transition-all focus-within:border-[#77B500] focus-within:ring-2 focus-within:ring-[#77B500]/15">
+        {/* Input Row */}
+        <div className="flex items-end gap-2">
+          <div className="flex-1 min-w-0">
+            <textarea
+              ref={textareaRef}
+              rows={1}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={
+                isListening
+                  ? isTranscribing
+                    ? "Listening... transcribing in background... click mic when done"
+                    : "Listening... speak now, click mic when done..."
+                  : isTranscribing
+                    ? "Transcribing your words..."
+                    : "Share what's on your heart or ask a question..."
+              }
+              disabled={isLoading}
+              className="w-full resize-none bg-transparent px-2 py-1 text-sm sm:text-base text-[#2F2F2F] placeholder:text-[#9CA3AF] focus:outline-none min-h-[38px] max-h-32 leading-relaxed font-normal"
+            />
+
+            {/* Speaking / Listening State indicator pill */}
+            <div className="flex items-center gap-2 px-2 pt-0.5">
+              {isSpeaking ? (
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-[#F2F4F7] px-2.5 py-0.5 text-[11px] font-medium text-[#4B5563]">
+                  <MicOff className="h-3 w-3 text-[#6B7280]" />
+                  <span>Pastor speaking</span>
+                </div>
+              ) : isListening ? (
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 border border-rose-200 px-2.5 py-0.5 text-[11px] font-bold text-rose-600 animate-pulse">
+                  <Mic className="h-3 w-3 text-rose-500" />
+                  <span>Listening... click mic to stop</span>
+                </div>
+              ) : isTranscribing ? (
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[11px] font-medium text-amber-700">
+                  <Loader2 className="h-3 w-3 animate-spin text-amber-600" />
+                  <span>Transcribing speech...</span>
+                </div>
+              ) : null}
             </div>
           </div>
-        )}
 
-        {/* Input box */}
-        <div className="rounded-2xl border border-[#e4e4e4] bg-white p-2 sm:p-2.5 transition-all duration-200 focus-within:border-[#77b500] focus-within:ring-2 focus-within:ring-[#77b500]/15 shadow-sm">
-          {/* Text Area */}
-          <textarea
-            ref={textareaRef}
-            rows={1}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={
-              isListening
-                ? isTranscribing
-                  ? "Listening... transcribing in background... click mic when done"
-                  : "Listening... speak now, click mic when done..."
-                : isTranscribing
-                  ? "Transcribing your words..."
-                  : "Share what's on your heart or ask a question..."
-            }
-            disabled={isLoading}
-            className="w-full resize-none bg-transparent px-2.5 pt-1 pb-1 text-base sm:text-sm text-[#1a1a1a] placeholder:text-[#8a8a8a] focus:outline-none min-h-[36px] max-h-36 leading-relaxed font-normal"
-          />
-
-          {/* Bottom Action Bar */}
-          <div className="flex items-center justify-between pt-1 gap-2">
-            {/* Left: Microphone Voice Button & Speech Status */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={onToggleListening}
-                disabled={isSpeaking || (!isListening && isTranscribing)}
-                title={
-                  isSpeaking
-                    ? "Turn-taking active: Pastor Mike is speaking"
-                    : isListening
-                      ? isTranscribing
-                        ? "Listening... (Transcribing in background) Click to stop"
-                        : "Listening... Click to stop"
-                      : isTranscribing
-                        ? "Transcribing your speech..."
-                        : "Speak your message"
-                }
-                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 sm:px-3 text-xs font-bold transition cursor-pointer touch-manipulation active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#77b500] ${
-                  isListening
-                    ? "bg-rose-500 text-white shadow-xs animate-pulse"
-                    : isTranscribing
-                      ? "bg-amber-100 text-amber-800 border border-amber-300"
-                      : isSpeaking
-                        ? "bg-[#f3f4f6] text-[#8a8a8a] opacity-60 cursor-not-allowed"
-                        : "text-[#6b7280] hover:border-[#77b500] hover:text-[#77b500] border border-[#e4e4e4] bg-white"
-                }`}
-              >
-                {isListening ? (
-                  <>
-                    <Mic className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-white" />
-                    <span className="text-[11px] sm:text-xs">
-                      {isTranscribing ? "Transcribing..." : "Listening..."}
-                    </span>
-                  </>
-                ) : isTranscribing ? (
-                  <>
-                    <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 animate-spin text-amber-700" />
-                    <span className="text-[11px] sm:text-xs">Transcribing...</span>
-                  </>
-                ) : isSpeaking ? (
-                  <>
-                    <MicOff className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-                    <span className="hidden sm:inline text-[11px] sm:text-xs">Pastor speaking</span>
-                  </>
-                ) : (
-                  <>
-                    <Mic className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-[#77b500]" />
-                    <span className="hidden sm:inline text-[11px] sm:text-xs">Speak</span>
-                  </>
-                )}
-              </button>
-
-              {isListening && (
-                <span className="hidden sm:inline text-[11px] font-medium text-[#6b7280]">
-                  Click mic when done
-                </span>
+          {/* Right Action buttons: Mic & Send */}
+          <div className="flex items-center gap-1.5 shrink-0 pb-0.5">
+            <button
+              type="button"
+              onClick={onToggleListening}
+              disabled={isSpeaking || (!isListening && isTranscribing)}
+              title={
+                isSpeaking
+                  ? "Turn-taking active: Pastor Mike is speaking"
+                  : isListening
+                    ? "Stop listening"
+                    : "Speak your message"
+              }
+              className={`flex h-9 w-9 items-center justify-center rounded-xl border transition cursor-pointer active:scale-95 ${
+                isListening
+                  ? "border-rose-400 bg-rose-500 text-white shadow-xs"
+                  : isSpeaking
+                    ? "border-[#ECE8E2] bg-[#F8F5EE] text-[#9CA3AF] opacity-50 cursor-not-allowed"
+                    : "border-[#ECE8E2] bg-white text-[#6B7280] hover:border-[#77B500] hover:text-[#77B500]"
+              }`}
+            >
+              {isListening ? (
+                <Mic className="h-4 w-4 animate-pulse text-white" />
+              ) : (
+                <Mic className="h-4 w-4" />
               )}
-            </div>
+            </button>
 
-            {/* Right: Send Button */}
             <button
               type="button"
               onClick={handleSend}
               disabled={!input.trim() || isLoading}
               title="Send message"
-              className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-xl bg-[#77b500] text-white shadow-xs transition hover:bg-[#659c00] disabled:opacity-40 disabled:hover:bg-[#77b500] disabled:cursor-not-allowed cursor-pointer touch-manipulation active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#77b500]"
+              className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-[#77B500] text-white shadow-xs transition hover:bg-[#689E00] disabled:opacity-40 disabled:hover:bg-[#77B500] disabled:cursor-not-allowed cursor-pointer active:scale-95"
             >
               {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin text-white" />
               ) : (
-                <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <Send className="h-4 w-4" />
               )}
             </button>
           </div>
         </div>
-
-        {micError && (
-          <div className="mt-1.5 px-1 text-[11px] font-medium text-rose-600">
-            {micError}
-          </div>
-        )}
-
-        <div className="mt-1.5 flex items-center justify-between px-1 text-[10px] sm:text-[11px] text-[#6b7280]">
-          <span>Private & stored locally in SQLite</span>
-          <span className="hidden sm:inline">
-            Press Enter to send • Shift+Enter for newline
-          </span>
-        </div>
       </div>
+
+      {/* Suggested Prompt Chips */}
+      <div className="mt-2.5 flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar sm:flex-wrap">
+        {SUGGESTION_CHIPS.map((chip) => (
+          <button
+            key={chip.label}
+            type="button"
+            onClick={() => handleSelectChip(chip.prompt)}
+            disabled={isLoading}
+            className="flex items-center gap-1.5 whitespace-nowrap shrink-0 rounded-full border border-[#ECE8E2] bg-[#F8F6F2] hover:bg-[#EFECE5] px-3.5 py-1.5 text-[11px] sm:text-xs font-medium text-[#4B5563] shadow-xs transition cursor-pointer active:scale-[0.98]"
+          >
+            <span>{chip.icon}</span>
+            <span>{chip.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {micError && (
+        <div className="mt-1 px-1 text-[11px] font-medium text-rose-600">
+          {micError}
+        </div>
+      )}
     </div>
   );
 };
