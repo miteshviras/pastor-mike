@@ -1,52 +1,22 @@
 "use client";
 
-import React, { Suspense, useEffect, useRef } from "react";
-import * as THREE from "three";
+import React, { Suspense, useRef, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
-import { Play, Pause, RotateCcw, Square, Download, Loader2 } from "lucide-react";
 import { Avatar, AvatarHandle } from "./Avatar";
-import type { ChatMessageProps } from "@/components/ChatMessage";
-
-// Silence Three.js r183+ deprecation warning for THREE.Clock used internally by @react-three/fiber
-if (typeof window !== "undefined") {
-  if (
-    typeof (THREE as unknown as { setConsoleFunction?: unknown })
-      .setConsoleFunction === "function"
-  ) {
-    (
-      THREE as unknown as {
-        setConsoleFunction: (
-          fn: (type: string, message: string, ...params: unknown[]) => void,
-        ) => void;
-      }
-    ).setConsoleFunction((type, message, ...params) => {
-      if (
-        typeof message === "string" &&
-        message.includes("Clock: This module has been deprecated")
-      ) {
-        return;
-      }
-      const method =
-        (console as unknown as Record<string, (...args: unknown[]) => void>)[
-          type
-        ] || console.log;
-      method.call(console, message, ...params);
-    });
-  }
-
-  const originalWarn = console.warn;
-  console.warn = (...args: unknown[]) => {
-    const first = typeof args[0] === "string" ? args[0] : "";
-    if (first.includes("Clock: This module has been deprecated")) {
-      return;
-    }
-    originalWarn.apply(console, args);
-  };
-}
+import {
+  Play,
+  Pause,
+  RotateCcw,
+  Square,
+  Volume2,
+  Download,
+  Loader2,
+  Sparkles,
+} from "lucide-react";
 
 interface PastorStageProps {
   assistantText: string;
-  assistantMessages: ChatMessageProps[];
+  assistantMessages: { id: string; content: string }[];
   revealedText: string;
   sentences: string[];
   currentSentenceIndex: number;
@@ -62,7 +32,7 @@ interface PastorStageProps {
   onDownload?: (text: string) => Promise<void>;
 }
 
-// Avoids a hard crash if the .glb is missing/corrupt — the rest of the app keeps working.
+// Avoids a hard crash if the .glb is missing/corrupt
 class AvatarErrorBoundary extends React.Component<
   { children: React.ReactNode },
   { hasError: boolean }
@@ -100,7 +70,7 @@ function ThinkingDots() {
       {[0, 1, 2].map((i) => (
         <span
           key={i}
-          className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400 dark:bg-slate-500"
+          className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#77b500]"
           style={{ animationDelay: `${i * 0.15}s` }}
         />
       ))}
@@ -128,19 +98,15 @@ export default function PastorStage({
   const activeSpanRef = useRef<HTMLSpanElement | null>(null);
   const lyricsContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Sync avatar mouth animation with speaking and pause states
   useEffect(() => {
-    if (isLoading) {
-      avatarRef.current?.setMood("thinking");
-    } else if (isSpeaking && !isPaused) {
+    if (isSpeaking && !isPaused) {
       avatarRef.current?.speak();
     } else {
       avatarRef.current?.stop();
     }
-  }, [isLoading, isSpeaking, isPaused]);
+  }, [isSpeaking, isPaused]);
 
-  // Smoothly keep the currently spoken sentence in view within the isolated lyrics container.
-  // Only the lyrics container scrolls; the idol/model above stays completely stationary!
+  // Smoothly keep the currently spoken sentence in view
   useEffect(() => {
     if (isSpeaking && activeSpanRef.current && lyricsContainerRef.current) {
       const container = lyricsContainerRef.current;
@@ -160,18 +126,12 @@ export default function PastorStage({
   }, [currentSentenceIndex, isSpeaking]);
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden md:flex-row">
-      <div className="flex h-full min-h-0 flex-1 flex-col items-center overflow-hidden px-4 pt-1 sm:pt-2 pb-2">
-        {/* Pinned Stationary Block: Avatar (Idol) + Audio Play/Pause Controls */}
-        <div className="relative z-20 flex shrink-0 flex-col items-center gap-2.5 pb-2.5 pt-1 w-full bg-background/95 backdrop-blur-md border-b border-border/25 shadow-xs">
-          {/* Avatar — lifelike human portrait proportion */}
-          <div
-            className="relative h-[270px] sm:h-[330px] md:h-[370px] w-full max-w-[440px] shrink-0"
-            style={{
-              background:
-                "radial-gradient(circle at center, rgba(119,181,0,0.15), rgba(255,186,1,0.06) 45%, transparent 72%)",
-            }}
-          >
+    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden md:flex-row bg-[#fbfbfd]">
+      <div className="flex h-full min-h-0 flex-1 flex-col items-center overflow-hidden px-4 pt-1 sm:pt-2 pb-2 bg-[#fbfbfd]">
+        {/* Pinned Stationary Block: Avatar + Audio Controls */}
+        <div className="relative z-20 flex shrink-0 flex-col items-center gap-2.5 pb-2.5 pt-1 w-full bg-white/95 backdrop-blur-md border-b border-[#e4e4e4] shadow-xs rounded-b-2xl">
+          {/* Avatar Stage Card — Warm, modern church platform illumination */}
+          <div className="relative h-[270px] sm:h-[330px] md:h-[370px] w-full max-w-[480px] shrink-0 rounded-2xl border border-[#e4e4e4] shadow-sm overflow-hidden bg-gradient-to-b from-[#f8f9fa] via-[#f7f8f4] to-[#eef5dd]/40 flex items-center justify-center">
             <Canvas
               dpr={1}
               shadows={false}
@@ -187,11 +147,17 @@ export default function PastorStage({
                 </AvatarErrorBoundary>
               </Suspense>
             </Canvas>
+
+            {/* Pastor Mike Name Badge */}
+            <div className="absolute bottom-2.5 px-3.5 py-1 rounded-full bg-white/95 border border-[#e4e4e4] shadow-xs text-xs font-bold text-[#1a1a1a] flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-[#77b500]" />
+              <span>Pastor Mike</span>
+            </div>
           </div>
 
-          {/* Audio Controls Bar: Play / Pause, Restart, Stop — isolated in a pill so text never overlaps */}
+          {/* Audio Controls Bar */}
           {!isLoading && assistantText && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-card/90 border border-border/60 shadow-sm backdrop-blur-md">
+            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-[#e4e4e4] shadow-xs">
               <button
                 onClick={() => onTogglePlayPause(assistantText)}
                 disabled={isSpeechLoading && !isSpeaking}
@@ -204,13 +170,13 @@ export default function PastorStage({
                         ? "Resume speaking"
                         : "Listen to Pastor Mike"
                 }
-                className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold shadow-xs transition ${
+                className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold shadow-xs transition cursor-pointer ${
                   isSpeechLoading && !isSpeaking
-                    ? "bg-card text-muted-foreground"
+                    ? "bg-white text-[#6b7280]"
                     : isSpeaking && !isPaused
-                      ? "bg-amber-100 text-amber-900 hover:bg-amber-200 dark:bg-amber-950/70 dark:text-amber-200"
+                      ? "bg-[#eef5dd] text-[#4f7a00] border border-[#b5dd66]"
                       : isPaused
-                        ? "bg-emerald-600 text-white hover:bg-emerald-700 animate-pulse"
+                        ? "bg-[#77b500] text-white hover:bg-[#659c00] animate-pulse"
                         : "bg-[#77b500] text-white hover:bg-[#659c00]"
                 }`}
               >
@@ -241,7 +207,7 @@ export default function PastorStage({
                 <button
                   onClick={() => onRestart(assistantText)}
                   title="Restart from beginning"
-                  className="flex items-center gap-1 rounded-full border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition"
+                  className="flex items-center gap-1 rounded-full border border-[#e4e4e4] bg-white px-2.5 py-1.5 text-xs font-medium text-[#6b7280] hover:border-[#77b500] hover:text-[#77b500] transition cursor-pointer"
                 >
                   <RotateCcw className="h-3 w-3" />
                   <span>Restart</span>
@@ -252,7 +218,7 @@ export default function PastorStage({
                 <button
                   onClick={onStop}
                   title="Stop speaking"
-                  className="flex items-center gap-1 rounded-full border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition"
+                  className="flex items-center gap-1 rounded-full border border-red-200 bg-white px-2.5 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition cursor-pointer"
                 >
                   <Square className="h-3 w-3 fill-current" />
                   <span>Stop</span>
@@ -262,8 +228,7 @@ export default function PastorStage({
           )}
         </div>
 
-        {/* Now-playing viewport: only the currently-active reply's lyrics view, centered.
-          Every reply (playing or not) is selectable from the right-side panel instead. */}
+        {/* Spoken Lyrics Viewport */}
         <div
           ref={lyricsContainerRef}
           style={{
@@ -272,16 +237,16 @@ export default function PastorStage({
             WebkitMaskImage:
               "linear-gradient(to bottom, transparent 0%, black 14%, black 86%, transparent 100%)",
           }}
-          className="relative flex-1 min-h-0 w-full max-w-[640px] overflow-y-auto px-4 pt-6 pb-10 scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+          className="relative flex-1 min-h-0 w-full max-w-[640px] overflow-y-auto px-4 pt-6 pb-10 scroll-smooth bg-[#fbfbfd] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
         >
           <div className="flex w-full flex-col items-center gap-2 pb-10 pt-2 text-center">
             {isLoading ? (
-              <div className="flex flex-col items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+              <div className="flex flex-col items-center gap-2 text-sm font-medium text-[#6b7280]">
                 <span>Pastor Mike is reflecting...</span>
                 <ThinkingDots />
               </div>
             ) : isSpeaking && assistantText ? (
-              <p className="max-w-[640px] px-6 text-base leading-relaxed text-slate-800 dark:text-slate-200 sm:text-lg transition-all duration-300">
+              <p className="max-w-[640px] px-6 text-base leading-relaxed text-[#1a1a1a] sm:text-lg transition-all duration-300">
                 {sentences.map((sentence, i) => {
                   const isCurrent = i === currentSentenceIndex;
                   const isPast =
@@ -297,10 +262,10 @@ export default function PastorStage({
                         isCurrent
                           ? "rounded-md bg-[#eef5dd] text-[#4f7a00] border border-[#b5dd66]/60 font-bold px-2 py-0.5 shadow-2xs inline-block my-0.5 scale-[1.02]"
                           : isPast
-                            ? "opacity-90 text-slate-800 dark:text-slate-200"
+                            ? "opacity-90 text-[#1a1a1a]"
                             : isFuture
-                              ? "opacity-35 text-slate-400 dark:text-slate-500"
-                              : "opacity-100 text-slate-800 dark:text-slate-200"
+                              ? "opacity-40 text-[#6b7280]"
+                              : "opacity-100 text-[#1a1a1a]"
                       }`}
                     >
                       {sentence}{" "}
@@ -310,7 +275,7 @@ export default function PastorStage({
                 {sentences.length === 0 && (revealedText || assistantText)}
               </p>
             ) : (
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+              <p className="text-sm font-semibold text-[#6b7280]">
                 {assistantMessages.length > 0
                   ? "Select a reply from the list to hear it."
                   : "Send a message below to begin."}
@@ -320,77 +285,75 @@ export default function PastorStage({
         </div>
       </div>
 
-      {/* Right-side panel: every one of Pastor Mike's replies, selectable to dictate. */}
-      <aside className="flex w-full shrink-0 flex-col overflow-hidden border-t border-border/40 md:h-full md:w-72 md:border-l md:border-t-0 lg:w-80">
-        <div className="shrink-0 border-b border-border/40 px-4 py-3">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      {/* Right-side panel: Replies List */}
+      <aside className="flex w-full shrink-0 flex-col overflow-hidden border-t border-[#e4e4e4] bg-white md:h-full md:w-72 md:border-l md:border-t-0 lg:w-80 shadow-xs">
+        <div className="shrink-0 border-b border-[#e4e4e4] px-4 py-3 bg-[#fbfbfd]">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-[#6b7280]">
             Replies
           </h3>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-3 py-3 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          <div className="flex flex-col gap-2">
-            {assistantMessages.length === 0 && (
-              <p className="px-1 text-sm text-slate-500 dark:text-slate-400">
-                No replies yet.
-              </p>
-            )}
+        <div className="flex-1 overflow-y-auto px-3 py-3 bg-[#fbfbfd] space-y-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          {assistantMessages.length === 0 && (
+            <p className="px-1 text-sm font-medium text-[#6b7280]">
+              No replies yet.
+            </p>
+          )}
 
-            {assistantMessages.map((msg) => {
-              const isTarget = msg.content === assistantText;
-              const isActive = isSpeaking && isTarget;
-              const isActivePaused = isActive && isPaused;
-              const isRowLoading = isTarget && isSpeechLoading && !isSpeaking;
+          {assistantMessages.map((msg) => {
+            const isTarget = msg.content === assistantText;
+            const isActive = isSpeaking && isTarget;
+            const isActivePaused = isActive && isPaused;
+            const isRowLoading = isTarget && isSpeechLoading && !isSpeaking;
 
-              return (
-                <div
-                  key={msg.id}
-                  className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 transition ${
-                    isActive || isRowLoading
-                      ? "border-[#77b500]/50 bg-[#77b500]/10"
-                      : "border-border/40 bg-card/40 hover:bg-card/70"
-                  }`}
-                >
-                  <p className="line-clamp-2 flex-1 text-left text-sm text-slate-600 dark:text-slate-400">
-                    {msg.content}
-                  </p>
-                  <div className="flex shrink-0 items-center gap-1">
-                    <button
-                      onClick={() => onTogglePlayPause(msg.content)}
-                      disabled={isRowLoading}
-                      title={
-                        isRowLoading
-                          ? "Loading audio..."
-                          : isActive && !isActivePaused
-                            ? "Pause"
-                            : isActivePaused
-                              ? "Resume"
-                              : "Listen to this reply"
-                      }
-                      className="rounded-full p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground transition"
-                    >
-                      {isRowLoading ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : isActive && !isActivePaused ? (
-                        <Pause className="h-3.5 w-3.5 fill-current" />
-                      ) : (
-                        <Play className="h-3.5 w-3.5 fill-current" />
-                      )}
-                    </button>
-                    {onDownload && (
-                      <button
-                        onClick={() => onDownload(msg.content)}
-                        title="Download this reply as audio"
-                        className="rounded-full p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground transition"
-                      >
-                        <Download className="h-3.5 w-3.5" />
-                      </button>
+            return (
+              <div
+                key={msg.id}
+                className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 transition ${
+                  isActive || isRowLoading
+                    ? "border-[#b5dd66] bg-[#eef5dd]/60 shadow-xs"
+                    : "border-[#e4e4e4] bg-white hover:border-[#77b500] shadow-xs"
+                }`}
+              >
+                <p className="line-clamp-2 flex-1 text-left text-sm text-[#2b2b2b] font-normal leading-relaxed">
+                  {msg.content}
+                </p>
+                <div className="flex shrink-0 items-center gap-1">
+                  <button
+                    onClick={() => onTogglePlayPause(msg.content)}
+                    disabled={isRowLoading}
+                    title={
+                      isRowLoading
+                        ? "Loading audio..."
+                        : isActive && !isActivePaused
+                          ? "Pause"
+                          : isActivePaused
+                            ? "Resume"
+                            : "Listen to this reply"
+                    }
+                    className="rounded-lg p-1.5 text-[#6b7280] hover:text-[#77b500] hover:bg-[#eef5dd] transition cursor-pointer"
+                  >
+                    {isRowLoading ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : isActive && !isActivePaused ? (
+                      <Pause className="h-3.5 w-3.5 fill-current text-[#77b500]" />
+                    ) : (
+                      <Play className="h-3.5 w-3.5 fill-current text-[#77b500]" />
                     )}
-                  </div>
+                  </button>
+                  {onDownload && (
+                    <button
+                      onClick={() => onDownload(msg.content)}
+                      title="Download this reply as audio"
+                      className="rounded-lg p-1.5 text-[#6b7280] hover:text-[#77b500] hover:bg-[#eef5dd] transition cursor-pointer"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            );
+          })}
         </div>
       </aside>
     </div>

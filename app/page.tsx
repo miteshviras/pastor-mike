@@ -709,7 +709,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-background text-foreground selection:bg-[#77b500]/25 selection:text-[#1a1a1a]">
+    <div className="flex h-full flex-col overflow-hidden bg-[#fbfbfd] text-[#1a1a1a] selection:bg-[#77b500]/25 selection:text-[#1a1a1a]">
       {/* Top Header */}
       <Header
         isVoiceMode={isVoiceMode}
@@ -722,7 +722,7 @@ export default function Home() {
       />
 
       {/* Body row: persistent visit history sidebar + chat column */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden bg-[#fbfbfd]">
         {/* Pastoral Visit History — persistent sidebar on desktop, drawer on mobile */}
         <VisitHistorySidebar
           isOpen={isHistoryOpen}
@@ -739,12 +739,12 @@ export default function Home() {
           onOpenTestAudio={() => setGuideModalTab("test-audio")}
         />
 
-        <div className="flex flex-1 flex-col overflow-hidden">
+        <div className="flex flex-1 flex-col overflow-hidden bg-[#fbfbfd]">
           <AnimatePresence mode="wait" initial={false}>
             {isVoiceMode ? (
               <motion.div
                 key="pastor-stage"
-                className="flex min-h-0 flex-1 overflow-hidden"
+                className="flex min-h-0 flex-1 overflow-hidden bg-[#fbfbfd]"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -770,7 +770,7 @@ export default function Home() {
             ) : (
               <motion.main
                 key="conversation-list"
-                className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-y-auto overscroll-contain px-3 py-3 sm:px-4 sm:py-6"
+                className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-y-auto overscroll-contain px-3 py-3 sm:px-4 sm:py-6 bg-[#fbfbfd]"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}

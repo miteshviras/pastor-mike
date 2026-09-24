@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@variant dark (&:where(.dark, .dark *));
+
 /* ChurchSpring design system — warm, uplifting church platform palette */
 :root {
   --background: #fbfbfd;
@@ -64,32 +66,14 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/* Accessible, elegant dark mode pairing with ChurchSpring green accents */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #14171a;
-    --foreground: #f3f4f6;
-    --card: #1f2428;
-    --card-foreground: #f3f4f6;
-    --accent: #77b500;
-    --accent-foreground: #ffffff;
-    --accent-soft: rgba(119, 181, 0, 0.15);
-    --accent-light: #24292e;
-    --muted: #24292e;
-    --muted-foreground: #9ca3af;
-    --border: #2f363d;
-    --border-subtle: #24292e;
-    --surface-darker: #101214;
-    --scripture-bg: #1f2428;
-    --scripture-border: #77b500;
-    --prayer-bg: rgba(119, 181, 0, 0.12);
-    --prayer-border: rgba(181, 221, 102, 0.35);
-  }
+html {
+  background-color: #fbfbfd;
+  color: #1a1a1a;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background-color: #fbfbfd;
+  color: #1a1a1a;
   font-family: var(--font-sans);
   font-weight: 420;
   height: 100%;
