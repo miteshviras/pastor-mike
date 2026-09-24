@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
       savedPrayerId: pastoralTurn.savedPrayerId,
       usedModel: pastoralTurn.usedModel,
       modelName: pastoralTurn.modelName,
+      sessionTitle: pastoralTurn.sessionTitle,
     });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : "Internal server error";

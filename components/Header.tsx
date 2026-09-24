@@ -25,6 +25,7 @@ interface HeaderProps {
   onOpenTestAudio?: () => void;
   onOpenGuide?: () => void;
   userName?: string;
+  visitTitle?: string | null;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -40,6 +41,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenTestAudio,
   onOpenGuide,
   userName = "JD",
+  visitTitle,
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -81,8 +83,8 @@ export const Header: React.FC<HeaderProps> = ({
                 Available
               </span>
             </div>
-            <p className="hidden sm:block text-[11px] font-normal text-[#6B7280]">
-              Pastoral Care & Scripture Companion
+            <p className="hidden sm:block text-[11px] font-normal text-[#6B7280] truncate">
+              {visitTitle || "Pastoral Care & Scripture Companion"}
             </p>
           </div>
         </div>

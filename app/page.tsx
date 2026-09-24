@@ -54,6 +54,7 @@ function safeSetStorage(key: string, value: string): void {
 
 export default function Home() {
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionTitle, setSessionTitle] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessageProps[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isVoiceMode, setIsVoiceMode] = useState(false);
@@ -268,6 +269,7 @@ export default function Home() {
             if (msgData.session) {
               activeSessionId = msgData.session.id;
               setSessionId(msgData.session.id);
+              setSessionTitle(msgData.session.title ?? null);
               if (msgData.messages && msgData.messages.length > 0) {
                 setMessages(
                   msgData.messages.map(
@@ -306,6 +308,7 @@ export default function Home() {
                   if (msgData.messages && msgData.messages.length > 0) {
                     activeSessionId = s.id;
                     setSessionId(s.id);
+                    setSessionTitle(s.title ?? null);
                     if (typeof window !== "undefined") {
                       localStorage.setItem("pastor_mike_session_id", s.id);
                     }
@@ -335,6 +338,7 @@ export default function Home() {
                 const latest = sData.sessions[0];
                 activeSessionId = latest.id;
                 setSessionId(latest.id);
+                setSessionTitle(latest.title ?? null);
                 if (typeof window !== "undefined") {
                   localStorage.setItem("pastor_mike_session_id", latest.id);
                 }
@@ -409,6 +413,10 @@ export default function Home() {
         if (typeof window !== "undefined") {
           localStorage.setItem("pastor_mike_session_id", data.sessionId);
         }
+      }
+
+      if (data.sessionTitle) {
+        setSessionTitle(data.sessionTitle);
       }
 
       if (data.safety) {
@@ -652,6 +660,7 @@ export default function Home() {
     speechClientRef.current?.stopListening();
     // No session row is created here — lazily created on the first message or prayer save.
     setSessionId(null);
+    setSessionTitle(null);
     if (typeof window !== "undefined") {
       localStorage.removeItem("pastor_mike_session_id");
     }
@@ -675,6 +684,7 @@ export default function Home() {
       if (msgRes.ok) {
         const msgData = await msgRes.json();
         setSessionId(targetSessionId);
+        setSessionTitle(msgData.session?.title ?? null);
         if (typeof window !== "undefined") {
           localStorage.setItem("pastor_mike_session_id", targetSessionId);
         }
@@ -754,6 +764,7 @@ export default function Home() {
         onOpenSettings={() => setGuideModalTab("settings")}
         onOpenTestAudio={() => setGuideModalTab("test-audio")}
         onOpenGuide={() => setGuideModalTab("guide")}
+        visitTitle={sessionTitle}
       />
 
       {/* 3-Column Sanctuary Layout */}

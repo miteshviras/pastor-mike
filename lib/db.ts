@@ -15,6 +15,7 @@ export interface Session {
   started_at: string;
   ended_at: string | null;
   summary: string | null;
+  title: string | null;
 }
 
 export interface Message {
@@ -160,6 +161,11 @@ export function getDb(): DatabaseSync {
       CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id, started_at);
     `);
 
+    // Migration: sessions.title didn't exist in earlier versions of this schema.
+    try {
+      dbInstance.exec("ALTER TABLE sessions ADD COLUMN title TEXT");
+    } catch {}
+
     // Purge orphaned prayer records with no associated active session
     try {
       dbInstance.prepare(`
@@ -207,6 +213,7 @@ export function createSession(userId: string, id?: string): Session {
     started_at: now,
     ended_at: null,
     summary: null,
+    title: null,
   };
 }
 
@@ -236,6 +243,7 @@ export function listSessionsWithStats(userId: string): SessionWithStats[] {
       s.started_at,
       s.ended_at,
       s.summary,
+      s.title,
       (SELECT COUNT(*) FROM messages WHERE session_id = s.id) as messageCount,
       (SELECT COUNT(*) FROM prayer_requests WHERE session_id = s.id) as prayerCount,
       (SELECT content FROM messages WHERE session_id = s.id AND role = 'user' ORDER BY created_at ASC LIMIT 1) as firstMessagePreview,
@@ -265,6 +273,11 @@ export function deleteSession(sessionId: string): boolean {
 export function updateSessionSummary(sessionId: string, summary: string): void {
   const db = getDb();
   db.prepare("UPDATE sessions SET summary = ? WHERE id = ?").run(summary, sessionId);
+}
+
+export function updateSessionTitle(sessionId: string, title: string): void {
+  const db = getDb();
+  db.prepare("UPDATE sessions SET title = ? WHERE id = ?").run(title, sessionId);
 }
 
 // Message Helpers

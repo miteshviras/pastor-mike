@@ -335,8 +335,8 @@ export const VisitHistorySidebar: React.FC<VisitHistorySidebarProps> = ({
 
                 {/* Visit Summary */}
                 <p className="text-[11px] text-[#4b5563] line-clamp-2 leading-relaxed">
-                  {sess.summary || sess.firstMessagePreview ? (
-                    sess.summary || `"${sess.firstMessagePreview}"`
+                  {sess.title || sess.summary || sess.firstMessagePreview ? (
+                    sess.title || sess.summary || `"${sess.firstMessagePreview}"`
                   ) : (
                     <span className="italic text-[#9ca3af]">
                       Quiet visit without messages

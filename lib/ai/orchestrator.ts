@@ -11,6 +11,7 @@ import {
   getSessionMessages,
   saveConversationSummary,
   saveMemory,
+  updateSessionTitle,
   AiProviderSettings,
 } from "../db";
 import { generateDynamicPastoralResponse } from "./dynamic-pastoral-engine";
@@ -40,6 +41,7 @@ export interface PastoralResponse {
   savedPrayerId?: string;
   usedModel: "gemini" | "ollama" | "local-offline-engine";
   modelName?: string;
+  sessionTitle?: string;
 }
 
 // Helper to query Google Gemini API if API key is provided
@@ -141,11 +143,14 @@ async function tryOllamaChat(
   }
 }
 
-const MEMORY_EXTRACTION_SYSTEM_PROMPT = `Given a short pastoral conversation exchange, respond with ONLY compact JSON, no markdown and no commentary, in this exact shape: {"summary": "1-2 sentence summary of this visit so far, building on the prior summary if one is given", "preferredName": "their first name if mentioned in this exchange, otherwise omit this key entirely"}.`;
+function memoryExtractionSystemPrompt(includeTitle: boolean): string {
+  return `Given a short pastoral conversation exchange, respond with ONLY compact JSON, no markdown and no commentary, in this exact shape: {"summary": "1-2 sentence summary of this visit so far, building on the prior summary if one is given", "preferredName": "their first name if mentioned in this exchange, otherwise omit this key entirely"${includeTitle ? ', "title": "a short 3-6 word title naming what this visit is about, like a chat conversation title"' : ""}}.`;
+}
 
 // Best-effort: updates the cross-session summary/memory after a Gemini or Ollama reply,
 // reusing whichever provider just answered. Never awaited by the caller — must not add
-// latency to, or ever break, the actual reply the user is waiting on.
+// latency to, or ever break, the actual reply the user is waiting on. Also acts as a
+// backstop for the title on the rare case the awaited first-turn title call below misses.
 async function updateMemoryAfterTurn(params: {
   sessionId: string;
   userId: string;
@@ -154,9 +159,10 @@ async function updateMemoryAfterTurn(params: {
   priorSummary?: string;
   userMessage: string;
   replyText: string;
+  isFirstMessageInVisit: boolean;
 }): Promise<void> {
   try {
-    const { sessionId, userId, provider, providerSettings, priorSummary, userMessage, replyText } = params;
+    const { sessionId, userId, provider, providerSettings, priorSummary, userMessage, replyText, isFirstMessageInVisit } = params;
 
     const extractionContent = [
       priorSummary ? `Prior summary of earlier visits: ${priorSummary}` : null,
@@ -164,24 +170,51 @@ async function updateMemoryAfterTurn(params: {
     ].filter(Boolean).join("\n");
 
     const history: ChatTurn[] = [{ role: "user", content: extractionContent }];
+    const systemPrompt = memoryExtractionSystemPrompt(isFirstMessageInVisit);
 
     const raw = provider === "gemini"
-      ? await tryGeminiChat(history, MEMORY_EXTRACTION_SYSTEM_PROMPT, providerSettings.geminiModel)
-      : await tryOllamaChat(history, MEMORY_EXTRACTION_SYSTEM_PROMPT, providerSettings.ollamaModel);
+      ? await tryGeminiChat(history, systemPrompt, providerSettings.geminiModel)
+      : await tryOllamaChat(history, systemPrompt, providerSettings.ollamaModel);
 
     if (!raw) return;
     const match = raw.match(/\{[\s\S]*\}/);
     if (!match) return;
 
-    const parsed = JSON.parse(match[0]) as { summary?: string; preferredName?: string };
+    const parsed = JSON.parse(match[0]) as { summary?: string; preferredName?: string; title?: string };
     if (parsed.summary?.trim()) {
       saveConversationSummary(sessionId, parsed.summary.trim());
     }
     if (parsed.preferredName?.trim()) {
       saveMemory(userId, "preferred_name", parsed.preferredName.trim());
     }
+    if (isFirstMessageInVisit && parsed.title?.trim()) {
+      updateSessionTitle(sessionId, parsed.title.trim());
+    }
   } catch (err) {
     console.warn("[orchestrator] Memory extraction skipped:", err);
+  }
+}
+
+const TITLE_SUGGESTION_SYSTEM_PROMPT = `Given the opening message of a pastoral conversation, respond with ONLY a short 3-6 word title for this visit, no punctuation at the end, no quotes, no markdown, no commentary — just the title text.`;
+
+// Awaited (unlike updateMemoryAfterTurn above) so the title can be handed back in the same
+// response and suggested to the user right away — only worth the latency once per visit.
+async function generateSessionTitle(
+  userMessage: string,
+  provider: "gemini" | "ollama",
+  providerSettings: AiProviderSettings
+): Promise<string | null> {
+  try {
+    const history: ChatTurn[] = [{ role: "user", content: userMessage }];
+    const raw = provider === "gemini"
+      ? await tryGeminiChat(history, TITLE_SUGGESTION_SYSTEM_PROMPT, providerSettings.geminiModel)
+      : await tryOllamaChat(history, TITLE_SUGGESTION_SYSTEM_PROMPT, providerSettings.ollamaModel);
+
+    const title = raw?.trim().replace(/^["']|["']$/g, "");
+    return title || null;
+  } catch (err) {
+    console.warn("[orchestrator] Title suggestion skipped:", err);
+    return null;
   }
 }
 
@@ -345,7 +378,20 @@ ${contextLines.join(" ")}`;
       priorSummary: recentContext.recentSummaries[0],
       userMessage,
       replyText,
+      isFirstMessageInVisit,
     });
+  }
+
+  // 11. Suggest a title for brand-new visits — awaited (unlike the summary above) so it can
+  // be handed back and shown to the user in this same turn. Only worth the one-time latency
+  // on the visit's first message.
+  let sessionTitle: string | undefined;
+  if (isFirstMessageInVisit && (usedModel === "gemini" || usedModel === "ollama")) {
+    const title = await generateSessionTitle(userMessage, usedModel, providerSettings);
+    if (title) {
+      updateSessionTitle(sessionId, title);
+      sessionTitle = title;
+    }
   }
 
   return {
@@ -354,6 +400,7 @@ ${contextLines.join(" ")}`;
     prayer: activePrayer,
     safety,
     savedPrayerId,
+    sessionTitle,
     usedModel,
     modelName,
   };
