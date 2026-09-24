@@ -91,6 +91,34 @@ Toggled via the **"Live Pastor"** header button.
 
 `Dockerfile` (Node 24 bookworm-slim + Python 3.11 via `apt`) and `docker-compose.yml` exist specifically to get a Python version KittenTTS/Moonshine's dependency chains actually support, independent of the host's Python. Named volumes (`hf-cache`, `moonshine-cache`) persist downloaded model weights across container recreation, separate from the `models/kittentts` bind mount (which only holds a small status marker file). See README's Docker quickstart.
 
+## Theme & Design System (ChurchSpring Warm Sanctuary)
+
+The UI is built on the **ChurchSpring Warm Sanctuary design system** (blending ChurchSpring platform branding with warm editorial cues from Apple Health, Calm, and Notion), providing an emotionally comforting, peaceful church technology aesthetic that invites spiritual stillness and reflection:
+
+- **Canvas & Surfaces**:
+  - **Main Background**: `#F8F5EE` (warm parchment/linen tone)
+  - **Secondary Surface (Right Sidebar)**: `#FBFAF7`
+  - **Cards & Dialogs**: `#FFFFFF`
+  - **Borders**: `#ECE8E2`
+  - **Subtle Dividers**: `#F2EFEA`
+- **Brand Colors**:
+  - **Primary ChurchSpring Green**: `#77B500` (hover `#689E00`) for primary actions and affirmative states.
+  - **Soft Pastel Green**: `#EAF6DF` (border `#D2EAC0`) for active pill tags, sentence highlights, and prayer cards.
+  - **Accent Forest Green**: `#3B5B24` / `#234A14` for scripture text contrast.
+- **Spiritual Warmth Accents**: Soft amber/gold (`#C8A86A`) for Today's Verse and answered prayer milestones.
+- **Typography & Hierarchy**: High-contrast charcoal (`#2F2F2F`) headings and editorial body text formatted for calm, readable spiritual counsel (`leading-[1.8]`, `text-[15px]`), paired with serif headings (`font-serif`) for pastoral warmth.
+- **Three-Column Desktop Layout**:
+  - **Left Panel (~20-22%)**: Static emotional anchor featuring an architectural cathedral arched window looking out over rolling hills and church steeple, potted olive plant, Holy Bible, and Psalm 46:10 quotation.
+  - **Center Column (~56-60%)**: Elevated main sanctuary card (`rounded-[28px] bg-white border border-[#ECE8E2] shadow-[0_20px_60px_rgba(0,0,0,0.06)]`) featuring the hero banner (`You are not alone`), circular 3D avatar halo, audio pill dock, editorial conversation stream with scripture cards, and sticky composer dock.
+  - **Right Sidebar (~24%)**: `#FBFAF7` surface hosting recent `Replies` cards (with audio playback trigger), `Today's Verse` card, and `Your Journey` chronological spiritual visit timeline.
+- **Card System**:
+  - **User Message**: High-contrast charcoal pill (`#1A1A1A`) with clean white text (`rounded-2xl rounded-tr-xs`).
+  - **Pastor Mike Hero**: Soft gradient banner (`from-[#EFF6E8] via-[#FAF9F5] to-[#F5F8F2]`) with 3D avatar halo, botanical leaf accent, and greeting.
+  - **Scripture Citation Card**: Clean container (`#EEF8E7`/90) with a 4px ChurchSpring green left border (`#77B500`), book icon, translation badge (`WEB`/`KJV`/`NIV`), right-hand landscape church illustration, and "Save Verse" / "Copy" quick actions.
+  - **Pastoral Prayer Card**: Soft pastel green container (`#EAF6DF`) with heart badge, prayer petition text, and 1-click "Mark as Answered" action.
+  - **Modals & Dialogs**: Elevated white dialog cards (`bg-white border-[#ECE8E2] shadow-2xl`), light canvas interior (`#FBFAF7`), and green active pill selections—zero dark mode overrides.
+- **Live Pastor Stage**: 3D Avatar rendered inside the soft circular halo with autonomous breathing, blinking, and lipsync synchronized to KittenTTS playback and amplitude analyser. Audio controls provide 44px rounded-full pills for Resume/Listen, Restart, Stop, voice selector, and speed dropdown. Spoken lyrics highlight each sentence in soft green (`#EAF6DF` / `#3B5B24`).
+
 ## UI Shell (`components/*`, `components/avatar/*`, `app/page.tsx`)
 
 Single-page chat experience; no client-side router beyond the one route. State (active session, first-run flag) persisted to `localStorage` so a refresh resumes the same session. Key components: `Header` (Live Pastor toggle, Setup Guide, Settings, Prayer Journal), `ChatMessage` (renders scripture/prayer cards inline), `ChatInput`, `VoiceBar`, `PrayerJournalModal`, `VisitHistorySidebar`, `OnboardingModal` (2-step first-run flow: profile, then audio setup), `CrisisBanner`.

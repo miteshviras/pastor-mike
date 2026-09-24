@@ -114,6 +114,7 @@ async function runDemoScript() {
   console.log("\n============================================================");
   console.log("  >>> NOTION DEMO SCRIPT VERIFIED 100% SUCCESSFULLY! <<<");
   console.log("============================================================\n");
+  process.exit(0);
 }
 
 runDemoScript().catch((err) => {

@@ -23,10 +23,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#171721" },
-    { media: "(prefers-color-scheme: dark)", color: "#000000" },
-  ],
+  themeColor: "#fbfbfd",
 };
 
 export default function RootLayout({
@@ -37,7 +34,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased bg-[#fbfbfd] text-[#1a1a1a]`}
     >
       <head>
         <link rel="preconnect" href="https://api.fontshare.com" />
@@ -46,7 +43,7 @@ export default function RootLayout({
           href="https://api.fontshare.com/v2/css?f[]=general-sans@400,420,480,500,600,700&display=swap"
         />
       </head>
-      <body className="h-[100dvh] overflow-hidden flex flex-col">{children}</body>
+      <body className="h-[100dvh] overflow-hidden flex flex-col bg-[#fbfbfd] text-[#1a1a1a]">{children}</body>
     </html>
   );
 }

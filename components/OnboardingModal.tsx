@@ -490,19 +490,19 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 backdrop-blur-xs">
-      <div className="flex max-h-[92dvh] sm:max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-t-3xl sm:rounded-none border border-border-subtle bg-card shadow-elevated">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4 backdrop-blur-xs">
+      <div className="flex max-h-[92dvh] sm:max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-t-3xl sm:rounded-2xl border border-[#e4e4e4] bg-white shadow-2xl text-[#1a1a1a]">
         {/* Header Bar */}
-        <div className="flex items-center justify-between border-b border-slate-200/80 px-4 py-3.5 sm:px-6 sm:py-4 dark:border-slate-800">
+        <div className="flex items-center justify-between border-b border-[#e4e4e4] px-4 py-3.5 sm:px-6 sm:py-4 bg-white">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#5266eb] text-white dark:bg-[#5266eb]">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#77b500] text-white shadow-xs">
               <span className="text-sm font-bold">M</span>
             </div>
             <div>
-              <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+              <h2 className="text-base font-bold text-[#1a1a1a]">
                 Pastor Mike
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-[#6b7280]">
                 {singleView ? SINGLE_VIEW_LABELS[singleView] : "Setup Guide & AI Settings"}
               </p>
             </div>
@@ -510,7 +510,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+            className="rounded-lg p-1.5 text-[#6b7280] hover:bg-[#f3f4f6] hover:text-[#1a1a1a] transition cursor-pointer"
             title="Close"
           >
             <X className="h-4 w-4" />
@@ -521,16 +521,18 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
           <>
             {/* Step Indicator — hidden in single-view mode, since only one section renders */}
             {!singleView && (
-            <div className="mx-4 mt-3 flex gap-1.5 rounded-xl border border-slate-200 bg-slate-50/60 p-1 text-xs font-medium dark:border-slate-800 dark:bg-slate-950/20">
+            <div className="mx-4 mt-3 flex gap-1.5 rounded-xl border border-[#e4e4e4] bg-[#fbfbfd] p-1 text-xs font-semibold text-[#1a1a1a]">
               <button
                 onClick={() => setStep(1)}
-                className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 transition ${
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 transition cursor-pointer ${
                   step === 1
-                    ? "bg-card text-[#5266eb] font-semibold shadow-sm dark:bg-slate-800 dark:text-[#9cb4e8]"
-                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
+                    ? "bg-white text-[#77b500] font-bold shadow-xs border border-[#e4e4e4]"
+                    : "text-[#6b7280] hover:text-[#1a1a1a]"
                 }`}
               >
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-[11px] dark:bg-slate-800">
+                <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold ${
+                  step === 1 ? "bg-[#eef5dd] text-[#77b500]" : "bg-[#eeeeee] text-[#6b7280]"
+                }`}>
                   1
                 </span>
                 <span>Onboarding</span>
@@ -538,36 +540,40 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
               <button
                 onClick={() => setStep(2)}
-                className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 transition ${
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 transition cursor-pointer ${
                   step === 2
-                    ? "bg-card text-[#5266eb] font-semibold shadow-sm dark:bg-slate-800 dark:text-[#9cb4e8]"
-                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
+                    ? "bg-white text-[#77b500] font-bold shadow-xs border border-[#e4e4e4]"
+                    : "text-[#6b7280] hover:text-[#1a1a1a]"
                 }`}
               >
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-[11px] dark:bg-slate-800">
+                <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold ${
+                  step === 2 ? "bg-[#eef5dd] text-[#77b500]" : "bg-[#eeeeee] text-[#6b7280]"
+                }`}>
                   2
                 </span>
                 <span>Test STT & TTS</span>
                 {micVerified && (
-                  <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <Check className="h-3.5 w-3.5 text-[#77b500]" />
                 )}
               </button>
             </div>
             )}
 
             {/* Modal Body Content */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-6 bg-white space-y-5">
               {/* STEP 1: ONBOARDING */}
               {effectiveStep === 1 && (
                 <div className="space-y-5">
-                  <div className="rounded-xl border border-slate-200 bg-card/70 p-4 dark:border-slate-800 dark:bg-slate-800/50">
+                  <div className="rounded-xl border border-[#e4e4e4] bg-[#fbfbfd] p-4">
                     <div className="flex items-start gap-3">
-                      <HeartHandshake className="mt-0.5 h-5 w-5 text-[#5266eb] dark:text-[#9cb4e8]" />
+                      <div className="rounded-lg bg-[#eef5dd] p-2 text-[#77b500]">
+                        <HeartHandshake className="h-5 w-5 text-[#77b500]" />
+                      </div>
                       <div>
-                        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        <h3 className="text-sm font-bold text-[#1a1a1a]">
                           Meet Pastor Mike
                         </h3>
-                        <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+                        <p className="mt-1 text-xs leading-relaxed text-[#6b7280]">
                           I am your AI pastoral companion. I offer empathetic
                           listening, Holy Scripture, and personalized prayer
                           for your daily walk.
@@ -575,10 +581,10 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                       </div>
                     </div>
 
-                    <div className="mt-3 flex items-center gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-[11px] text-amber-800 dark:text-amber-300">
-                      <ShieldCheck className="h-4 w-4 shrink-0" />
-                      <span>
-                        <strong>Pastoral Disclaimer:</strong> Pastor Mike is
+                    <div className="mt-3 flex items-start gap-2.5 rounded-lg border border-amber-200/80 bg-amber-50/70 px-3.5 py-2.5 text-xs text-amber-900">
+                      <ShieldCheck className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
+                      <span className="leading-relaxed">
+                        <strong className="font-semibold text-amber-950">Pastoral Disclaimer:</strong> Pastor Mike is
                         an artificial intelligence assistant, not an ordained
                         minister. All conversations and prayer requests
                         remain private on your device.
@@ -588,7 +594,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
                   {/* Name input */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <label className="block text-xs font-bold text-[#1a1a1a]">
                       What name may I call you?
                     </label>
                     <input
@@ -596,16 +602,16 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                       value={userName}
                       onChange={(e) => setUserName(e.target.value)}
                       placeholder="e.g. Sarah, David, or Friend (Optional)"
-                      className="mt-1.5 w-full rounded-xl border border-slate-200 bg-card px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#5266eb] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:focus:border-[#9cb4e8]"
+                      className="mt-1.5 w-full rounded-xl border border-[#e4e4e4] bg-white px-3.5 py-2.5 text-sm text-[#1a1a1a] placeholder-[#9ca3af] outline-none transition focus:border-[#77b500] focus:ring-2 focus:ring-[#77b500]/15"
                     />
                   </div>
 
                   {/* Spiritual Care Areas */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <label className="block text-xs font-bold text-[#1a1a1a]">
                       Select topics you are carrying on your heart:
                     </label>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    <p className="text-[11px] text-[#6b7280] mt-0.5">
                       This helps Pastor Mike bring appropriate scripture and
                       gentle prayers.
                     </p>
@@ -616,10 +622,10 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                           <button
                             key={topic.id}
                             onClick={() => toggleTopic(topic.id)}
-                            className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                            className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition cursor-pointer ${
                               isSelected
-                                ? "bg-[#5266eb] text-white dark:bg-[#5266eb]"
-                                : "border border-slate-200 bg-card text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-750"
+                                ? "bg-[#77b500] text-white shadow-xs"
+                                : "border border-[#e4e4e4] bg-white text-[#1a1a1a] hover:bg-[#f3f4f6] hover:border-slate-300"
                             }`}
                           >
                             {topic.label}
@@ -633,19 +639,19 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
               {/* STEP 2: TEST STT & TTS + KITTENTTS AUTO-DOWNLOAD */}
               {effectiveStep === 2 && (
-                <div className="space-y-5">
+                <div className="space-y-4">
                   {/* KittenTTS Engine Status Card & 1-Click Downloader */}
-                  <div className="rounded-xl border border-slate-200 bg-card/70 p-4 dark:border-slate-800 dark:bg-slate-800/50">
+                  <div className="rounded-xl border border-[#e4e4e4] bg-[#fbfbfd] p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
-                        <div className="rounded-lg bg-[#5266eb]/10 p-2 text-[#5266eb] dark:bg-[#5266eb]/20 dark:text-[#9cb4e8]">
+                        <div className="rounded-lg bg-[#eef5dd] p-2 text-[#77b500]">
                           <Volume2 className="h-5 w-5" />
                         </div>
                         <div>
-                          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                          <h3 className="text-sm font-bold text-[#1a1a1a]">
                             KittenTTS Voice Engine
                           </h3>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                          <p className="text-xs text-[#6b7280]">
                             {ttsStatus.installed || downloadSuccess
                               ? "🟢 KittenTTS Neural Engine Installed & Ready"
                               : "⚪ Not Downloaded (Using browser voice fallback)"}
@@ -658,7 +664,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                         <button
                           onClick={handleDownloadTts}
                           disabled={isDownloadingTts}
-                          className="flex items-center gap-1.5 rounded-lg bg-[#5266eb] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[#3f52c9] disabled:opacity-60 dark:bg-[#5266eb] dark:hover:bg-[#4d664a]"
+                          className="flex items-center gap-1.5 rounded-lg bg-[#77b500] px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-[#659c00] disabled:opacity-60 cursor-pointer shadow-xs"
                         >
                           {isDownloadingTts ? (
                             <>
@@ -676,7 +682,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                     </div>
 
                     {downloadSuccess && (
-                      <div className="mt-3 rounded-lg bg-emerald-50 p-2.5 text-[11px] text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                      <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-2.5 text-xs font-medium text-emerald-800">
                         &check; KittenTTS model downloaded and configured! The
                         pastoral neural voice is now active.
                       </div>
@@ -684,13 +690,13 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   </div>
 
                   {/* TTS Speech Test */}
-                  <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-800/40">
+                  <div className="rounded-xl border border-[#e4e4e4] bg-[#fbfbfd] p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h4 className="text-xs font-semibold text-slate-900 dark:text-slate-100">
+                        <h4 className="text-xs font-bold text-[#1a1a1a]">
                           Test Text-to-Speech (TTS)
                         </h4>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        <p className="text-[11px] text-[#6b7280]">
                           Hear Pastor Mike speak a welcoming blessing
                         </p>
                       </div>
@@ -698,10 +704,10 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                       <div className="flex items-center gap-1.5">
                         <button
                           onClick={handlePlayBlessing}
-                          className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-medium transition ${
+                          className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition cursor-pointer shadow-xs ${
                             isPlayingBlessing
-                              ? "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200"
-                              : "border border-slate-300 bg-card text-slate-800 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                              ? "bg-amber-100 text-amber-900 border border-amber-300"
+                              : "bg-[#77b500] text-white hover:bg-[#659c00]"
                           }`}
                         >
                           {isPlayingBlessing ? (
@@ -711,7 +717,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                             </>
                           ) : (
                             <>
-                              <Play className="h-3.5 w-3.5 fill-[#5266eb] text-[#5266eb] dark:fill-[#9cb4e8] dark:text-[#9cb4e8]" />
+                              <Play className="h-3.5 w-3.5 fill-white text-white" />
                               <span>Play Blessing</span>
                             </>
                           )}
@@ -721,7 +727,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                           onClick={handleDownloadBlessing}
                           disabled={downloadingBlessing}
                           title="Download blessing audio"
-                          className="flex items-center justify-center rounded-lg border border-slate-300 bg-card p-1.5 text-slate-600 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                          className="flex items-center justify-center rounded-lg border border-[#e4e4e4] bg-white p-1.5 text-[#6b7280] transition hover:bg-[#f3f4f6] hover:text-[#1a1a1a] disabled:opacity-50 cursor-pointer"
                         >
                           <Download className={`h-3.5 w-3.5 ${downloadingBlessing ? "animate-pulse" : ""}`} />
                         </button>
@@ -730,7 +736,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
                     {/* Speed selector */}
                     <div className="mt-3 flex items-center gap-3">
-                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                      <span className="text-[11px] font-semibold text-[#6b7280]">
                         Voice Pace:
                       </span>
                       <div className="flex items-center gap-1.5">
@@ -738,10 +744,10 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                           <button
                             key={rate}
                             onClick={() => setTestSpeed(rate)}
-                            className={`rounded px-2 py-0.5 text-[10px] font-medium transition ${
+                            className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold transition cursor-pointer ${
                               testSpeed === rate
-                                ? "bg-[#5266eb] text-white dark:bg-[#5266eb]"
-                                : "bg-slate-200/80 text-slate-700 hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-300"
+                                ? "bg-[#77b500] text-white"
+                                : "border border-[#e4e4e4] bg-white text-[#1a1a1a] hover:bg-[#f3f4f6]"
                             }`}
                           >
                             {rate === 0.82
@@ -756,24 +762,24 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   </div>
 
                   {/* STT Microphone Test */}
-                  <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-800/40">
+                  <div className="rounded-xl border border-[#e4e4e4] bg-[#fbfbfd] p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="text-xs font-semibold text-slate-900 dark:text-slate-100">
+                          <h4 className="text-xs font-bold text-[#1a1a1a]">
                             Speech-to-Text (Browser STT + Moonshine Fallback)
                           </h4>
                           {sttStatus.has_local_model ? (
-                            <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                            <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800">
                               Moonshine Ready
                             </span>
                           ) : (
-                            <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                            <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
                               Browser Primary
                             </span>
                           )}
                         </div>
-                        <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+                        <p className="mt-0.5 text-[11px] text-[#6b7280]">
                           Prioritizes browser voice recognition; falls back to Moonshine STT if offline or unsupported.
                         </p>
                       </div>
@@ -783,22 +789,22 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                           <button
                             onClick={handleDownloadStt}
                             disabled={isDownloadingStt}
-                            className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-card px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                            className="flex items-center gap-1.5 rounded-lg border border-[#e4e4e4] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#1a1a1a] hover:bg-[#f3f4f6] disabled:opacity-50 cursor-pointer shadow-xs"
                             title="Pre-download Moonshine ONNX model for offline speech recognition"
                           >
                             {isDownloadingStt ? (
                               <>
-                                <Loader2 className="h-3.5 w-3.5 animate-spin text-[#5266eb]" />
+                                <Loader2 className="h-3.5 w-3.5 animate-spin text-[#77b500]" />
                                 <span>Warming STT...</span>
                               </>
                             ) : downloadSttSuccess ? (
                               <>
-                                <Check className="h-3.5 w-3.5 text-emerald-600" />
+                                <Check className="h-3.5 w-3.5 text-[#77b500]" />
                                 <span>Ready</span>
                               </>
                             ) : (
                               <>
-                                <Download className="h-3.5 w-3.5 text-[#5266eb]" />
+                                <Download className="h-3.5 w-3.5 text-[#77b500]" />
                                 <span>Pre-warm STT</span>
                               </>
                             )}
@@ -807,12 +813,12 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
                         <button
                           onClick={handleTestMic}
-                          className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-medium transition ${
+                          className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition cursor-pointer shadow-xs ${
                             isTestingMic
                               ? "animate-pulse bg-emerald-600 text-white"
                               : micVerified
-                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                                : "border border-slate-300 bg-card text-slate-800 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                                ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                                : "border border-[#e4e4e4] bg-white text-[#1a1a1a] hover:bg-[#f3f4f6]"
                           }`}
                         >
                           {isTestingMic ? (
@@ -827,7 +833,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                             </>
                           ) : (
                             <>
-                              <Mic className="h-3.5 w-3.5" />
+                              <Mic className="h-3.5 w-3.5 text-[#77b500]" />
                               <span>Test Microphone</span>
                             </>
                           )}
@@ -836,10 +842,10 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                     </div>
 
                     {isTestingMic && (
-                      <p className="mt-2 text-xs italic text-slate-600 dark:text-slate-400">
+                      <p className="mt-2 text-xs italic text-[#77b500]">
                         Speak now, e.g.: &ldquo;Hello Pastor Mike, thank you for listening.&rdquo;
                         {activeSttEngine && (
-                          <span className="ml-2 font-medium text-[#5266eb] dark:text-[#9cb4e8]">
+                          <span className="ml-2 font-semibold text-[#77b500]">
                             ({activeSttEngine})
                           </span>
                         )}
@@ -847,13 +853,13 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                     )}
 
                     {micTranscript && (
-                      <div className="mt-2.5 rounded-lg bg-card p-2.5 text-xs text-slate-800 dark:bg-slate-900 dark:text-slate-200">
+                      <div className="mt-2.5 rounded-lg border border-[#e4e4e4] bg-white p-2.5 text-xs text-[#1a1a1a]">
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-slate-500">
+                          <span className="font-bold text-[#6b7280]">
                             Heard:
                           </span>
                           {activeSttEngine && (
-                            <span className="text-[10px] text-slate-400">
+                            <span className="text-[10px] text-[#9ca3af]">
                               via {activeSttEngine}
                             </span>
                           )}
@@ -864,12 +870,12 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   </div>
 
                   {/* Automatic Voice Mode checkbox */}
-                  <label className="flex cursor-pointer items-center gap-2.5 text-xs text-slate-700 dark:text-slate-300">
+                  <label className="flex cursor-pointer items-center gap-2.5 text-xs font-medium text-[#1a1a1a]">
                     <input
                       type="checkbox"
                       checked={autoVoiceMode}
                       onChange={(e) => setAutoVoiceMode(e.target.checked)}
-                      className="rounded border-slate-300 text-[#5266eb] focus:ring-[#5266eb] dark:border-slate-700"
+                      className="rounded border-[#e4e4e4] text-[#77b500] focus:ring-[#77b500]"
                     />
                     <span>
                       Enable Voice Mode automatically when starting my visits
@@ -881,17 +887,17 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
             {/* Footer Navigation Controls */}
             {singleView ? (
-              <div className="flex items-center justify-end gap-2 border-t border-slate-200/80 bg-[#f7f4ed] px-6 py-4 dark:border-slate-800 dark:bg-[#181716]">
+              <div className="flex items-center justify-end gap-2 border-t border-[#e4e4e4] bg-[#fbfbfd] px-6 py-4">
                 <button
                   onClick={onClose}
-                  className="rounded-lg border border-slate-200 bg-card px-3.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                  className="rounded-lg border border-[#e4e4e4] bg-white px-3.5 py-1.5 text-xs font-semibold text-[#1a1a1a] hover:bg-[#f3f4f6] transition cursor-pointer shadow-xs"
                 >
                   Close
                 </button>
                 {singleView === "profile" && (
                   <button
                     onClick={handleFinish}
-                    className="flex items-center gap-1.5 rounded-lg bg-[#5266eb] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#3f52c9] dark:bg-[#5266eb] dark:hover:bg-[#4d664a]"
+                    className="flex items-center gap-1.5 rounded-lg bg-[#77b500] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#659c00] cursor-pointer shadow-xs"
                   >
                     <Check className="h-3.5 w-3.5" />
                     <span>Save Profile</span>
@@ -899,11 +905,11 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 )}
               </div>
             ) : (
-              <div className="flex items-center justify-between border-t border-slate-200/80 bg-[#f7f4ed] px-6 py-4 dark:border-slate-800 dark:bg-[#181716]">
+              <div className="flex items-center justify-between border-t border-[#e4e4e4] bg-[#fbfbfd] px-6 py-4">
                 {step > 1 ? (
                   <button
                     onClick={() => setStep(1)}
-                    className="flex items-center gap-1 rounded-lg border border-slate-200 bg-card px-3.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                    className="flex items-center gap-1 rounded-lg border border-[#e4e4e4] bg-white px-3.5 py-1.5 text-xs font-semibold text-[#1a1a1a] hover:bg-[#f3f4f6] transition cursor-pointer shadow-xs"
                   >
                     <ArrowLeft className="h-3.5 w-3.5" />
                     <span>Previous</span>
@@ -911,7 +917,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 ) : (
                   <button
                     onClick={onClose}
-                    className="text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                    className="text-xs font-medium text-[#6b7280] hover:text-[#1a1a1a] transition cursor-pointer"
                   >
                     Skip Setup
                   </button>
@@ -920,7 +926,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 {step < 2 ? (
                   <button
                     onClick={() => setStep(2)}
-                    className="flex items-center gap-1.5 rounded-lg bg-[#5266eb] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#3f52c9] dark:bg-[#5266eb] dark:hover:bg-[#4d664a]"
+                    className="flex items-center gap-1.5 rounded-lg bg-[#77b500] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#659c00] cursor-pointer shadow-xs"
                   >
                     <span>Continue</span>
                     <ArrowRight className="h-3.5 w-3.5" />
@@ -928,7 +934,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 ) : (
                   <button
                     onClick={handleFinish}
-                    className="flex items-center gap-1.5 rounded-lg bg-[#5266eb] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#3f52c9] dark:bg-[#5266eb] dark:hover:bg-[#4d664a]"
+                    className="flex items-center gap-1.5 rounded-lg bg-[#77b500] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#659c00] cursor-pointer shadow-xs"
                   >
                     <Sparkles className="h-3.5 w-3.5 text-amber-300" />
                     <span>Enter Sanctuary</span>
@@ -940,51 +946,51 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
         ) : (
           <>
             {/* SETTINGS TAB: AI Reasoning Engine */}
-            <div className="flex-1 overflow-y-auto p-6">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-xs text-slate-600 leading-relaxed dark:text-slate-300">
+            <div className="flex-1 overflow-y-auto p-6 bg-white space-y-4">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs text-[#6b7280] leading-relaxed">
                   Choose which engine generates Pastor Mike&apos;s replies.
                   Falls back to the offline engine automatically if the
                   selected one is unavailable for a given message.
                 </p>
                 {settingsSaved && (
-                  <span className="flex shrink-0 items-center gap-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+                  <span className="flex shrink-0 items-center gap-1 text-[11px] font-bold text-[#77b500]">
                     <Check className="h-3 w-3" /> Saved
                   </span>
                 )}
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {/* Gemini */}
                 <button
                   onClick={() =>
                     handleSaveProviderSettings({ provider: "gemini" })
                   }
                   disabled={isSavingSettings}
-                  className={`w-full rounded-lg border p-3 text-left text-xs transition ${
+                  className={`w-full rounded-xl border p-4 text-left text-xs transition cursor-pointer ${
                     providerSettings.provider === "gemini"
-                      ? "border-emerald-400/80 bg-emerald-50/60 dark:border-emerald-700/60 dark:bg-emerald-950/30"
-                      : "border-slate-200 bg-slate-50 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900/60"
+                      ? "border-2 border-[#77b500] bg-[#eef5dd]/40 shadow-xs"
+                      : "border-[#e4e4e4] bg-[#fbfbfd] hover:border-[#b5dd66] hover:bg-white"
                   }`}
                 >
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-3">
                     <CheckCircle2
-                      className={`h-4 w-4 shrink-0 mt-0.5 ${providerSettings.provider === "gemini" ? "text-emerald-600 dark:text-emerald-400" : "text-slate-300 dark:text-slate-600"}`}
+                      className={`h-4 w-4 shrink-0 mt-0.5 ${providerSettings.provider === "gemini" ? "text-[#77b500]" : "text-[#d1d5db]"}`}
                     />
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
-                        <span className="font-semibold text-slate-900 dark:text-slate-100">
+                        <span className="font-bold text-[#1a1a1a] text-sm">
                           Google Gemini (Default)
                         </span>
                         <span
-                          className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${providerAvailability.gemini ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"}`}
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${providerAvailability.gemini ? "bg-[#eef5dd] text-[#77b500] border border-[#b5dd66]/40" : "bg-amber-100 text-amber-800"}`}
                         >
                           {providerAvailability.gemini
                             ? "Configured"
                             : "No API key set"}
                         </span>
                       </div>
-                      <p className="text-slate-500 dark:text-slate-400 mt-0.5">
+                      <p className="text-[#6b7280] mt-1 text-xs">
                         Cloud model. Requires <code>GEMINI_API_KEY</code> in{" "}
                         <code>.env</code>.
                       </p>
@@ -993,8 +999,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 </button>
 
                 {providerSettings.provider === "gemini" && (
-                  <div className="ml-6 flex items-center gap-2 flex-wrap">
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  <div className="ml-7 flex items-center gap-2 flex-wrap">
+                    <span className="text-[11px] font-semibold text-[#6b7280]">
                       Model:
                     </span>
                     <select
@@ -1006,7 +1012,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                       }
                       disabled={isSavingSettings}
                       aria-label="Default Gemini Model"
-                      className="rounded-lg border border-slate-200 bg-card px-2 py-1 text-[11px] font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-[#5266eb]"
+                      className="rounded-lg border border-[#e4e4e4] bg-white px-2.5 py-1 text-xs font-semibold text-[#1a1a1a] focus:border-[#77b500] focus:outline-none focus:ring-1 focus:ring-[#77b500]"
                     >
                       {Array.from(
                         new Set([
@@ -1022,7 +1028,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                       ))}
                     </select>
                     {settingsSaved && (
-                      <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                      <span className="text-[10px] font-bold text-[#77b500]">
                         Default updated
                       </span>
                     )}
@@ -1035,30 +1041,30 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                     handleSaveProviderSettings({ provider: "ollama" })
                   }
                   disabled={isSavingSettings}
-                  className={`w-full rounded-lg border p-3 text-left text-xs transition ${
+                  className={`w-full rounded-xl border p-4 text-left text-xs transition cursor-pointer ${
                     providerSettings.provider === "ollama"
-                      ? "border-emerald-400/80 bg-emerald-50/60 dark:border-emerald-700/60 dark:bg-emerald-950/30"
-                      : "border-slate-200 bg-slate-50 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900/60"
+                      ? "border-2 border-[#77b500] bg-[#eef5dd]/40 shadow-xs"
+                      : "border-[#e4e4e4] bg-[#fbfbfd] hover:border-[#b5dd66] hover:bg-white"
                   }`}
                 >
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-3">
                     <CheckCircle2
-                      className={`h-4 w-4 shrink-0 mt-0.5 ${providerSettings.provider === "ollama" ? "text-emerald-600 dark:text-emerald-400" : "text-slate-300 dark:text-slate-600"}`}
+                      className={`h-4 w-4 shrink-0 mt-0.5 ${providerSettings.provider === "ollama" ? "text-[#77b500]" : "text-[#d1d5db]"}`}
                     />
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
-                        <span className="font-semibold text-slate-900 dark:text-slate-100">
+                        <span className="font-bold text-[#1a1a1a] text-sm">
                           Local Ollama
                         </span>
                         <span
-                          className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${providerAvailability.ollama ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"}`}
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${providerAvailability.ollama ? "bg-[#eef5dd] text-[#77b500] border border-[#b5dd66]/40" : "bg-amber-100 text-amber-800"}`}
                         >
                           {providerAvailability.ollama
                             ? "Reachable"
                             : "Not running"}
                         </span>
                       </div>
-                      <p className="text-slate-500 dark:text-slate-400 mt-0.5">
+                      <p className="text-[#6b7280] mt-1 text-xs">
                         Free, fully local. Requires{" "}
                         <code>ollama run &lt;model&gt;</code> at{" "}
                         <code>http://127.0.0.1:11434</code>.
@@ -1068,8 +1074,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 </button>
 
                 {providerSettings.provider === "ollama" && (
-                  <div className="ml-6 flex items-center gap-2">
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  <div className="ml-7 flex items-center gap-2">
+                    <span className="text-[11px] font-semibold text-[#6b7280]">
                       Model:
                     </span>
                     <input
@@ -1088,7 +1094,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                       }
                       placeholder="llama3.2"
                       disabled={isSavingSettings}
-                      className="rounded-lg border border-slate-200 bg-card px-2 py-1 text-[11px] text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                      className="rounded-lg border border-[#e4e4e4] bg-white px-2.5 py-1 text-xs text-[#1a1a1a] focus:border-[#77b500] focus:outline-none"
                     />
                   </div>
                 )}
@@ -1099,26 +1105,26 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                     handleSaveProviderSettings({ provider: "offline" })
                   }
                   disabled={isSavingSettings}
-                  className={`w-full rounded-lg border p-3 text-left text-xs transition ${
+                  className={`w-full rounded-xl border p-4 text-left text-xs transition cursor-pointer ${
                     providerSettings.provider === "offline"
-                      ? "border-emerald-400/80 bg-emerald-50/60 dark:border-emerald-700/60 dark:bg-emerald-950/30"
-                      : "border-slate-200 bg-slate-50 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900/60"
+                      ? "border-2 border-[#77b500] bg-[#eef5dd]/40 shadow-xs"
+                      : "border-[#e4e4e4] bg-[#fbfbfd] hover:border-[#b5dd66] hover:bg-white"
                   }`}
                 >
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-3">
                     <CheckCircle2
-                      className={`h-4 w-4 shrink-0 mt-0.5 ${providerSettings.provider === "offline" ? "text-emerald-600 dark:text-emerald-400" : "text-slate-300 dark:text-slate-600"}`}
+                      className={`h-4 w-4 shrink-0 mt-0.5 ${providerSettings.provider === "offline" ? "text-[#77b500]" : "text-[#d1d5db]"}`}
                     />
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
-                        <span className="font-semibold text-slate-900 dark:text-slate-100">
+                        <span className="font-bold text-[#1a1a1a] text-sm">
                           Offline Pastoral Engine
                         </span>
-                        <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
                           Always ready
                         </span>
                       </div>
-                      <p className="text-slate-500 dark:text-slate-400 mt-0.5">
+                      <p className="text-[#6b7280] mt-1 text-xs">
                         Zero external calls, zero cost. Tailored empathy +
                         prayer generated locally from your message.
                       </p>
@@ -1129,10 +1135,10 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end border-t border-slate-200/80 bg-[#f7f4ed] px-6 py-4 dark:border-slate-800 dark:bg-[#181716]">
+            <div className="flex items-center justify-end border-t border-[#e4e4e4] bg-[#fbfbfd] px-6 py-4">
               <button
                 onClick={onClose}
-                className="rounded-lg border border-slate-200 bg-card px-3.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                className="rounded-lg border border-[#e4e4e4] bg-white px-3.5 py-1.5 text-xs font-semibold text-[#1a1a1a] hover:bg-[#f3f4f6] transition cursor-pointer shadow-xs"
               >
                 Close
               </button>
