@@ -131,6 +131,8 @@ export const VoiceBar: React.FC<VoiceBarProps> = ({
               <option value="0.88" className="bg-slate-800 text-white">0.9x Warm</option>
               <option value="1" className="bg-slate-800 text-white">1.0x Normal</option>
               <option value="1.1" className="bg-slate-800 text-white">1.1x Brisk</option>
+              <option value="1.25" className="bg-slate-800 text-white">1.25x Quick</option>
+              <option value="1.5" className="bg-slate-800 text-white">1.5x Fast</option>
             </select>
           </div>
 

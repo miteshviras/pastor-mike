@@ -280,11 +280,6 @@ export default function PastorStage({
                 <span>Pastor Mike is reflecting...</span>
                 <ThinkingDots />
               </div>
-            ) : isSpeechLoading && !isSpeaking && assistantText ? (
-              <div className="flex flex-col items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Loading audio...</span>
-              </div>
             ) : isSpeaking && assistantText ? (
               <p className="max-w-[640px] px-6 text-base leading-relaxed text-slate-800 dark:text-slate-200 sm:text-lg transition-all duration-300">
                 {sentences.map((sentence, i) => {
