@@ -104,6 +104,7 @@ The UI is built on the **ChurchSpring platform design system** (derived from the
   - **Pastor Mike Card**: Pure white card (`#FFFFFF`) with subtle border, header avatar, and model engine indicator.
   - **Scripture Citation Card**: Clean card with a 4px ChurchSpring green left border (`#77B500`), book icon, translation badge (`WEB`/`KJV`), and "Save Verse" / "Copy" quick actions.
   - **Pastoral Prayer Card**: Soft pastel green container (`#EEF5DD`) with heart/hands badge, prayer petition text, and 1-click "Mark as Answered" action.
+  - **Modals & Dialogs (Settings, Profile, Audio, Prayer Journal)**: Pure white elevated dialog cards (`bg-white border-[#E4E4E4] shadow-2xl`), light canvas interior (`#FBFBFD`), green active pill selections (`#77B500`), and warm amber notes—zero dark mode overrides.
 - **Live Pastor Stage**: Sunlit sanctuary ambient glow replacing dark stage backgrounds, with synchronized sentence-highlight pacing in soft green (`#EEF5DD` / `#4F7A00`).
 
 ## UI Shell (`components/*`, `components/avatar/*`, `app/page.tsx`)
