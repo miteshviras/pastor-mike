@@ -28,7 +28,6 @@ import {
   Sun,
   Compass,
   MoreVertical,
-  Calendar,
 } from "lucide-react";
 
 // Keeps the three.js/R3F bundle out of the server-rendered chunk.
@@ -917,7 +916,7 @@ export default function Home() {
             <div className="flex items-center gap-2">
               <h3 className="text-[14px] font-bold text-[#2F2F2F]">Replies</h3>
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#EAF6DF] text-[#4F7A00] text-[11px] font-bold border border-[#D2EAC0]">
-                {assistantMessages.length > 0 ? assistantMessages.length : 2}
+                {assistantMessages.length}
               </span>
             </div>
             <div className="flex items-center gap-1 text-[#6B7280]">
@@ -946,72 +945,10 @@ export default function Home() {
           {/* Replies Cards */}
           <div className="space-y-2.5 mb-5">
             {assistantMessages.length === 0 ? (
-              <>
-                {/* Mockup Card 1 */}
-                <div
-                  onClick={() =>
-                    handleTogglePlayPause(
-                      "I hear how heavily the weight of approaching deadlines feels right now. It's natural to feel the pressure, but you are not facing this alone.",
-                    )
-                  }
-                  className="relative overflow-hidden rounded-[16px] border border-[#A8DB80] bg-[#F4FAF0] p-3 shadow-xs transition cursor-pointer hover:shadow-sm"
-                >
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#77B500]" />
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="line-clamp-2 text-[12px] font-medium text-[#2F2F2F] leading-snug">
-                      I hear how heavily the weight of approaching deadlines is...
-                    </p>
-                    <div className="flex items-center gap-1 shrink-0 text-[#77B500]">
-                      <Play className="h-3.5 w-3.5 fill-current" />
-                      <MoreVertical className="h-3.5 w-3.5 text-[#9CA3AF]" />
-                    </div>
-                  </div>
-                  <div className="mt-2.5 flex items-center justify-between">
-                    <span className="text-[10px] text-[#6B7280] flex items-center gap-1">
-                      <Calendar className="h-3 w-3" /> Today, 10:42 AM
-                    </span>
-                    <div className="flex items-center gap-1">
-                      <span className="bg-[#EAF6DF] text-[#3B5B24] text-[9.5px] font-semibold px-2 py-0.5 rounded-md">
-                        Anxiety
-                      </span>
-                      <span className="bg-[#EAF6DF] text-[#3B5B24] text-[9.5px] font-semibold px-2 py-0.5 rounded-md">
-                        Guidance
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Mockup Card 2 */}
-                <div
-                  onClick={() =>
-                    handleTogglePlayPause(
-                      "Beloved, I hear how deeply you are hurting right now, and I want you to know you are held in God's unending grace and comfort.",
-                    )
-                  }
-                  className="relative overflow-hidden rounded-[16px] border border-[#ECE8E2] bg-white p-3 shadow-xs transition cursor-pointer hover:border-[#77B500]"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="line-clamp-2 text-[12px] font-medium text-[#2F2F2F] leading-snug">
-                      Beloved, I hear how deeply you are hurting right now, and I wa...
-                    </p>
-                    <div className="flex items-center gap-1 shrink-0 text-[#77B500]">
-                      <Play className="h-3.5 w-3.5 fill-current" />
-                      <MoreVertical className="h-3.5 w-3.5 text-[#9CA3AF]" />
-                    </div>
-                  </div>
-                  <div className="mt-2.5 flex items-center justify-between">
-                    <span className="text-[10px] text-[#6B7280]">Yesterday, 4:18 PM</span>
-                    <div className="flex items-center gap-1">
-                      <span className="bg-[#E3EFFD] text-[#1E40AF] text-[9.5px] font-semibold px-2 py-0.5 rounded-md">
-                        Encouragement
-                      </span>
-                      <span className="bg-[#E3EFFD] text-[#1E40AF] text-[9.5px] font-semibold px-2 py-0.5 rounded-md">
-                        Prayer
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </>
+              <p className="text-[12px] text-[#6B7280] px-1">
+                No replies yet in this visit — Pastor Mike&apos;s responses
+                will appear here as you talk.
+              </p>
             ) : (
               assistantMessages.map((msg, i) => {
                 const isTarget = msg.content === (displayedMessage?.content ?? "");
