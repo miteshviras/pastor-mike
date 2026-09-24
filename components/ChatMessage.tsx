@@ -141,7 +141,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   }
 
   return (
-    <div className="flex flex-col gap-3 my-5 max-w-[95%] sm:max-w-[85%]">
+    <div className="flex flex-col gap-3 my-4 sm:my-5 w-full">
       {/* Pastor Mike Message Card */}
       <div className="border border-[#e4e4e4] bg-white p-4 sm:p-5 shadow-sm rounded-2xl">
         {/* Header with Pastor avatar and Voice Play */}

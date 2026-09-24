@@ -30,6 +30,7 @@ interface VisitHistorySidebarProps {
   onOpenSettings: () => void;
   onOpenProfile: () => void;
   onOpenTestAudio: () => void;
+  isVoiceMode?: boolean;
 }
 
 function formatVisitDate(isoString: string) {
@@ -71,6 +72,7 @@ export const VisitHistorySidebar: React.FC<VisitHistorySidebarProps> = ({
   onOpenSettings,
   onOpenProfile,
   onOpenTestAudio,
+  isVoiceMode = false,
 }) => {
   const [sessions, setSessions] = useState<SessionWithStats[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -457,14 +459,22 @@ export const VisitHistorySidebar: React.FC<VisitHistorySidebarProps> = ({
 
   return (
     <>
-      {/* Persistent desktop sidebar */}
-      <aside className="hidden md:flex md:w-72 lg:w-80 flex-col border-r border-[#e4e4e4] bg-white shrink-0">
+      {/* Persistent desktop sidebar — hidden in Live Pastor mode so sanctuary stage gets full, balanced width */}
+      <aside
+        className={`${
+          isVoiceMode ? "hidden" : "hidden md:flex"
+        } md:w-72 lg:w-80 flex-col border-r border-[#e4e4e4] bg-white shrink-0`}
+      >
         {panelContent(false)}
       </aside>
 
-      {/* Mobile off-canvas drawer */}
+      {/* Drawer overlay — used on mobile always, and also on desktop when in Live Pastor mode */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
+        <div
+          className={`fixed inset-0 z-50 ${
+            isVoiceMode ? "flex" : "md:hidden"
+          }`}
+        >
           <div
             className="fixed inset-0 bg-black/40 backdrop-blur-xs"
             onClick={onClose}

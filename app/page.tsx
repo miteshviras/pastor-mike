@@ -16,7 +16,7 @@ import { useSentenceSync } from "@/lib/voice/useSentenceSync";
 import { attachAudioLevelAnalyser } from "@/lib/voice/audioLevel";
 import type { PrayerRequest, SavedVerse } from "@/lib/db";
 import { SafetyCheckResult } from "@/lib/ai/safety";
-import { Sparkles, HeartHandshake } from "lucide-react";
+import { Sparkles, HeartHandshake, Play, Pause, Download, Loader2 } from "lucide-react";
 
 // Keeps the three.js/R3F bundle out of the server-rendered chunk.
 const PastorStage = dynamic(() => import("@/components/avatar/PastorStage"), {
@@ -721,9 +721,9 @@ export default function Home() {
         providerLabel={providerLabel}
       />
 
-      {/* Body row: persistent visit history sidebar + chat column */}
+      {/* Body row: persistent visit history sidebar + center stage/chat column + right replies sidebar */}
       <div className="flex flex-1 overflow-hidden bg-[#fbfbfd]">
-        {/* Pastoral Visit History — persistent sidebar on desktop, drawer on mobile */}
+        {/* Pastoral Visit History — persistent sidebar on desktop in chat mode, drawer in Live Pastor */}
         <VisitHistorySidebar
           isOpen={isHistoryOpen}
           onClose={() => setIsHistoryOpen(false)}
@@ -737,130 +737,140 @@ export default function Home() {
           onOpenSettings={() => setGuideModalTab("settings")}
           onOpenProfile={() => setGuideModalTab("profile")}
           onOpenTestAudio={() => setGuideModalTab("test-audio")}
+          isVoiceMode={isVoiceMode}
         />
 
+        {/* Center Main Sanctuary / Conversation Column */}
         <div className="flex flex-1 flex-col overflow-hidden bg-[#fbfbfd]">
-          <AnimatePresence mode="wait" initial={false}>
-            {isVoiceMode ? (
-              <motion.div
-                key="pastor-stage"
-                className="flex min-h-0 flex-1 overflow-hidden bg-[#fbfbfd]"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.25, ease: "easeOut" }}
-              >
-                <PastorStage
-                  assistantText={displayedMessage?.content ?? ""}
-                  assistantMessages={assistantMessages}
-                  revealedText={sentenceSync.revealedText}
-                  sentences={sentenceSync.sentences}
-                  currentSentenceIndex={sentenceSync.currentSentenceIndex}
-                  isLoading={isLoading}
-                  isSpeaking={isSpeaking}
-                  isPaused={isSpeakingPaused}
-                  isPraying={isPraying}
-                  isSpeechLoading={isSpeechLoading}
-                  onTogglePlayPause={handleTogglePlayPause}
-                  onRestart={handleRestartSpeaking}
-                  onStop={handleStopSpeaking}
-                  onDownload={handleDownloadAudio}
-                />
-              </motion.div>
-            ) : (
-              <motion.main
-                key="conversation-list"
-                className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-y-auto overscroll-contain px-3 py-3 sm:px-4 sm:py-6 bg-[#fbfbfd]"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.25, ease: "easeOut" }}
-              >
-                {/* Safety Crisis Alert if triggered */}
-                {latestSafety && latestSafety.isCrisis && (
-                  <CrisisBanner safety={latestSafety} />
-                )}
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <AnimatePresence mode="wait" initial={false}>
+              {isVoiceMode ? (
+                <motion.div
+                  key="pastor-stage"
+                  className="h-full w-full min-h-0 overflow-hidden bg-[#fbfbfd]"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                >
+                  <PastorStage
+                    assistantText={displayedMessage?.content ?? ""}
+                    assistantMessages={assistantMessages}
+                    revealedText={sentenceSync.revealedText}
+                    sentences={sentenceSync.sentences}
+                    currentSentenceIndex={sentenceSync.currentSentenceIndex}
+                    isLoading={isLoading}
+                    isSpeaking={isSpeaking}
+                    isPaused={isSpeakingPaused}
+                    isPraying={isPraying}
+                    isSpeechLoading={isSpeechLoading}
+                    onTogglePlayPause={handleTogglePlayPause}
+                    onRestart={handleRestartSpeaking}
+                    onStop={handleStopSpeaking}
+                    onDownload={handleDownloadAudio}
+                    speed={speechSpeed}
+                    onSpeedChange={setSpeechSpeed}
+                    voice={voicePreset}
+                    onVoiceChange={setVoicePreset}
+                  />
+                </motion.div>
+              ) : (
+                <motion.main
+                  key="conversation-list"
+                  className="mx-auto flex h-full w-full max-w-3xl flex-col overflow-y-auto overscroll-contain px-3 py-3 sm:px-4 sm:py-6 bg-[#fbfbfd]"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                >
+                  {/* Safety Crisis Alert if triggered */}
+                  {latestSafety && latestSafety.isCrisis && (
+                    <CrisisBanner safety={latestSafety} />
+                  )}
 
-                {/* Welcome Empty State */}
-                {messages.length === 0 && (
-                  <div className="my-auto flex flex-col items-center justify-center text-center py-8 sm:py-14 px-4">
-                    <div className="mb-4 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-[#eef5dd] text-[#77b500] border border-[#b5dd66]/40 shadow-xs">
-                      <HeartHandshake className="h-7 w-7 sm:h-8 sm:w-8" />
-                    </div>
-                    <span className="text-xs font-bold text-[#77b500] uppercase tracking-widest mb-1.5">
-                      Your Spiritual Companion
-                    </span>
-                    <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#1a1a1a]">
-                      Peace be with you
-                    </h2>
-                    <p className="mt-2.5 max-w-md text-xs sm:text-sm leading-relaxed text-[#6b7280]">
-                      I am Pastor Mike. I am here to offer a listening ear, gentle spiritual guidance, Holy Scripture, and heartfelt prayer.
-                    </p>
-                    <div className="mt-4 flex items-center gap-2 rounded-full border border-[#e4e4e4] bg-white px-3 py-1 text-[11px] font-medium text-[#6b7280] shadow-xs">
-                      <span className="inline-block h-2 w-2 rounded-full bg-[#77b500]" />
-                      <span>
-                        Safe, private, and preserved on your device
+                  {/* Welcome Empty State */}
+                  {messages.length === 0 && (
+                    <div className="my-auto flex flex-col items-center justify-center text-center py-8 sm:py-14 px-4">
+                      <div className="mb-4 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-[#eef5dd] text-[#77b500] border border-[#b5dd66]/40 shadow-xs">
+                        <HeartHandshake className="h-7 w-7 sm:h-8 sm:w-8" />
+                      </div>
+                      <span className="text-xs font-bold text-[#77b500] uppercase tracking-widest mb-1.5">
+                        Your Spiritual Companion
                       </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Conversation Transcript */}
-                <div className={messages.length > 0 ? "flex-1 space-y-2" : "space-y-2"}>
-                  {messages.map((msg) => {
-                    const isThisMsgActive = isSpeaking && speakingText === msg.content;
-                    const isThisMsgPaused = isThisMsgActive && isSpeakingPaused;
-                    return (
-                      <ChatMessage
-                        key={msg.id}
-                        {...msg}
-                        onSpeak={handleTogglePlayPause}
-                        onRestart={handleRestartSpeaking}
-                        onStop={handleStopSpeaking}
-                        onMarkAnswered={handleMarkPrayerAnswered}
-                        onDownload={handleDownloadAudio}
-                        onSaveVerse={handleSaveVerse}
-                        isSpeakingNow={isThisMsgActive}
-                        isPausedNow={isThisMsgPaused}
-                      />
-                    );
-                  })}
-
-                  {/* Typing/Thinking State */}
-                  {isLoading && (
-                    <div className="flex items-center gap-2.5 my-4 rounded-2xl rounded-tl-xs border border-[#e4e4e4] bg-white p-4 text-xs shadow-xs">
-                      <Sparkles className="h-4 w-4 animate-spin text-[#77b500]" />
-                      <span className="font-semibold text-[#1a1a1a]">
-                        Pastor Mike is reflecting on your words...
-                      </span>
+                      <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#1a1a1a]">
+                        Peace be with you
+                      </h2>
+                      <p className="mt-2.5 max-w-md text-xs sm:text-sm leading-relaxed text-[#6b7280]">
+                        I am Pastor Mike. I am here to offer a listening ear, gentle spiritual guidance, Holy Scripture, and heartfelt prayer.
+                      </p>
+                      <div className="mt-4 flex items-center gap-2 rounded-full border border-[#e4e4e4] bg-white px-3 py-1 text-[11px] font-medium text-[#6b7280] shadow-xs">
+                        <span className="inline-block h-2 w-2 rounded-full bg-[#77b500]" />
+                        <span>
+                          Safe, private, and preserved on your device
+                        </span>
+                      </div>
                     </div>
                   )}
 
-                  <div ref={messagesEndRef} />
-                </div>
-              </motion.main>
-            )}
-          </AnimatePresence>
+                  {/* Conversation Transcript */}
+                  <div className={messages.length > 0 ? "flex-1 space-y-2" : "space-y-2"}>
+                    {messages.map((msg) => {
+                      const isThisMsgActive = isSpeaking && speakingText === msg.content;
+                      const isThisMsgPaused = isThisMsgActive && isSpeakingPaused;
+                      return (
+                        <ChatMessage
+                          key={msg.id}
+                          {...msg}
+                          onSpeak={handleTogglePlayPause}
+                          onRestart={handleRestartSpeaking}
+                          onStop={handleStopSpeaking}
+                          onMarkAnswered={handleMarkPrayerAnswered}
+                          onDownload={handleDownloadAudio}
+                          onSaveVerse={handleSaveVerse}
+                          isSpeakingNow={isThisMsgActive}
+                          isPausedNow={isThisMsgPaused}
+                        />
+                      );
+                    })}
 
-          {/* Voice Status Bar + Composer, pinned together at the bottom */}
+                    {/* Typing/Thinking State */}
+                    {isLoading && (
+                      <div className="flex items-center gap-2.5 my-4 rounded-2xl rounded-tl-xs border border-[#e4e4e4] bg-white p-4 text-xs shadow-xs">
+                        <Sparkles className="h-4 w-4 animate-spin text-[#77b500]" />
+                        <span className="font-semibold text-[#1a1a1a]">
+                          Pastor Mike is reflecting on your words...
+                        </span>
+                      </div>
+                    )}
+
+                    <div ref={messagesEndRef} />
+                  </div>
+                </motion.main>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Bottom Chat Composer — always perfectly coaxial and centered! */}
           <div className="sticky bottom-0 z-20">
-            <VoiceBar
-              isVoiceMode={isVoiceMode}
-              isListening={isListening}
-              isTranscribing={isTranscribing}
-              isSpeaking={isSpeaking}
-              isPaused={isSpeakingPaused}
-              onTogglePlayPause={() => {
-                if (lastAssistantMessage?.content) {
-                  handleTogglePlayPause(lastAssistantMessage.content);
-                }
-              }}
-              speed={speechSpeed}
-              onSpeedChange={setSpeechSpeed}
-              voice={voicePreset}
-              onVoiceChange={setVoicePreset}
-              onClose={handleToggleLivePastor}
-            />
+            {!isVoiceMode && isSpeaking && (
+              <VoiceBar
+                isVoiceMode={true}
+                isListening={isListening}
+                isTranscribing={isTranscribing}
+                isSpeaking={isSpeaking}
+                isPaused={isSpeakingPaused}
+                onTogglePlayPause={() => {
+                  if (lastAssistantMessage?.content) {
+                    handleTogglePlayPause(lastAssistantMessage.content);
+                  }
+                }}
+                speed={speechSpeed}
+                onSpeedChange={setSpeechSpeed}
+                voice={voicePreset}
+                onVoiceChange={setVoicePreset}
+                onClose={() => {}}
+              />
+            )}
 
             <ChatInput
               value={inputText}
@@ -871,11 +881,86 @@ export default function Home() {
               isTranscribing={isTranscribing}
               onToggleListening={handleToggleListening}
               isSpeaking={isSpeaking}
-              showStarterPills={messages.length === 0}
+              showStarterPills={messages.length === 0 && !isVoiceMode}
               micError={micError}
             />
           </div>
         </div>
+
+        {/* Right-hand Replies Sidebar — in Live Pastor mode on desktop, FULL HEIGHT! */}
+        {isVoiceMode && (
+          <aside className="hidden lg:flex w-72 lg:w-80 flex-col border-l border-[#e4e4e4] bg-white shrink-0 h-full">
+            <div className="shrink-0 border-b border-[#e4e4e4] px-4 py-3 bg-[#fbfbfd] flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#6b7280]">
+                Replies
+              </h3>
+              <span className="text-[11px] font-bold text-[#77b500] bg-[#eef5dd] px-2 py-0.5 rounded-full border border-[#b5dd66]/40">
+                {assistantMessages.length}
+              </span>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-3 py-3 bg-[#fbfbfd] space-y-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+              {assistantMessages.length === 0 && (
+                <p className="px-1 text-sm font-medium text-[#6b7280]">
+                  No replies yet.
+                </p>
+              )}
+
+              {assistantMessages.map((msg) => {
+                const isTarget = msg.content === (displayedMessage?.content ?? "");
+                const isActive = isSpeaking && isTarget;
+                const isActivePaused = isActive && isSpeakingPaused;
+                const isRowLoading = isTarget && isSpeechLoading && !isSpeaking;
+
+                return (
+                  <div
+                    key={msg.id}
+                    className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 transition ${
+                      isActive || isRowLoading
+                        ? "border-[#b5dd66] bg-[#eef5dd]/60 shadow-xs"
+                        : "border-[#e4e4e4] bg-white hover:border-[#77b500] shadow-xs"
+                    }`}
+                  >
+                    <p className="line-clamp-2 flex-1 text-left text-sm text-[#2b2b2b] font-normal leading-relaxed">
+                      {msg.content}
+                    </p>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <button
+                        onClick={() => handleTogglePlayPause(msg.content)}
+                        disabled={isRowLoading}
+                        title={
+                          isRowLoading
+                            ? "Loading audio..."
+                            : isActive && !isActivePaused
+                              ? "Pause"
+                              : isActivePaused
+                                ? "Resume"
+                                : "Listen to this reply"
+                        }
+                        className="rounded-lg p-1.5 text-[#6b7280] hover:text-[#77b500] hover:bg-[#eef5dd] transition cursor-pointer"
+                      >
+                        {isRowLoading ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : isActive && !isActivePaused ? (
+                          <Pause className="h-3.5 w-3.5 fill-current text-[#77b500]" />
+                        ) : (
+                          <Play className="h-3.5 w-3.5 fill-current text-[#77b500]" />
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleDownloadAudio(msg.content)}
+                        title="Download this reply as audio"
+                        className="rounded-lg p-1.5 text-[#6b7280] hover:text-[#77b500] hover:bg-[#eef5dd] transition cursor-pointer"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </aside>
+        )}
       </div>
 
       {/* Prayer Journal Modal */}
