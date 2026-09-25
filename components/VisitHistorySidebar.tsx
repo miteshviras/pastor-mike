@@ -19,6 +19,7 @@ import {
   Volume2,
 } from "lucide-react";
 import type { SessionWithStats } from "@/lib/db";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 interface VisitHistorySidebarProps {
   isOpen: boolean;
@@ -80,6 +81,9 @@ export const VisitHistorySidebar: React.FC<VisitHistorySidebarProps> = ({
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState<
+    { type: "single"; sessionId: string } | { type: "bulk" } | null
+  >(null);
   const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
 
@@ -124,16 +128,12 @@ export const VisitHistorySidebar: React.FC<VisitHistorySidebarProps> = ({
     };
   }, [isOpen, currentSessionId, refreshKey]);
 
-  const handleDelete = async (e: React.MouseEvent, sessionId: string) => {
+  const askDelete = (e: React.MouseEvent, sessionId: string) => {
     e.stopPropagation();
-    if (
-      !window.confirm(
-        "Are you sure you want to delete this visit and its history?",
-      )
-    ) {
-      return;
-    }
+    setConfirmTarget({ type: "single", sessionId });
+  };
 
+  const performDelete = async (sessionId: string) => {
     setDeletingId(sessionId);
     try {
       const res = await fetch(`/api/sessions?sessionId=${sessionId}`, {
@@ -169,16 +169,12 @@ export const VisitHistorySidebar: React.FC<VisitHistorySidebarProps> = ({
     setSelectedIds(new Set());
   };
 
-  const handleBulkDelete = async () => {
+  const askBulkDelete = () => {
     if (selectedIds.size === 0) return;
-    if (
-      !window.confirm(
-        `Are you sure you want to delete ${selectedIds.size} selected visit${selectedIds.size > 1 ? "s" : ""}?`,
-      )
-    ) {
-      return;
-    }
+    setConfirmTarget({ type: "bulk" });
+  };
 
+  const performBulkDelete = async () => {
     setIsBulkDeleting(true);
     try {
       const ids = Array.from(selectedIds);
@@ -197,6 +193,16 @@ export const VisitHistorySidebar: React.FC<VisitHistorySidebarProps> = ({
     } finally {
       setIsBulkDeleting(false);
     }
+  };
+
+  const handleConfirmDelete = () => {
+    if (!confirmTarget) return;
+    if (confirmTarget.type === "single") {
+      void performDelete(confirmTarget.sessionId);
+    } else {
+      void performBulkDelete();
+    }
+    setConfirmTarget(null);
   };
 
   const panelContent = (closeOnAction: boolean) => (
@@ -316,7 +322,7 @@ export const VisitHistorySidebar: React.FC<VisitHistorySidebarProps> = ({
 
                   {!isSelectMode && (
                     <button
-                      onClick={(e) => handleDelete(e, sess.id)}
+                      onClick={(e) => askDelete(e, sess.id)}
                       disabled={deletingId === sess.id}
                       title="Delete this visit"
                       className="opacity-70 sm:opacity-0 sm:group-hover:opacity-100 rounded-md p-1 text-[#6b7280] hover:bg-rose-50 hover:text-rose-600 transition shrink-0 cursor-pointer"
@@ -336,7 +342,9 @@ export const VisitHistorySidebar: React.FC<VisitHistorySidebarProps> = ({
                 {/* Visit Summary */}
                 <p className="text-[11px] text-[#4b5563] line-clamp-2 leading-relaxed">
                   {sess.title || sess.summary || sess.firstMessagePreview ? (
-                    sess.title || sess.summary || `"${sess.firstMessagePreview}"`
+                    sess.title ||
+                    sess.summary ||
+                    `"${sess.firstMessagePreview}"`
                   ) : (
                     <span className="italic text-[#9ca3af]">
                       Quiet visit without messages
@@ -383,7 +391,7 @@ export const VisitHistorySidebar: React.FC<VisitHistorySidebarProps> = ({
             {selectedIds.size} selected
           </span>
           <button
-            onClick={handleBulkDelete}
+            onClick={askBulkDelete}
             disabled={selectedIds.size === 0 || isBulkDeleting}
             className="flex items-center gap-1.5 rounded-lg border border-rose-300 bg-rose-50 px-2.5 py-1 font-bold text-rose-700 transition hover:bg-rose-100 disabled:opacity-40 cursor-pointer"
           >
@@ -471,6 +479,25 @@ export const VisitHistorySidebar: React.FC<VisitHistorySidebarProps> = ({
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={confirmTarget !== null}
+        title={
+          confirmTarget?.type === "bulk"
+            ? `Delete ${selectedIds.size} selected visit${selectedIds.size > 1 ? "s" : ""}?`
+            : "Delete this visit?"
+        }
+        message={
+          confirmTarget?.type === "bulk"
+            ? "This will permanently remove the selected visits and everything recorded during them."
+            : "This will permanently remove this visit and its history."
+        }
+        isProcessing={
+          confirmTarget?.type === "bulk" ? isBulkDeleting : deletingId !== null
+        }
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmTarget(null)}
+      />
     </>
   );
 };
