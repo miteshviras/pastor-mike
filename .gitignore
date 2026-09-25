@@ -47,8 +47,9 @@ data/
 *.db-journal
 *.db-wal
 
-# models & audio
-models/
+# TTS model cache (root-level only — anchored so this doesn't also swallow the
+# committed 3D avatar assets under public/models/)
+/models/
 *.onnx
 *.wav
 
