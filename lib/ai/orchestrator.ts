@@ -7,6 +7,7 @@ import {
   getProviderSettings,
   getRecentContext,
   savePrayerRequest,
+  updatePrayerStatus,
   countUserMessages,
   getSessionMessages,
   saveConversationSummary,
@@ -143,8 +144,21 @@ async function tryOllamaChat(
   }
 }
 
-function memoryExtractionSystemPrompt(includeTitle: boolean): string {
-  return `Given a short pastoral conversation exchange, respond with ONLY compact JSON, no markdown and no commentary, in this exact shape: {"summary": "1-2 sentence summary of this visit so far, building on the prior summary if one is given", "preferredName": "their first name if mentioned in this exchange, otherwise omit this key entirely"${includeTitle ? ', "title": "a short 3-6 word title naming what this visit is about, like a chat conversation title"' : ""}}.`;
+function memoryExtractionSystemPrompt(options: {
+  includeTitle: boolean;
+  activePrayers: { id: string; request_text: string }[];
+}): string {
+  const { includeTitle, activePrayers } = options;
+
+  const resolvedKey = activePrayers.length > 0
+    ? `, "resolvedPrayerIndex": <the number of the prayer below that this exchange indicates is now resolved/answered — e.g. they mention someone recovered, healed, or the situation resolved — otherwise omit this key entirely>`
+    : "";
+
+  const prayerList = activePrayers.length > 0
+    ? `\n\nTheir currently active prayer requests, numbered for reference:\n${activePrayers.map((p, i) => `${i + 1}. "${p.request_text}"`).join("\n")}`
+    : "";
+
+  return `Given a short pastoral conversation exchange, respond with ONLY compact JSON, no markdown and no commentary, in this exact shape: {"summary": "1-2 sentence summary of this visit so far, building on the prior summary if one is given", "preferredName": "their first name if mentioned in this exchange, otherwise omit this key entirely"${includeTitle ? ', "title": "a short 3-6 word title naming what this visit is about, like a chat conversation title"' : ""}${resolvedKey}}.${prayerList}`;
 }
 
 // Best-effort: updates the cross-session summary/memory after a Gemini or Ollama reply,
@@ -160,9 +174,10 @@ async function updateMemoryAfterTurn(params: {
   userMessage: string;
   replyText: string;
   isFirstMessageInVisit: boolean;
+  activePrayerRecords: { id: string; request_text: string }[];
 }): Promise<void> {
   try {
-    const { sessionId, userId, provider, providerSettings, priorSummary, userMessage, replyText, isFirstMessageInVisit } = params;
+    const { sessionId, userId, provider, providerSettings, priorSummary, userMessage, replyText, isFirstMessageInVisit, activePrayerRecords } = params;
 
     const extractionContent = [
       priorSummary ? `Prior summary of earlier visits: ${priorSummary}` : null,
@@ -170,7 +185,10 @@ async function updateMemoryAfterTurn(params: {
     ].filter(Boolean).join("\n");
 
     const history: ChatTurn[] = [{ role: "user", content: extractionContent }];
-    const systemPrompt = memoryExtractionSystemPrompt(isFirstMessageInVisit);
+    const systemPrompt = memoryExtractionSystemPrompt({
+      includeTitle: isFirstMessageInVisit,
+      activePrayers: activePrayerRecords,
+    });
 
     const raw = provider === "gemini"
       ? await tryGeminiChat(history, systemPrompt, providerSettings.geminiModel)
@@ -180,7 +198,12 @@ async function updateMemoryAfterTurn(params: {
     const match = raw.match(/\{[\s\S]*\}/);
     if (!match) return;
 
-    const parsed = JSON.parse(match[0]) as { summary?: string; preferredName?: string; title?: string };
+    const parsed = JSON.parse(match[0]) as {
+      summary?: string;
+      preferredName?: string;
+      title?: string;
+      resolvedPrayerIndex?: number | string;
+    };
     if (parsed.summary?.trim()) {
       saveConversationSummary(sessionId, parsed.summary.trim());
     }
@@ -189,6 +212,19 @@ async function updateMemoryAfterTurn(params: {
     }
     if (isFirstMessageInVisit && parsed.title?.trim()) {
       updateSessionTitle(sessionId, parsed.title.trim());
+    }
+
+    // 1-based index into the same list handed to the model in the prompt above — using an
+    // index rather than matching free-text back against the list avoids any fuzzy-match
+    // risk of closing out the wrong prayer.
+    const resolvedIndex = typeof parsed.resolvedPrayerIndex === "string"
+      ? parseInt(parsed.resolvedPrayerIndex, 10)
+      : parsed.resolvedPrayerIndex;
+    if (typeof resolvedIndex === "number" && Number.isInteger(resolvedIndex)) {
+      const resolved = activePrayerRecords[resolvedIndex - 1];
+      if (resolved) {
+        updatePrayerStatus(resolved.id, "answered");
+      }
     }
   } catch (err) {
     console.warn("[orchestrator] Memory extraction skipped:", err);
@@ -286,8 +322,9 @@ export async function processPastoralTurn(
   const scriptures: ScriptureVerse[] = searchScripture(`${template.scriptureQuery} ${userMessage}`);
 
   // 6. Check if user explicitly asked for prayer or mentioned a prayer request
+  const mentionsPrayer = /pray|prayer|interced|please pray|hold in prayer/.test(lowerMsg);
   let savedPrayerId: string | undefined;
-  if (/pray|prayer|interced|please pray|hold in prayer/.test(lowerMsg)) {
+  if (mentionsPrayer) {
     const prayer = savePrayerRequest(userId, userMessage, sessionId);
     savedPrayerId = prayer.id;
   }
@@ -298,7 +335,9 @@ export async function processPastoralTurn(
   // 3rd: Robust Dynamic Pastoral Reasoning Engine (local-offline-engine)
   const contextLines: string[] = [];
   if (preferredName) contextLines.push(`They prefer to be called ${preferredName}.`);
-  if (recentContext.activePrayers.length > 0) {
+  // Only surface prior prayer requests when *this* message is itself prayer-related — the
+  // assistant shouldn't volunteer old petitions unprompted on an unrelated question.
+  if (mentionsPrayer && recentContext.activePrayers.length > 0) {
     contextLines.push(`Active prayer requests you are already holding for them: ${recentContext.activePrayers.slice(0, 3).join("; ")}.`);
   }
   if (recentContext.recentSummaries.length > 0) {
@@ -315,12 +354,19 @@ export async function processPastoralTurn(
     ? "Briefly mention once, naturally, that you are an AI companion offering spiritual encouragement, not an ordained human minister."
     : "Do not repeat the AI-companion disclosure — you already gave it earlier in this visit.";
 
+  // The context lines above (and the visit-summary context, which can itself mention past
+  // prayer topics) are for your own understanding of them — not a cue to bring any of it up.
+  // Respond only to what they're actually asking about in THIS message.
+  const prayerDiscretionLine = mentionsPrayer
+    ? ""
+    : " Do not proactively mention their prayer requests, or anyone/anything named in them, unless they bring that topic up themselves in this message.";
+
   const pastoralSystemPrompt = `You are Pastor Mike, a warm, compassionate, non-judgmental AI pastoral companion.
 You speak gently and cite Holy Scripture thoughtfully.
 ${disclosureLine}
 Keep the reply short and meaningful: 2 short paragraphs at most, no padding or repeated reassurance, then a brief prayer.
 Every reply is read aloud, so write in short plain sentences with no markdown, emojis, bullet points, or decorative formatting, and let scripture references read naturally in a sentence rather than as a heading or citation.
-${contextLines.join(" ")}`;
+${contextLines.join(" ")}${prayerDiscretionLine}`;
 
   // User-selected backend (Settings). Defaults to Gemini.
   const providerSettings = getProviderSettings(userId);
@@ -379,6 +425,7 @@ ${contextLines.join(" ")}`;
       userMessage,
       replyText,
       isFirstMessageInVisit,
+      activePrayerRecords: recentContext.activePrayerRecords,
     });
   }
 

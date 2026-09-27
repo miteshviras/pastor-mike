@@ -461,6 +461,9 @@ export function saveConversationSummary(sessionId: string, summary: string): Con
 export function getRecentContext(userId: string, limit = 5): {
   recentSummaries: string[];
   activePrayers: string[];
+  // Same rows as activePrayers, but with the id kept alongside — lets a caller (the AI
+  // "this prayer got resolved" detector) update a specific row instead of just reading text.
+  activePrayerRecords: { id: string; request_text: string }[];
   memories: Record<string, string>;
 } {
   const db = getDb();
@@ -474,18 +477,19 @@ export function getRecentContext(userId: string, limit = 5): {
   `).all(userId, limit) as unknown as { summary: string }[];
 
   const prayerRows = db.prepare(`
-    SELECT request_text
+    SELECT id, request_text
     FROM prayer_requests
     WHERE user_id = ? AND status = 'active'
     ORDER BY created_at DESC
     LIMIT ?
-  `).all(userId, limit) as unknown as { request_text: string }[];
+  `).all(userId, limit) as unknown as { id: string; request_text: string }[];
 
   const memories = getAllMemories(userId);
 
   return {
     recentSummaries: summaryRows.map(r => r.summary),
     activePrayers: prayerRows.map(r => r.request_text),
+    activePrayerRecords: prayerRows,
     memories,
   };
 }
