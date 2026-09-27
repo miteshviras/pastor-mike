@@ -172,8 +172,14 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4 backdrop-blur-xs">
-        <div className="flex h-[92dvh] sm:h-[85vh] w-full max-w-xl flex-col rounded-t-3xl sm:rounded-2xl border border-[#e4e4e4] bg-white shadow-2xl overflow-hidden">
+      <div
+        onClick={onClose}
+        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4 backdrop-blur-xs"
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="flex h-[92dvh] sm:h-[85vh] w-full max-w-xl flex-col rounded-t-3xl sm:rounded-2xl border border-[#e4e4e4] bg-white shadow-2xl overflow-hidden"
+        >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-[#e4e4e4] px-4 py-3.5 sm:px-6 sm:py-4 bg-white">
             <div className="flex items-center gap-2.5">
