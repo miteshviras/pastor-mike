@@ -14,7 +14,7 @@ import { CrisisBanner } from "@/components/CrisisBanner";
 import { PastoralSpeechClient, KITTEN_VOICES } from "@/lib/voice/speech-client";
 import { useSentenceSync } from "@/lib/voice/useSentenceSync";
 import { attachAudioLevelAnalyser } from "@/lib/voice/audioLevel";
-import type { PrayerRequest, SavedVerse } from "@/lib/db";
+import type { PrayerRequest, SavedVerse, SessionWithStats } from "@/lib/db";
 import { SafetyCheckResult } from "@/lib/ai/safety";
 import {
   Sparkles,
@@ -52,6 +52,20 @@ function safeSetStorage(key: string, value: string): void {
   } catch {}
 }
 
+function formatTimeOfDay(iso: string): string {
+  return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function formatDayLabel(iso: string): string {
+  const date = new Date(iso);
+  const now = new Date();
+  if (date.toDateString() === now.toDateString()) return "Today";
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+  return date.toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
 export default function Home() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionTitle, setSessionTitle] = useState<string | null>(null);
@@ -76,7 +90,7 @@ export default function Home() {
   // desktop sidebar — which isn't remounted by isHistoryOpen toggling — knows to refetch instead
   // of only updating on a hard refresh.
   const [historyRefreshTick, setHistoryRefreshTick] = useState(0);
-  const [allSessions, setAllSessions] = useState<{ id: string; started_at: string; summary: string | null; firstMessagePreview: string | null }[]>([]);
+  const [allSessions, setAllSessions] = useState<SessionWithStats[]>([]);
   const [guideModalTab, setGuideModalTab] = useState<
     "guide" | "settings" | "profile" | "test-audio" | null
   >(null);
@@ -744,6 +758,49 @@ export default function Home() {
     }
   };
 
+  // "Your Journey" widget data — real recent visits + the latest prayer request, grouped by
+  // their actual date. Replaces what used to be hardcoded placeholder text and clock times
+  // that never reflected anything real.
+  const journeyEntries = [
+    allSessions[0]
+      ? {
+          key: `session-${allSessions[0].id}`,
+          timestamp: allSessions[0].lastMessageAt || allSessions[0].started_at,
+          text: allSessions[0].summary || allSessions[0].firstMessagePreview || "A visit together",
+          dotClassName: "h-2 w-2 bg-[#77B500]",
+          kind: "session" as const,
+          sessionId: allSessions[0].id,
+        }
+      : null,
+    prayers[0]
+      ? {
+          key: `prayer-${prayers[0].id}`,
+          timestamp: prayers[0].created_at,
+          text: prayers[0].request_text,
+          dotClassName: "h-1.5 w-1.5 bg-[#D2EAC0]",
+          kind: "prayer" as const,
+          sessionId: undefined,
+        }
+      : null,
+    allSessions[1]
+      ? {
+          key: `session-${allSessions[1].id}`,
+          timestamp: allSessions[1].lastMessageAt || allSessions[1].started_at,
+          text: allSessions[1].summary || allSessions[1].firstMessagePreview || "A visit together",
+          dotClassName: "h-1.5 w-1.5 bg-[#D2EAC0]",
+          kind: "session" as const,
+          sessionId: allSessions[1].id,
+        }
+      : null,
+  ]
+    .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .map((entry, i, arr) => ({
+      ...entry,
+      dayLabel: formatDayLabel(entry.timestamp),
+      isFirstOfDay: i === 0 || formatDayLabel(arr[i - 1].timestamp) !== formatDayLabel(entry.timestamp),
+    }));
+
   return (
     <div className="flex h-full flex-col overflow-hidden bg-[#F8F5EE] text-[#2F2F2F] selection:bg-[#77B500]/25 selection:text-[#2F2F2F]">
       {/* Top Header */}
@@ -1082,56 +1139,39 @@ export default function Home() {
               </button>
             </div>
 
-            <div className="relative pl-3 border-l-2 border-[#ECE8E2] space-y-3 ml-1.5 text-[11px]">
-              <div>
-                <span className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider block mb-1">
-                  Today
-                </span>
-                <div
-                  onClick={() => {
-                    if (allSessions[0]) handleSwitchSession(allSessions[0].id);
-                  }}
-                  className="flex items-center justify-between text-[#2F2F2F] font-medium py-0.5 cursor-pointer hover:text-[#77B500] transition"
-                >
-                  <div className="flex items-center gap-1.5 truncate pr-2">
-                    <span className="h-2 w-2 rounded-full bg-[#77B500] shrink-0" />
-                    <span className="truncate">
-                      {allSessions[0]?.summary || "Conversation about anxiety"}
-                    </span>
+            <div className="relative pl-3 border-l-2 border-[#ECE8E2] space-y-0.5 ml-1.5 text-[11px]">
+              {journeyEntries.length === 0 ? (
+                <p className="italic text-[#9CA3AF]">
+                  No activity yet — start a conversation below.
+                </p>
+              ) : (
+                journeyEntries.map((entry, i) => (
+                  <div key={entry.key} className={i > 0 && entry.isFirstOfDay ? "pt-2" : ""}>
+                    {entry.isFirstOfDay && (
+                      <span className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider block mb-1">
+                        {entry.dayLabel}
+                      </span>
+                    )}
+                    <div
+                      onClick={() => {
+                        if (entry.kind === "session") handleSwitchSession(entry.sessionId);
+                        else setIsJournalOpen(true);
+                      }}
+                      className={`flex items-center justify-between py-0.5 cursor-pointer hover:text-[#77B500] transition ${
+                        i === 0 ? "text-[#2F2F2F] font-medium" : "text-[#4B5563]"
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 truncate pr-2">
+                        <span className={`rounded-full shrink-0 ${entry.dotClassName}`} />
+                        <span className="truncate">{entry.text}</span>
+                      </div>
+                      <span className="text-[10px] text-[#9CA3AF] shrink-0">
+                        {formatTimeOfDay(entry.timestamp)}
+                      </span>
+                    </div>
                   </div>
-                  <span className="text-[10px] text-[#9CA3AF] shrink-0">10:42 AM</span>
-                </div>
-                <div
-                  onClick={() => setIsJournalOpen(true)}
-                  className="flex items-center justify-between text-[#4B5563] py-0.5 cursor-pointer hover:text-[#77B500] transition"
-                >
-                  <div className="flex items-center gap-1.5 truncate pr-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#D2EAC0] shrink-0" />
-                    <span className="truncate">Prayer request</span>
-                  </div>
-                  <span className="text-[10px] text-[#9CA3AF] shrink-0">9:15 AM</span>
-                </div>
-              </div>
-
-              <div>
-                <span className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider block mb-1">
-                  Yesterday
-                </span>
-                <div
-                  onClick={() => {
-                    if (allSessions[1]) handleSwitchSession(allSessions[1].id);
-                  }}
-                  className="flex items-center justify-between text-[#4B5563] py-0.5 cursor-pointer hover:text-[#77B500] transition"
-                >
-                  <div className="flex items-center gap-1.5 truncate pr-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#D2EAC0] shrink-0" />
-                    <span className="truncate">
-                      {allSessions[1]?.summary || "Encouragement and healing"}
-                    </span>
-                  </div>
-                  <span className="text-[10px] text-[#9CA3AF] shrink-0">4:18 PM</span>
-                </div>
-              </div>
+                ))
+              )}
             </div>
           </div>
         </aside>
