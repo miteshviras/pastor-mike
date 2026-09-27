@@ -225,7 +225,7 @@ export default function PastorStage({
             ) : (
               <>
                 <Play className="h-3.5 w-3.5 fill-current" />
-                <span>Resume</span>
+                <span>Play</span>
               </>
             )}
           </button>
