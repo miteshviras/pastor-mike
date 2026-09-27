@@ -4,12 +4,20 @@ import {
   listSavedVerses,
   saveVerse,
   deleteSavedVerse,
+  deleteSavedVerses,
 } from "@/lib/db";
 
-export async function GET() {
+export async function GET(req?: NextRequest) {
   try {
     const user = getOrCreateDefaultUser();
-    const verses = listSavedVerses(user.id);
+    const url = req?.url ? new URL(req.url) : null;
+    const limitParam = url?.searchParams.get("limit");
+    const offsetParam = url?.searchParams.get("offset");
+    const verses = listSavedVerses(
+      user.id,
+      limitParam ? Number(limitParam) : undefined,
+      offsetParam ? Number(offsetParam) : undefined
+    );
     return NextResponse.json({ verses });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : "Internal server error";
@@ -41,6 +49,17 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
+    const idsParam = searchParams.get("ids");
+
+    if (idsParam) {
+      const ids = idsParam.split(",").map((s) => s.trim()).filter(Boolean);
+      if (ids.length === 0) {
+        return NextResponse.json({ error: "No verse ids provided" }, { status: 400 });
+      }
+      const deletedCount = deleteSavedVerses(ids);
+      return NextResponse.json({ success: true, deletedCount, ids });
+    }
+
     const id = searchParams.get("id");
 
     if (!id) {

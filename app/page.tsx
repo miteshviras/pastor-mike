@@ -307,54 +307,45 @@ export default function Home() {
           }
         }
 
-        // 3. If no saved session, look for the most recent session with content or fallback
+        // 3. If no saved session, use the most recent visit. listSessionsWithStats already
+        // only returns sessions with at least one message or prayer, ordered by last
+        // activity — so sessions[0] is guaranteed non-empty, no need to probe each one.
         if (!activeSessionId) {
           const sRes = await fetch("/api/sessions");
           if (sRes.ok) {
             const sData = await sRes.json();
             if (sData.sessions && sData.sessions.length > 0) {
-              for (const s of sData.sessions) {
-                const msgRes = await fetch(
-                  `/api/sessions?sessionId=${encodeURIComponent(s.id)}`,
-                );
-                if (msgRes.ok) {
-                  const msgData = await msgRes.json();
-                  if (msgData.messages && msgData.messages.length > 0) {
-                    activeSessionId = s.id;
-                    setSessionId(s.id);
-                    setSessionTitle(s.title ?? null);
-                    if (typeof window !== "undefined") {
-                      localStorage.setItem("pastor_mike_session_id", s.id);
-                    }
-                    setMessages(
-                      msgData.messages.map(
-                        (m: {
-                          id: string;
-                          role: "user" | "assistant" | "system";
-                          content: string;
-                          metadata: string | null;
-                          created_at: string;
-                        }) => ({
-                          id: m.id,
-                          role: m.role,
-                          content: m.content,
-                          metadata: m.metadata ? JSON.parse(m.metadata) : null,
-                          createdAt: m.created_at,
-                        }),
-                      ),
-                    );
-                    break;
-                  }
-                }
+              const latest = sData.sessions[0];
+              activeSessionId = latest.id;
+              setSessionId(latest.id);
+              setSessionTitle(latest.title ?? null);
+              if (typeof window !== "undefined") {
+                localStorage.setItem("pastor_mike_session_id", latest.id);
               }
 
-              if (!activeSessionId) {
-                const latest = sData.sessions[0];
-                activeSessionId = latest.id;
-                setSessionId(latest.id);
-                setSessionTitle(latest.title ?? null);
-                if (typeof window !== "undefined") {
-                  localStorage.setItem("pastor_mike_session_id", latest.id);
+              const msgRes = await fetch(
+                `/api/sessions?sessionId=${encodeURIComponent(latest.id)}`,
+              );
+              if (msgRes.ok) {
+                const msgData = await msgRes.json();
+                if (msgData.messages && msgData.messages.length > 0) {
+                  setMessages(
+                    msgData.messages.map(
+                      (m: {
+                        id: string;
+                        role: "user" | "assistant" | "system";
+                        content: string;
+                        metadata: string | null;
+                        created_at: string;
+                      }) => ({
+                        id: m.id,
+                        role: m.role,
+                        content: m.content,
+                        metadata: m.metadata ? JSON.parse(m.metadata) : null,
+                        createdAt: m.created_at,
+                      }),
+                    ),
+                  );
                 }
               }
             }
@@ -605,6 +596,20 @@ export default function Home() {
     }
   };
 
+  const handleBulkDeletePrayers = async (prayerIds: string[]) => {
+    try {
+      const res = await fetch(
+        `/api/prayers?ids=${prayerIds.map(encodeURIComponent).join(",")}`,
+        { method: "DELETE" },
+      );
+      if (res.ok) {
+        setPrayers((prev) => prev.filter((p) => !prayerIds.includes(p.id)));
+      }
+    } catch (err) {
+      console.error("Error bulk deleting prayers:", err);
+    }
+  };
+
   const handleTogglePrayerStatus = async (
     prayerId: string,
     currentStatus: "active" | "answered",
@@ -661,6 +666,20 @@ export default function Home() {
       }
     } catch (err) {
       console.error("Error deleting saved verse:", err);
+    }
+  };
+
+  const handleBulkDeleteVerses = async (verseIds: string[]) => {
+    try {
+      const res = await fetch(
+        `/api/verses?ids=${verseIds.map(encodeURIComponent).join(",")}`,
+        { method: "DELETE" },
+      );
+      if (res.ok) {
+        setSavedVerses((prev) => prev.filter((v) => !verseIds.includes(v.id)));
+      }
+    } catch (err) {
+      console.error("Error bulk deleting saved verses:", err);
     }
   };
 
@@ -1204,8 +1223,10 @@ export default function Home() {
           await handleSavePrayer(text);
         }}
         onDeletePrayer={handleDeletePrayer}
+        onBulkDeletePrayers={handleBulkDeletePrayers}
         verses={savedVerses}
         onDeleteVerse={handleDeleteVerse}
+        onBulkDeleteVerses={handleBulkDeleteVerses}
       />
 
       {/* Setup Guide & AI Settings Modal — full wizard for "guide", a single

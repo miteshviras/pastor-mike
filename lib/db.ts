@@ -159,6 +159,8 @@ export function getDb(): DatabaseSync {
       CREATE INDEX IF NOT EXISTS idx_prayers_user ON prayer_requests(user_id, created_at);
       CREATE INDEX IF NOT EXISTS idx_verses_user ON saved_verses(user_id, created_at);
       CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id, started_at);
+      CREATE INDEX IF NOT EXISTS idx_summaries_session ON conversation_summaries(session_id);
+      CREATE INDEX IF NOT EXISTS idx_prayers_session ON prayer_requests(session_id);
     `);
 
     // Migration: sessions.title didn't exist in earlier versions of this schema.
@@ -234,28 +236,31 @@ export function listSessions(userId: string): Session[] {
   return db.prepare("SELECT * FROM sessions WHERE user_id = ? ORDER BY started_at DESC").all(userId) as unknown as Session[];
 }
 
-export function listSessionsWithStats(userId: string): SessionWithStats[] {
+export function listSessionsWithStats(userId: string, limit = 200, offset = 0): SessionWithStats[] {
   const db = getDb();
+  // The correlated subqueries are computed once in the inner SELECT; the outer WHERE/ORDER BY
+  // then filter/sort on those already-computed aliases instead of re-running them a second
+  // time (the previous version evaluated messageCount/prayerCount/lastMessageAt twice per row).
   return db.prepare(`
-    SELECT 
-      s.id,
-      s.user_id,
-      s.started_at,
-      s.ended_at,
-      s.summary,
-      s.title,
-      (SELECT COUNT(*) FROM messages WHERE session_id = s.id) as messageCount,
-      (SELECT COUNT(*) FROM prayer_requests WHERE session_id = s.id) as prayerCount,
-      (SELECT content FROM messages WHERE session_id = s.id AND role = 'user' ORDER BY created_at ASC LIMIT 1) as firstMessagePreview,
-      (SELECT created_at FROM messages WHERE session_id = s.id ORDER BY created_at DESC LIMIT 1) as lastMessageAt
-    FROM sessions s
-    WHERE s.user_id = ?
-      AND (
-        (SELECT COUNT(*) FROM messages WHERE session_id = s.id) > 0
-        OR (SELECT COUNT(*) FROM prayer_requests WHERE session_id = s.id) > 0
-      )
-    ORDER BY COALESCE((SELECT created_at FROM messages WHERE session_id = s.id ORDER BY created_at DESC LIMIT 1), s.started_at) DESC
-  `).all(userId) as unknown as SessionWithStats[];
+    SELECT * FROM (
+      SELECT
+        s.id,
+        s.user_id,
+        s.started_at,
+        s.ended_at,
+        s.summary,
+        s.title,
+        (SELECT COUNT(*) FROM messages WHERE session_id = s.id) as messageCount,
+        (SELECT COUNT(*) FROM prayer_requests WHERE session_id = s.id) as prayerCount,
+        (SELECT content FROM messages WHERE session_id = s.id AND role = 'user' ORDER BY created_at ASC LIMIT 1) as firstMessagePreview,
+        (SELECT created_at FROM messages WHERE session_id = s.id ORDER BY created_at DESC LIMIT 1) as lastMessageAt
+      FROM sessions s
+      WHERE s.user_id = ?
+    ) t
+    WHERE t.messageCount > 0 OR t.prayerCount > 0
+    ORDER BY COALESCE(t.lastMessageAt, t.started_at) DESC
+    LIMIT ? OFFSET ?
+  `).all(userId, limit, offset) as unknown as SessionWithStats[];
 }
 
 export function deleteSession(sessionId: string): boolean {
@@ -268,6 +273,25 @@ export function deleteSession(sessionId: string): boolean {
   db.prepare("DELETE FROM conversation_summaries WHERE session_id = ?").run(sessionId);
   const res = db.prepare("DELETE FROM sessions WHERE id = ?").run(sessionId);
   return Number(res.changes) > 0;
+}
+
+// Reuses deleteSession's cascade per id rather than re-deriving it — a bulk UI action becomes
+// one transaction instead of N separate HTTP round trips.
+export function deleteSessions(sessionIds: string[]): number {
+  if (sessionIds.length === 0) return 0;
+  const db = getDb();
+  let count = 0;
+  db.exec("BEGIN");
+  try {
+    for (const id of sessionIds) {
+      if (deleteSession(id)) count++;
+    }
+    db.exec("COMMIT");
+  } catch (err) {
+    db.exec("ROLLBACK");
+    throw err;
+  }
+  return count;
 }
 
 export function updateSessionSummary(sessionId: string, summary: string): void {
@@ -345,16 +369,30 @@ export function savePrayerRequest(
   };
 }
 
-export function listPrayerRequests(userId: string, sessionId?: string | null): PrayerRequest[] {
+export function listPrayerRequests(
+  userId: string,
+  sessionId?: string | null,
+  status?: "active" | "answered" | null,
+  limit = 200,
+  offset = 0
+): PrayerRequest[] {
   const db = getDb();
+  const conditions = ["user_id = ?"];
+  const params: (string | number)[] = [userId];
+
   if (sessionId && sessionId !== "all") {
-    return db.prepare(
-      "SELECT * FROM prayer_requests WHERE user_id = ? AND session_id = ? ORDER BY created_at DESC"
-    ).all(userId, sessionId) as unknown as PrayerRequest[];
+    conditions.push("session_id = ?");
+    params.push(sessionId);
   }
+  if (status) {
+    conditions.push("status = ?");
+    params.push(status);
+  }
+  params.push(limit, offset);
+
   return db.prepare(
-    "SELECT * FROM prayer_requests WHERE user_id = ? ORDER BY created_at DESC"
-  ).all(userId) as unknown as PrayerRequest[];
+    `SELECT * FROM prayer_requests WHERE ${conditions.join(" AND ")} ORDER BY created_at DESC LIMIT ? OFFSET ?`
+  ).all(...params) as unknown as PrayerRequest[];
 }
 
 export function updatePrayerStatus(prayerId: string, status: "active" | "answered"): void {
@@ -365,6 +403,14 @@ export function updatePrayerStatus(prayerId: string, status: "active" | "answere
 export function deletePrayerRequest(prayerId: string): void {
   const db = getDb();
   db.prepare("DELETE FROM prayer_requests WHERE id = ?").run(prayerId);
+}
+
+export function deletePrayerRequests(prayerIds: string[]): number {
+  if (prayerIds.length === 0) return 0;
+  const db = getDb();
+  const placeholders = prayerIds.map(() => "?").join(",");
+  const res = db.prepare(`DELETE FROM prayer_requests WHERE id IN (${placeholders})`).run(...prayerIds);
+  return Number(res.changes);
 }
 
 // Saved Verse Helpers — a personal collection of scripture the user chose to keep,
@@ -395,16 +441,24 @@ export function saveVerse(
   };
 }
 
-export function listSavedVerses(userId: string): SavedVerse[] {
+export function listSavedVerses(userId: string, limit = 200, offset = 0): SavedVerse[] {
   const db = getDb();
   return db.prepare(
-    "SELECT * FROM saved_verses WHERE user_id = ? ORDER BY created_at DESC"
-  ).all(userId) as unknown as SavedVerse[];
+    "SELECT * FROM saved_verses WHERE user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?"
+  ).all(userId, limit, offset) as unknown as SavedVerse[];
 }
 
 export function deleteSavedVerse(verseId: string): void {
   const db = getDb();
   db.prepare("DELETE FROM saved_verses WHERE id = ?").run(verseId);
+}
+
+export function deleteSavedVerses(verseIds: string[]): number {
+  if (verseIds.length === 0) return 0;
+  const db = getDb();
+  const placeholders = verseIds.map(() => "?").join(",");
+  const res = db.prepare(`DELETE FROM saved_verses WHERE id IN (${placeholders})`).run(...verseIds);
+  return Number(res.changes);
 }
 
 // Memory & Preference Helpers

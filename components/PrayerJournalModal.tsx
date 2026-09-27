@@ -28,8 +28,10 @@ interface PrayerJournalModalProps {
   ) => Promise<void>;
   onAddPrayer: (text: string) => Promise<void>;
   onDeletePrayer?: (prayerId: string) => Promise<void>;
+  onBulkDeletePrayers?: (prayerIds: string[]) => Promise<void>;
   verses: SavedVerse[];
   onDeleteVerse?: (verseId: string) => Promise<void>;
+  onBulkDeleteVerses?: (verseIds: string[]) => Promise<void>;
 }
 
 const MAX_PRAYER_LENGTH = 150;
@@ -41,8 +43,10 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
   onToggleStatus,
   onAddPrayer,
   onDeletePrayer,
+  onBulkDeletePrayers,
   verses,
   onDeleteVerse,
+  onBulkDeleteVerses,
 }) => {
   const [activeTab, setActiveTab] = useState<"prayers" | "verses">("prayers");
   const [filter, setFilter] = useState<"all" | "active" | "answered">("all");
@@ -124,10 +128,10 @@ export const PrayerJournalModal: React.FC<PrayerJournalModalProps> = ({
     if (ids.length === 0) return;
     setIsBulkDeleting(true);
     try {
-      if (activeTab === "prayers" && onDeletePrayer) {
-        await Promise.all(ids.map((id) => onDeletePrayer(id)));
-      } else if (activeTab === "verses" && onDeleteVerse) {
-        await Promise.all(ids.map((id) => onDeleteVerse(id)));
+      if (activeTab === "prayers" && onBulkDeletePrayers) {
+        await onBulkDeletePrayers(ids);
+      } else if (activeTab === "verses" && onBulkDeleteVerses) {
+        await onBulkDeleteVerses(ids);
       }
       exitSelectMode();
     } finally {

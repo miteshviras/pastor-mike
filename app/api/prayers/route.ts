@@ -7,13 +7,25 @@ import {
   savePrayerRequest,
   updatePrayerStatus,
   deletePrayerRequest,
+  deletePrayerRequests,
 } from "@/lib/db";
 
 export async function GET(req?: NextRequest) {
   try {
     const user = getOrCreateDefaultUser();
-    const sessionId = req?.url ? new URL(req.url).searchParams.get("sessionId") : null;
-    const prayers = listPrayerRequests(user.id, sessionId);
+    const url = req?.url ? new URL(req.url) : null;
+    const sessionId = url?.searchParams.get("sessionId") ?? null;
+    const statusParam = url?.searchParams.get("status");
+    const status = statusParam === "active" || statusParam === "answered" ? statusParam : undefined;
+    const limitParam = url?.searchParams.get("limit");
+    const offsetParam = url?.searchParams.get("offset");
+    const prayers = listPrayerRequests(
+      user.id,
+      sessionId,
+      status,
+      limitParam ? Number(limitParam) : undefined,
+      offsetParam ? Number(offsetParam) : undefined
+    );
     return NextResponse.json({ prayers });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : "Internal server error";
@@ -65,6 +77,17 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
+    const idsParam = searchParams.get("ids");
+
+    if (idsParam) {
+      const ids = idsParam.split(",").map((s) => s.trim()).filter(Boolean);
+      if (ids.length === 0) {
+        return NextResponse.json({ error: "No prayer ids provided" }, { status: 400 });
+      }
+      const deletedCount = deletePrayerRequests(ids);
+      return NextResponse.json({ success: true, deletedCount, ids });
+    }
+
     const id = searchParams.get("id");
 
     if (!id) {

@@ -34,6 +34,8 @@ interface VisitHistorySidebarProps {
   isVoiceMode?: boolean;
 }
 
+const PAGE_SIZE = 30;
+
 function formatVisitDate(isoString: string) {
   try {
     const date = new Date(isoString);
@@ -77,6 +79,9 @@ export const VisitHistorySidebar: React.FC<VisitHistorySidebarProps> = ({
 }) => {
   const [sessions, setSessions] = useState<SessionWithStats[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -111,10 +116,14 @@ export const VisitHistorySidebar: React.FC<VisitHistorySidebarProps> = ({
     async function load() {
       setIsLoading(true);
       try {
-        const res = await fetch("/api/sessions");
+        const res = await fetch(`/api/sessions?limit=${PAGE_SIZE}&offset=0`);
         if (!res.ok || cancelled) return;
         const data = await res.json();
-        if (data.sessions && !cancelled) setSessions(data.sessions);
+        if (data.sessions && !cancelled) {
+          setSessions(data.sessions);
+          setOffset(data.sessions.length);
+          setHasMore(data.sessions.length === PAGE_SIZE);
+        }
       } catch (err) {
         console.error("Failed to load visit history:", err);
       } finally {
@@ -127,6 +136,25 @@ export const VisitHistorySidebar: React.FC<VisitHistorySidebarProps> = ({
       cancelled = true;
     };
   }, [isOpen, currentSessionId, refreshKey]);
+
+  const loadMore = async () => {
+    setIsLoadingMore(true);
+    try {
+      const res = await fetch(`/api/sessions?limit=${PAGE_SIZE}&offset=${offset}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.sessions) {
+          setSessions((prev) => [...prev, ...data.sessions]);
+          setOffset((prev) => prev + data.sessions.length);
+          setHasMore(data.sessions.length === PAGE_SIZE);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load more visits:", err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
 
   const askDelete = (e: React.MouseEvent, sessionId: string) => {
     e.stopPropagation();
@@ -178,14 +206,15 @@ export const VisitHistorySidebar: React.FC<VisitHistorySidebarProps> = ({
     setIsBulkDeleting(true);
     try {
       const ids = Array.from(selectedIds);
-      await Promise.all(
-        ids.map((id) =>
-          fetch(`/api/sessions?sessionId=${id}`, { method: "DELETE" }),
-        ),
+      const res = await fetch(
+        `/api/sessions?sessionIds=${ids.map(encodeURIComponent).join(",")}`,
+        { method: "DELETE" },
       );
-      setSessions((prev) => prev.filter((s) => !selectedIds.has(s.id)));
-      if (currentSessionId && selectedIds.has(currentSessionId)) {
-        onNewSession();
+      if (res.ok) {
+        setSessions((prev) => prev.filter((s) => !selectedIds.has(s.id)));
+        if (currentSessionId && selectedIds.has(currentSessionId)) {
+          onNewSession();
+        }
       }
       exitSelectMode();
     } catch (err) {
@@ -382,6 +411,16 @@ export const VisitHistorySidebar: React.FC<VisitHistorySidebarProps> = ({
             );
           })
         )}
+
+        {hasMore && !isLoading && !isSelectMode && (
+          <button
+            onClick={loadMore}
+            disabled={isLoadingMore}
+            className="w-full rounded-lg border border-[#e4e4e4] bg-white py-2 text-[11px] font-bold text-[#77b500] hover:border-[#77b500] transition cursor-pointer disabled:opacity-50"
+          >
+            {isLoadingMore ? "Loading..." : "Load More Visits"}
+          </button>
+        )}
       </div>
 
       {/* Footer */}
@@ -402,7 +441,7 @@ export const VisitHistorySidebar: React.FC<VisitHistorySidebarProps> = ({
       ) : (
         <div className="relative flex items-center justify-between border-t border-[#e4e4e4] px-4 py-2.5 bg-white">
           <span className="text-[10px] font-medium text-[#6b7280]">
-            {sessions.length} total visits preserved in local SQLite
+            {sessions.length} visit{sessions.length === 1 ? "" : "s"} loaded from local SQLite
           </span>
 
           <div ref={settingsMenuRef} className="relative shrink-0">

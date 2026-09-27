@@ -6,6 +6,7 @@ import {
   getSessionMessages,
   getSession,
   deleteSession,
+  deleteSessions,
 } from "@/lib/db";
 
 import { getVerseByReference, ScriptureVerse } from "@/lib/scripture/bible-data";
@@ -51,7 +52,14 @@ export async function GET(req?: NextRequest) {
       return NextResponse.json({ session, messages });
     }
 
-    const sessions = listSessionsWithStats(user.id);
+    const url = req?.url ? new URL(req.url) : null;
+    const limitParam = url?.searchParams.get("limit");
+    const offsetParam = url?.searchParams.get("offset");
+    const sessions = listSessionsWithStats(
+      user.id,
+      limitParam ? Number(limitParam) : undefined,
+      offsetParam ? Number(offsetParam) : undefined
+    );
     return NextResponse.json({ sessions });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : "Internal server error";
@@ -73,6 +81,17 @@ export async function POST() {
 export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
+    const sessionIdsParam = searchParams.get("sessionIds");
+
+    if (sessionIdsParam) {
+      const ids = sessionIdsParam.split(",").map((s) => s.trim()).filter(Boolean);
+      if (ids.length === 0) {
+        return NextResponse.json({ error: "No session ids provided" }, { status: 400 });
+      }
+      const deletedCount = deleteSessions(ids);
+      return NextResponse.json({ success: true, deletedCount, sessionIds: ids });
+    }
+
     const sessionId = searchParams.get("sessionId");
 
     if (!sessionId) {
