@@ -43,7 +43,8 @@ export interface ChatMessageProps {
   onSpeak?: (text: string) => void;
   onRestart?: (text: string) => void;
   onStop?: () => void;
-  onMarkAnswered?: (prayerId: string) => Promise<void>;
+  isPrayerAnswered?: boolean;
+  onToggleAnswered?: (prayerId: string) => Promise<void>;
   onDownload?: (text: string) => Promise<void>;
   onSaveVerse?: (
     reference: string,
@@ -61,7 +62,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   onSpeak,
   onRestart,
   onStop,
-  onMarkAnswered,
+  isPrayerAnswered = false,
+  onToggleAnswered,
   onDownload,
   onSaveVerse,
   isSpeakingNow = false,
@@ -74,8 +76,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   );
   const [savingVerseRef, setSavingVerseRef] = useState<string | null>(null);
   const savedPrayerId = metadata?.savedPrayerId;
-  const [prayerAnswered, setPrayerAnswered] = useState<boolean>(false);
-  const [markingAnswered, setMarkingAnswered] = useState<boolean>(false);
+  const [isTogglingAnswered, setIsTogglingAnswered] = useState<boolean>(false);
   const [downloadingAudio, setDownloadingAudio] = useState<boolean>(false);
 
   const handleDownload = async () => {
@@ -119,13 +120,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     setSavingVerseRef(null);
   };
 
-  const handleMarkAnswered = async () => {
-    if (!savedPrayerId || prayerAnswered || markingAnswered || !onMarkAnswered)
-      return;
-    setMarkingAnswered(true);
-    await onMarkAnswered(savedPrayerId);
-    setPrayerAnswered(true);
-    setMarkingAnswered(false);
+  const handleToggleAnswered = async () => {
+    if (!savedPrayerId || isTogglingAnswered || !onToggleAnswered) return;
+    setIsTogglingAnswered(true);
+    await onToggleAnswered(savedPrayerId);
+    setIsTogglingAnswered(false);
   };
 
   if (isUser) {
@@ -378,23 +377,27 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
               </div>
 
               <div className="flex items-center gap-1.5">
-                {onMarkAnswered && savedPrayerId && (
+                {onToggleAnswered && savedPrayerId && (
                   <button
-                    onClick={handleMarkAnswered}
-                    disabled={prayerAnswered || markingAnswered}
-                    title="Confirm this prayer has been answered"
-                    className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition cursor-pointer ${
-                      prayerAnswered
+                    onClick={handleToggleAnswered}
+                    disabled={isTogglingAnswered}
+                    title={
+                      isPrayerAnswered
+                        ? "Mark this prayer as active again"
+                        : "Confirm this prayer has been answered"
+                    }
+                    className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition cursor-pointer disabled:opacity-60 ${
+                      isPrayerAnswered
                         ? "border border-[#b5dd66] bg-white text-[#4f7a00] shadow-xs"
                         : "bg-[#77b500] hover:bg-[#659c00] text-white shadow-xs"
                     }`}
                   >
                     <CheckCheck className="h-3.5 w-3.5" />
                     <span>
-                      {prayerAnswered
-                        ? "Answered"
-                        : markingAnswered
-                          ? "Marking..."
+                      {isTogglingAnswered
+                        ? "Updating..."
+                        : isPrayerAnswered
+                          ? "Answered"
                           : "Mark as Answered"}
                     </span>
                   </button>

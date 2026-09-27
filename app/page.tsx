@@ -614,11 +614,6 @@ export default function Home() {
     }
   };
 
-  // Lets a prayer be marked answered directly from its chat card, once the user confirms
-  // in conversation that it's been resolved, without opening the Prayer Journal modal.
-  const handleMarkPrayerAnswered = (prayerId: string) =>
-    handleTogglePrayerStatus(prayerId, "active");
-
   const handleSaveVerse = async (
     reference: string,
     text: string,
@@ -872,6 +867,12 @@ export default function Home() {
                     {messages.map((msg) => {
                       const isThisMsgActive = isSpeaking && speakingText === msg.content;
                       const isThisMsgPaused = isThisMsgActive && isSpeakingPaused;
+                      // Look up this prayer's *live* status rather than trusting whatever
+                      // was true when the message was first saved — otherwise the card
+                      // forgets it was answered the moment the page reloads.
+                      const linkedPrayer = msg.metadata?.savedPrayerId
+                        ? prayers.find((p) => p.id === msg.metadata!.savedPrayerId)
+                        : undefined;
                       return (
                         <ChatMessage
                           key={msg.id}
@@ -879,7 +880,12 @@ export default function Home() {
                           onSpeak={handleTogglePlayPause}
                           onRestart={handleRestartSpeaking}
                           onStop={handleStopSpeaking}
-                          onMarkAnswered={handleMarkPrayerAnswered}
+                          isPrayerAnswered={linkedPrayer?.status === "answered"}
+                          onToggleAnswered={
+                            linkedPrayer
+                              ? () => handleTogglePrayerStatus(linkedPrayer.id, linkedPrayer.status)
+                              : undefined
+                          }
                           onDownload={handleDownloadAudio}
                           onSaveVerse={handleSaveVerse}
                           isSpeakingNow={isThisMsgActive}
